@@ -1,10 +1,13 @@
 [package]
-name = "stegano_cli"
+name = "stegano"
 version = "0.0.1"
 authors = ["Sven Assmann <sven.assmann.it@gmail.com>"]
+edition = "2018"
 
 [workspace]
 
 [dependencies]
-png = "0.15"
-core = { path = "./core" }
+image = "0.22.1"
+
+[dev-dependencies]
+speculate = "0.1"
