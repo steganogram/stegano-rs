@@ -46,23 +46,24 @@ impl<I: Read> Iterator for BitIterator<I> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let bit = self.i % self.n;
+            self.i = self.i + 1;
             if bit == 0 {
                 self.byte = None;
             }
-            self.i = self.i + 1;
-            return match self.byte {
-                None => {
-                    let mut b = 0;
-                    match self.iter.read(slice::from_mut(&mut b)) {
-                        Ok(0) => None,
-                        Ok(..) => {
-                            self.byte = Some(b);
-                            Some((b >> bit) & 1)
-                        }
-                        Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
-                        Err(_) => None,
+            if self.byte == None {
+                let mut b = 0;
+                match self.iter.read(slice::from_mut(&mut b)) {
+                    Ok(0) => None,
+                    Ok(..) => {
+                        self.byte = Some(b);
+                        self.byte
                     }
-                }
+                    Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                    Err(_) => None,
+                };
+            }
+            return match self.byte {
+                None => None,
                 Some(b) => Some((b >> bit) & 1),
             };
         }
