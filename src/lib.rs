@@ -1,9 +1,6 @@
 use image::*;
-use std::borrow::BorrowMut;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::BufReader;
-use std::io::Bytes;
 use std::io::*;
 use std::path::Path;
 use std::slice;
@@ -15,11 +12,11 @@ pub struct Steganogramm {
 }
 
 pub trait Encoder {
-    fn hide(&mut self) -> &mut Self;
+    fn hide<'a>(&'a self) -> &'a Self;
 }
 
 pub trait Decoder {
-    fn unhide(self) -> Self;
+    fn unhide(&mut self) -> &mut Self;
 }
 
 pub struct BitIterator<I> {
@@ -40,7 +37,10 @@ impl<I> BitIterator<I> {
     }
 }
 
-impl<I: Read> Iterator for BitIterator<I> {
+impl<I> Iterator for BitIterator<I>
+where
+    I: Read,
+{
     type Item = u8;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -71,48 +71,37 @@ impl<I: Read> Iterator for BitIterator<I> {
 }
 
 impl Encoder for Steganogramm {
-    fn hide(&mut self) -> &mut Steganogramm {
-        let source = self.source.take().unwrap();
-        let carrier = self.carrier.take().unwrap();
+    fn hide<'a>(&'a self) -> &'a Self {
+        let carrier = self.carrier.as_ref().unwrap();
         let (width, heigh) = carrier.dimensions();
-        let bit_iter = BitIterator::new(source);
-
+        let mut bit_iter = BitIterator::new(self.source.as_ref().unwrap());
         let mut target: RgbaImage = ImageBuffer::new(width, heigh);
 
-        for (x, y, pixel) in target.enumerate_pixels_mut() {
-            let other = carrier.get_pixel(x, y);
-            // let r = (0.3 * x as f32) as u8;
-            // let b = (0.3 * y as f32) as u8;
-            // TODO feat(core:hide) implement the basic functionality here
-            let image::Rgba(data) = other;
-            *pixel = Rgba([data[0], data[1], data[2], data[3]]);
+        #[inline]
+        fn bit_wave(byte: &u8, bit: &Option<u8>) -> u8 {
+            match bit {
+                None => *byte,
+                Some(b) => (*byte & 0xFE) | (b & 1),
+            }
         }
-        target.save(self.target.take().unwrap()).unwrap();
 
-        // loop {
-        //   let mut buffer = [0; 512];
-        //   let bytes_read = source.read(&mut buffer).unwrap();
-
-        //   if bytes_read != buffer.len() {
-        //     break;
-        //   }
-        // }
-
-        // match self.encoder {
-        //   None => {},
-        //   Some(ref _enc) => {
-        //     // let data = [0x15; 512*512]; // An array containing a RGBA sequence. First pixel is red and second pixel is black.
-        //     // enc.write_header().unwrap().write_image_data(&data).unwrap(); // Save
-        //     // self.encoder = Some(*enc)
-        //   }
-        // }
+        for (x, y, pixel) in target.enumerate_pixels_mut() {
+            let image::Rgba(data) = carrier.get_pixel(x, y);
+            *pixel = Rgba([
+                bit_wave(&data[0], &bit_iter.next()),
+                bit_wave(&data[1], &bit_iter.next()),
+                bit_wave(&data[2], &bit_iter.next()),
+                data[3],
+            ]);
+        }
+        target.save(self.target.as_ref().unwrap()).unwrap();
 
         self
     }
 }
 
 impl Steganogramm {
-    pub fn new() -> Steganogramm {
+    pub fn new() -> Self {
         Steganogramm {
             carrier: None,
             source: None,
@@ -120,19 +109,41 @@ impl Steganogramm {
         }
     }
 
-    pub fn use_carrier_image(&mut self, input_file: &str) -> &mut Steganogramm {
+    pub fn use_carrier_image(&mut self, input_file: &str) -> &mut Self {
         self.carrier =
             Some(image::open(Path::new(input_file)).expect("Carrier image was not readable."));
         self
     }
 
-    pub fn write_to(&mut self, output_file: &str) -> &mut Steganogramm {
+    pub fn write_to(&mut self, output_file: &str) -> &mut Self {
         self.target = Some(output_file.to_string());
         self
     }
 
-    pub fn take_data_to_hide_from(&mut self, input_file: &str) -> &mut Steganogramm {
+    pub fn take_data_to_hide_from(&mut self, input_file: &str) -> &mut Self {
         self.source = Some(File::open(input_file).expect("Source file was not readable."));
+        self
+    }
+}
+
+impl Steganogramm {
+    pub fn decoder() -> Self {
+        Steganogramm {
+            carrier: None,
+            source: None,
+            target: None,
+        }
+    }
+
+    pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
+        self.source = Some(File::open(input_file).expect("Source file was not readable."));
+
+        self
+    }
+}
+
+impl Decoder for Steganogramm {
+    fn unhide(&mut self) -> &mut Self {
         self
     }
 }
