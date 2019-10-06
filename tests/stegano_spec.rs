@@ -1,6 +1,6 @@
 use speculate::speculate;
 use std::fs;
-use stegano::{BitIterator, Encoder, Steganogramm};
+use stegano::{BitIterator, Decoder, Encoder, SteganoDecode, Steganogramm};
 
 speculate! {
     describe "Steganogramm::new()" {
@@ -40,14 +40,23 @@ speculate! {
                 .write_to("/tmp/out-test-image.png")
                 .hide();
 
-            let _l = fs::metadata("/tmp/out-test-image.png")
+            let l = fs::metadata("/tmp/out-test-image.png")
                 .expect("Output image was not written.")
                 .len();
 
-            // Steganogramm::decoder()
-            //     .use_source_image("/tmp/out-test-image.png")
-            //     .write_to("/tmp/Cargo.toml")
-            //     .unhide();
+            SteganoDecode::new()
+                .use_source_image("/tmp/out-test-image.png")
+                .write_to("/tmp/Cargo.toml")
+                .unhide();
+
+            let l = fs::metadata("Cargo.toml")
+                .expect("Source file is not available.")
+                .len();
+            let l2 = fs::metadata("/tmp/Cargo.toml")
+                .expect("Output image was not written.")
+                .len();
+
+            assert_eq!(l2, l, "Filesizes are not same");
         }
     }
 

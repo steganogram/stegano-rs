@@ -2,7 +2,9 @@ pub mod bit_iterator;
 
 pub use bit_iterator::BitIterator;
 use image::*;
-use std::fs::File;
+use std::fs::*;
+use std::io::prelude::*;
+use std::io::*;
 use std::path::Path;
 
 pub struct Steganogramm {
@@ -83,9 +85,15 @@ impl Encoder for Steganogramm {
     }
 }
 
-impl Steganogramm {
-    pub fn decoder() -> Self {
-        Steganogramm {
+pub struct SteganoDecode {
+    target: Option<Box<dyn Write>>,
+    carrier: Option<image::DynamicImage>,
+    source: Option<Box<dyn Read>>,
+}
+
+impl SteganoDecode {
+    pub fn new() -> Self {
+        SteganoDecode {
             carrier: None,
             source: None,
             target: None,
@@ -93,13 +101,22 @@ impl Steganogramm {
     }
 
     pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
-        self.source = Some(File::open(input_file).expect("Source file was not readable."));
+        self.source = Some(Box::new(
+            File::open(input_file).expect("Source file was not readable."),
+        ));
 
+        self
+    }
+
+    pub fn write_to(&mut self, output_file: &str) -> &mut Self {
+        self.target = Some(Box::new(
+            File::create(output_file.to_string()).expect("Target should be write able"),
+        ));
         self
     }
 }
 
-impl Decoder for Steganogramm {
+impl Decoder for SteganoDecode {
     fn unhide(&mut self) -> &mut Self {
         self
     }
