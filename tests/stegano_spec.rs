@@ -31,12 +31,32 @@ speculate! {
             assert_ne!(l, 0, "Output image was empty.");
         }
     }
+
+    describe "Unhide feature" {
+        it "should unhide the Cargo.toml of a png" {
+            Steganogramm::new()
+                .take_data_to_hide_from("Cargo.toml")
+                .use_carrier_image("resources/HelloWorld_no_passwd_v2.x.png")
+                .write_to("/tmp/out-test-image.png")
+                .hide();
+
+            let _l = fs::metadata("/tmp/out-test-image.png")
+                .expect("Output image was not written.")
+                .len();
+
+            // Steganogramm::decoder()
+            //     .use_source_image("/tmp/out-test-image.png")
+            //     .write_to("/tmp/Cargo.toml")
+            //     .unhide();
+        }
+    }
+
     describe "BitIterator::next()" {
         // String: H           e           l
         // Hex   : 0x48        0x61        0x6C
         // Binary: 0b01001000  0b01100001  0b01101100
         it "should return the 8 bits of 'H' in LittleEndian byte order" {
-            let b = vec![0b01001000, 0b01100001];
+            let b = vec![0b01001000, 0b01100001, 0b01101100];
             let mut it = BitIterator::new(&b[..]);
 
             assert_eq!(it.next().unwrap(), 0, "1st bit not correct");
