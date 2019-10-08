@@ -49,14 +49,14 @@ speculate! {
                 .write_to("/tmp/Cargo.toml")
                 .unhide();
 
-            let l = fs::metadata("Cargo.toml")
+            let expected = fs::metadata("Cargo.toml")
                 .expect("Source file is not available.")
                 .len();
-            let l2 = fs::metadata("/tmp/Cargo.toml")
+            let given = fs::metadata("/tmp/Cargo.toml")
                 .expect("Output image was not written.")
                 .len();
 
-            assert_eq!(l2, l, "Filesizes are not same");
+            assert_eq!(given, expected, "Filesizes are not same");
         }
     }
 
@@ -96,4 +96,10 @@ speculate! {
             assert_eq!(it.next(), None, "it should end after the last bit on the last byte");
         }
     }
+
+    // describe "BitStream::append()" {
+    //     it("should add bits to a byte and then go to the next byte") {
+
+    //     }
+    // }
 }
