@@ -7,9 +7,10 @@ edition = "2018"
 [workspace]
 
 [dependencies]
-image = "0.22.1"
+image = "0.22.3"
 clap = "2.33.0"
 bitstream-io = "0.8"
+futures-preview = "=0.3.0-alpha.19"
 
 [dev-dependencies]
 speculate = "0.1"

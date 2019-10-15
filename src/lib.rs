@@ -1,12 +1,15 @@
 pub mod bit_iterator;
 
 pub use bit_iterator::BitIterator;
-use bitstream_io::{BitReader, BitWriter, LittleEndian};
-use image::*;
+use bitstream_io::{BitReader, BitWriter, LittleEndian, Numeric};
 use std::fs::*;
 use std::io::prelude::*;
 use std::io::*;
 use std::path::Path;
+use std::slice::Chunks;
+use std::vec::Vec;
+use image::*;
+use std::io;
 
 pub struct Steganogramm {
     target: Option<String>,
@@ -45,23 +48,29 @@ pub trait Encoder {
 }
 
 pub trait Decoder {
-    fn unhide(&mut self) -> &mut Self;
+    fn unveil(&mut self) -> &mut Self;
 }
 
 impl Encoder for Steganogramm {
     fn hide<'a>(&'a self) -> &'a Self {
         let carrier = self.carrier.as_ref().unwrap();
         let (width, heigh) = carrier.dimensions();
-        let mut reader = BitReader::endian(self.source.as_ref().unwrap(), LittleEndian);
+        let mut reader = BitReader::endian(
+            self.source.as_ref().unwrap(),
+            LittleEndian
+        );
         // let mut bit_iter = BitIterator::new(self.source.as_ref().unwrap());
         let mut target: RgbaImage = ImageBuffer::new(width, heigh);
 
         #[inline]
         fn bit_wave(byte: &u8, bit: &Result<bool>) -> u8 {
+            let mut b = 0;
             match bit {
-                Err(_) => *byte,
-                Ok(b) => (*byte & 0xFE) | (if *b == true { 1 } else { 0 }),
+                Err(_) => {}
+                Ok(byt) => b = if *byt == true { 1 } else { 0 },
             }
+
+            (*byte & 0xFE) | b
         }
 
         for (x, y, pixel) in target.enumerate_pixels_mut() {
@@ -73,47 +82,76 @@ impl Encoder for Steganogramm {
                 data[3],
             ]);
         }
+
+        // let mut output = File::create(self.target.unwrap()).unwrap();
+        // target.write_to(&mut output, PNG).unwrap();
+
         target.save(self.target.as_ref().unwrap()).unwrap();
 
         self
     }
 }
 
-pub struct SteganoDecode {
-    target: Option<File>,
-    source: Option<String>,
+pub struct SteganoDecoder<T>
+where T: Write + 'static
+{
+    output: Option<T>,
+    input: Option<RgbaImage>,
 }
 
-impl SteganoDecode {
+impl<T> SteganoDecoder<T>
+where T: Write + 'static
+{
     pub fn new() -> Self {
-        SteganoDecode {
-            source: None,
-            target: None,
+        SteganoDecoder {
+            output: None,
+            input: None,
         }
     }
 
     pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
-        self.source = Some(input_file.to_string());
+        self.input = Some(
+            image::open(Path::new(input_file))
+                .expect("Carrier image was not readable.")
+                .to_rgba()
+        );
 
-        self
-    }
-
-    pub fn write_to(&mut self, output_file: &str) -> &mut Self {
-        self.target =
-            Some(File::create(output_file.to_string()).expect("Target should be write able"));
         self
     }
 }
 
-impl Decoder for SteganoDecode {
-    fn unhide(&mut self) -> &mut Self {
-        let img = image::open(Path::new(self.source.as_ref().unwrap().as_str()))
-            .expect("Carrier image was not readable.");
-        let source = img.as_rgba8().unwrap();
-        let t = self.target.take().unwrap();
-        let mut bit_buffer = BitWriter::endian(t, LittleEndian);
+impl SteganoDecoder<ZeroFilter<File>> {
+    pub fn write_to_file(&mut self, output_file: &str) -> &mut Self {
+        self.output = Some(
+            ZeroFilter::decorate(File::create(output_file.to_string())
+                .expect("Target should be write able"))
+        );
 
-        for (_x, _y, pixel) in source.enumerate_pixels() {
+        self
+    }
+}
+
+impl SteganoDecoder<ZeroFilter<Stdout>> {
+    pub fn write_to_stdout(&mut self, stdout: Stdout) -> &mut Self {
+        self.output = Some(
+            ZeroFilter::decorate(stdout)
+        );
+
+        self
+    }
+}
+
+impl<T> Decoder for SteganoDecoder<T>
+where T: Write
+{
+    fn unveil(&mut self) -> &mut Self {
+        let source_image = self.input.as_ref().unwrap().pixels();
+        let mut bit_buffer = BitWriter::endian(
+            self.output.take().unwrap(),
+            LittleEndian
+        );
+
+        for pixel in source_image {
             let image::Rgba(data) = pixel;
             bit_buffer
                 .write_bit((data[0] & 0x01) == 1)
@@ -127,5 +165,37 @@ impl Decoder for SteganoDecode {
         }
 
         self
+    }
+}
+
+pub struct ZeroFilter<T> {
+    inner: T
+}
+
+impl<T> ZeroFilter<T>
+where T: Write
+{
+    fn decorate(inner: T) -> Self {
+        ZeroFilter { inner }
+    }
+}
+
+impl<T> Write for ZeroFilter<T>
+where T: Write
+{
+    fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        for b in buf {
+            if *b != 0 {
+                match self.inner.write(&[*b]) {
+                    Ok(_) => {},
+                    Err(e) => return Err(e)
+                }
+            }
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
     }
 }

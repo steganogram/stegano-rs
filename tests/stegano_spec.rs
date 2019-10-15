@@ -1,6 +1,7 @@
 use speculate::speculate;
 use std::fs;
-use stegano::{BitIterator, Decoder, Encoder, SteganoDecode, Steganogramm};
+use std::io;
+use stegano::{BitIterator, Decoder, Encoder, SteganoDecoder, Steganogramm};
 
 speculate! {
     describe "Steganogramm::new()" {
@@ -32,22 +33,22 @@ speculate! {
         }
     }
 
-    describe "Unhide feature" {
-        it "should unhide the Cargo.toml of a png" {
+    describe "Unveil feature" {
+        it "should unveil the Cargo.toml of a png" {
             Steganogramm::new()
                 .take_data_to_hide_from("Cargo.toml")
                 .use_carrier_image("resources/HelloWorld_no_passwd_v2.x.png")
                 .write_to("/tmp/out-test-image.png")
                 .hide();
 
-            let l = fs::metadata("/tmp/out-test-image.png")
+            let _l = fs::metadata("/tmp/out-test-image.png")
                 .expect("Output image was not written.")
                 .len();
 
-            SteganoDecode::new()
+            SteganoDecoder::new()
                 .use_source_image("/tmp/out-test-image.png")
-                .write_to("/tmp/Cargo.toml")
-                .unhide();
+                .write_to_file("/tmp/Cargo.toml")
+                .unveil();
 
             let expected = fs::metadata("Cargo.toml")
                 .expect("Source file is not available.")
@@ -56,7 +57,14 @@ speculate! {
                 .expect("Output image was not written.")
                 .len();
 
-            assert_eq!(given, expected, "Filesizes are not same");
+            assert_eq!(given, expected, "File sizes are not same");
+        }
+
+        it "should unveil 'Hello World!' to stdout" {
+            SteganoDecoder::new()
+               .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
+               .write_to_stdout(io::stdout())
+               .unveil();
         }
     }
 
@@ -96,10 +104,4 @@ speculate! {
             assert_eq!(it.next(), None, "it should end after the last bit on the last byte");
         }
     }
-
-    // describe "BitStream::append()" {
-    //     it("should add bits to a byte and then go to the next byte") {
-
-    //     }
-    // }
 }
