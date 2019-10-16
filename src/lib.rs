@@ -1,13 +1,11 @@
 pub mod bit_iterator;
 
 pub use bit_iterator::BitIterator;
-use bitstream_io::{BitReader, BitWriter, LittleEndian, Numeric, BigEndian};
+use bitstream_io::{BitReader, BitWriter, LittleEndian};
 use std::fs::*;
 use std::io::prelude::*;
 use std::io::*;
 use std::path::Path;
-use std::slice::Chunks;
-use std::vec::Vec;
 use image::*;
 use std::io;
 use std::borrow::BorrowMut;
@@ -18,18 +16,33 @@ pub struct SteganoEncoder {
     source: Option<std::fs::File>,
 }
 
+pub trait Encoder {
+    fn hide(&self) -> &Self;
+}
+
+pub trait Decoder {
+    fn unveil(&mut self) -> &mut Self;
+}
+
+impl Default for SteganoEncoder {
+    fn default() -> Self {
+        Self {
+            target: None,
+            carrier: None,
+            source: None
+        }
+    }
+}
+
 impl SteganoEncoder {
     pub fn new() -> Self {
-        SteganoEncoder {
-            carrier: None,
-            source: None,
-            target: None,
-        }
+        Self::default()
     }
 
     pub fn use_carrier_image(&mut self, input_file: &str) -> &mut Self {
-        self.carrier =
-            Some(image::open(Path::new(input_file)).expect("Carrier image was not readable."));
+        self.carrier = Some(
+            image::open(Path::new(input_file))
+                .expect("Carrier image was not readable."));
         self
     }
 
@@ -39,21 +52,15 @@ impl SteganoEncoder {
     }
 
     pub fn take_data_to_hide_from(&mut self, input_file: &str) -> &mut Self {
-        self.source = Some(File::open(input_file).expect("Source file was not readable."));
+        self.source = Some(
+            File::open(input_file)
+                .expect("Source file was not readable."));
         self
     }
 }
 
-pub trait Encoder {
-    fn hide<'a>(&'a self) -> &'a Self;
-}
-
-pub trait Decoder {
-    fn unveil(&mut self) -> &mut Self;
-}
-
 impl Encoder for SteganoEncoder {
-    fn hide<'a>(&'a self) -> &'a Self {
+    fn hide(&self) -> &Self {
         let carrier = self.carrier.as_ref().unwrap();
         let (width, heigh) = carrier.dimensions();
         let mut reader = BitReader::endian(
@@ -64,28 +71,25 @@ impl Encoder for SteganoEncoder {
         let mut target: RgbaImage = ImageBuffer::new(width, heigh);
 
         #[inline]
-        fn bit_wave(byte: &u8, bit: &Result<bool>) -> u8 {
+        fn bit_wave(byte: u8, bit: &Result<bool>) -> u8 {
             let mut b = 0;
             match bit {
                 Err(_) => {}
-                Ok(byt) => b = if *byt == true { 1 } else { 0 },
+                Ok(byt) => b = if *byt { 1 } else { 0 },
             }
 
-            (*byte & 0xFE) | b
+            (byte & 0xFE) | b
         }
 
         for (x, y, pixel) in target.enumerate_pixels_mut() {
             let image::Rgba(data) = carrier.get_pixel(x, y);
             *pixel = Rgba([
-                bit_wave(&data[0], &reader.read_bit()),
-                bit_wave(&data[1], &reader.read_bit()),
-                bit_wave(&data[2], &reader.read_bit()),
+                bit_wave(data[0], &reader.read_bit()),
+                bit_wave(data[1], &reader.read_bit()),
+                bit_wave(data[2], &reader.read_bit()),
                 data[3],
             ]);
         }
-
-        // let mut output = File::create(self.target.unwrap()).unwrap();
-        // target.write_to(&mut output, PNG).unwrap();
 
         target.save(self.target.as_ref().unwrap()).unwrap();
 
@@ -100,14 +104,22 @@ where T: Write + 'static
     input: Option<RgbaImage>,
 }
 
+impl<T> Default for SteganoDecoder<T>
+where T: Write + 'static
+{
+    fn default() -> Self {
+        Self {
+            output: None,
+            input: None
+        }
+    }
+}
+
 impl<T> SteganoDecoder<T>
 where T: Write + 'static
 {
     pub fn new() -> Self {
-        SteganoDecoder {
-            output: None,
-            input: None,
-        }
+        Self::default()
     }
 
     pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {

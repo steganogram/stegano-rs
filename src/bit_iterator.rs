@@ -29,7 +29,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let bit = self.i % self.n;
-            self.i = self.i + 1;
+            self.i += 1;
             if bit == 0 {
                 self.byte = None;
             }

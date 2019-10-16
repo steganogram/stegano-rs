@@ -1,7 +1,5 @@
 use speculate::speculate;
-use std::str;
 use std::fs;
-use std::io;
 use stegano::{BitIterator, Decoder, Encoder, SteganoDecoder, SteganoEncoder};
 
 speculate! {
@@ -79,7 +77,7 @@ speculate! {
         // Hex   : 0x48        0x61        0x6C
         // Binary: 0b01001000  0b01100001  0b01101100
         it "should return the 8 bits of 'H' in LittleEndian byte order" {
-            let b = vec![0b01001000, 0b01100001, 0b01101100];
+            let b = vec![0b0100_1000, 0b0110_0001, 0b0110_1100];
             let mut it = BitIterator::new(&b[..]);
 
             assert_eq!(it.next().unwrap(), 0, "1st bit not correct");
@@ -96,7 +94,7 @@ speculate! {
         // Hex   : 0x48        0x61        0x6C
         // Binary: 0b01001000  0b01100001  0b01101100
         it "should return 8 bits of 'e' in LittleEndian byte order after skip(8)" {
-            let b = vec![0b01001000, 0b01100001];
+            let b = vec![0b0100_1000, 0b0110_0001];
             let mut it = BitIterator::new(&b[..]).skip(8);
 
             assert_eq!(it.next().unwrap(), 1, "1st bit not correct");
