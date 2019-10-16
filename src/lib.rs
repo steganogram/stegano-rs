@@ -1,7 +1,7 @@
 pub mod bit_iterator;
 
 pub use bit_iterator::BitIterator;
-use bitstream_io::{BitReader, BitWriter, LittleEndian, Numeric};
+use bitstream_io::{BitReader, BitWriter, LittleEndian, Numeric, BigEndian};
 use std::fs::*;
 use std::io::prelude::*;
 use std::io::*;
@@ -10,16 +10,17 @@ use std::slice::Chunks;
 use std::vec::Vec;
 use image::*;
 use std::io;
+use std::borrow::BorrowMut;
 
-pub struct Steganogramm {
+pub struct SteganoEncoder {
     target: Option<String>,
     carrier: Option<image::DynamicImage>,
     source: Option<std::fs::File>,
 }
 
-impl Steganogramm {
+impl SteganoEncoder {
     pub fn new() -> Self {
-        Steganogramm {
+        SteganoEncoder {
             carrier: None,
             source: None,
             target: None,
@@ -51,7 +52,7 @@ pub trait Decoder {
     fn unveil(&mut self) -> &mut Self;
 }
 
-impl Encoder for Steganogramm {
+impl Encoder for SteganoEncoder {
     fn hide<'a>(&'a self) -> &'a Self {
         let carrier = self.carrier.as_ref().unwrap();
         let (width, heigh) = carrier.dimensions();
@@ -154,13 +155,13 @@ where T: Write
         for pixel in source_image {
             let image::Rgba(data) = pixel;
             bit_buffer
-                .write_bit((data[0] & 0x01) == 1)
+                .write_bit((data[0] & 1) == 1)
                 .expect("Bit R on Pixel({}, {})");
             bit_buffer
-                .write_bit((data[1] & 0x01) == 1)
+                .write_bit((data[1] & 1) == 1)
                 .expect("Bit G on Pixel({}, {})");
             bit_buffer
-                .write_bit((data[2] & 0x01) == 1)
+                .write_bit((data[2] & 1) == 1)
                 .expect("Bit B on Pixel({}, {})");
         }
 
@@ -173,7 +174,7 @@ pub struct ZeroFilter<T> {
 }
 
 impl<T> ZeroFilter<T>
-where T: Write
+where T: Write + 'static
 {
     fn decorate(inner: T) -> Self {
         ZeroFilter { inner }
@@ -186,7 +187,7 @@ where T: Write
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         for b in buf {
             if *b != 0 {
-                match self.inner.write(&[*b]) {
+                match self.inner.borrow_mut().write(&[*b]) {
                     Ok(_) => {},
                     Err(e) => return Err(e)
                 }

@@ -1,17 +1,26 @@
 # Stegano App
 
-DISCLAIMER: DRAFT not ready to be used.
+DISCLAIMER: DRAFT not production ready.
 
 Implements LSB steganography for PNG image files in rust-lang. Aims for a command line version only.
 
 Rewrite of the core of the [originally stegano.net tool][1]
 
-## Hiding Things Usage
+## Usage: Hide
 
 Let's assume we want to hide data of a file called `README.md`, into an image called `HelloWorld.png`, based on a image called `resources/HelloWorld_no_passwd_v2.x.png`. So we would run:
 
 ```bash
 stegano hide \
+ --data README.md \
+ --in resources/HelloWorld_no_passwd_v2.x.png \
+ --out HelloWorld.png
+```
+
+or by cargo
+
+```bash
+cargo run --bin stegano -- hide \
  --data README.md \
  --in resources/HelloWorld_no_passwd_v2.x.png \
  --out HelloWorld.png
@@ -28,6 +37,24 @@ cat "Hello World!" | stegano hide --in resources/HelloWorld_no_passwd_v2.x.png >
 ```
 
 The final result is then contained in the image `HelloWorld.png`.
+
+## Usage: Unveil
+
+Let's unveil the `README.md` that we've hidden just above in `HelloWorld.png`
+
+```bash
+stegano unveil \
+ --in HelloWorld.png \
+ --out Secret.txt
+```
+
+or by cargo
+
+```bash
+cargo run --bin stegano -- unveil \
+ --in HelloWorld.png \
+ --out Secret.txt
+```
 
 ## License
 

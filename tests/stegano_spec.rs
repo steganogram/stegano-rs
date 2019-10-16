@@ -1,25 +1,26 @@
 use speculate::speculate;
+use std::str;
 use std::fs;
 use std::io;
-use stegano::{BitIterator, Decoder, Encoder, SteganoDecoder, Steganogramm};
+use stegano::{BitIterator, Decoder, Encoder, SteganoDecoder, SteganoEncoder};
 
 speculate! {
-    describe "Steganogramm::new()" {
+    describe "SteganoEncoder::new()" {
         it "should write to a png file" {
-            Steganogramm::new().write_to("/tmp/out-test-image.png");
+            SteganoEncoder::new().write_to("/tmp/out-test-image.png");
         }
         #[should_panic(expected = "Source file was not readable.")]
         it "should panic on a invalid source file" {
-            Steganogramm::new().take_data_to_hide_from("foofile");
+            SteganoEncoder::new().take_data_to_hide_from("foofile");
         }
         #[should_panic(expected = "Carrier image was not readable.")]
         it "should panic for invalid carrier image file" {
-            Steganogramm::new().use_carrier_image("HelloWorld_no_passwd_v2.x.png");
+            SteganoEncoder::new().use_carrier_image("HelloWorld_no_passwd_v2.x.png");
         }
     }
     describe "Hide feature" {
         it "should hide the Cargo.toml on a png carrier to a new png file" {
-            Steganogramm::new()
+            SteganoEncoder::new()
                 .take_data_to_hide_from("Cargo.toml")
                 .use_carrier_image("resources/HelloWorld_no_passwd_v2.x.png")
                 .write_to("/tmp/out-test-image.png")
@@ -35,7 +36,7 @@ speculate! {
 
     describe "Unveil feature" {
         it "should unveil the Cargo.toml of a png" {
-            Steganogramm::new()
+            SteganoEncoder::new()
                 .take_data_to_hide_from("Cargo.toml")
                 .use_carrier_image("resources/HelloWorld_no_passwd_v2.x.png")
                 .write_to("/tmp/out-test-image.png")
@@ -63,8 +64,13 @@ speculate! {
         it "should unveil 'Hello World!' to stdout" {
             SteganoDecoder::new()
                .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
-               .write_to_stdout(io::stdout())
+               .write_to_file("/tmp/HelloWorld.txt")
+//               .write_to_stdout(io::stdout())
+//               .write_to_vec(&b)
                .unveil();
+
+//            let decipher = str::from_utf8(&*b).unwrap();
+//            assert_eq!(decipher, "Hello World!", "unveiled text is not hello world");
         }
     }
 
