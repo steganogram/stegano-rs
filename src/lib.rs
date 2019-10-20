@@ -62,33 +62,31 @@ impl SteganoEncoder {
 impl Encoder for SteganoEncoder {
     fn hide(&self) -> &Self {
         let carrier = self.carrier.as_ref().unwrap();
-        let (width, heigh) = carrier.dimensions();
-        let mut reader = BitReader::endian(
-            self.source.as_ref().unwrap(),
-            LittleEndian
-        );
-        // let mut bit_iter = BitIterator::new(self.source.as_ref().unwrap());
-        let mut target: RgbaImage = ImageBuffer::new(width, heigh);
+        let (width, height) = carrier.dimensions();
+        let mut bit_iter = BitIterator::new(self.source.as_ref().unwrap());
+        let mut target: RgbaImage = ImageBuffer::new(width, height);
 
         #[inline]
-        fn bit_wave(byte: u8, bit: &Result<bool>) -> u8 {
+        fn bit_wave(byte: u8, bit: &Option<u8>) -> u8 {
             let mut b = 0;
             match bit {
-                Err(_) => {}
-                Ok(byt) => b = if *byt { 1 } else { 0 },
+                None => {}
+                Some(byt) => b = *byt,
             }
 
             (byte & 0xFE) | b
         }
 
-        for (x, y, pixel) in target.enumerate_pixels_mut() {
-            let image::Rgba(data) = carrier.get_pixel(x, y);
-            *pixel = Rgba([
-                bit_wave(data[0], &reader.read_bit()),
-                bit_wave(data[1], &reader.read_bit()),
-                bit_wave(data[2], &reader.read_bit()),
-                data[3],
-            ]);
+        for x in 0..width {
+            for y in 0..height {
+                let image::Rgba(data) = carrier.get_pixel(x, y);
+                target.put_pixel(x, y,  Rgba([
+                    bit_wave(data[0], &bit_iter.next()),
+                    bit_wave(data[1], &bit_iter.next()),
+                    bit_wave(data[2], &bit_iter.next()),
+                    data[3],
+                ]));
+            }
         }
 
         target.save(self.target.as_ref().unwrap()).unwrap();
@@ -133,10 +131,12 @@ where T: Write + 'static
     }
 }
 
-impl SteganoDecoder<ZeroFilter<File>> {
+impl<T> SteganoDecoder<T>
+where T: Filter<File> + Write
+{
     pub fn write_to_file(&mut self, output_file: &str) -> &mut Self {
         self.output = Some(
-            ZeroFilter::decorate(File::create(output_file.to_string())
+            T::decorate(File::create(output_file.to_string())
                 .expect("Target should be write able"))
         );
 
@@ -158,23 +158,25 @@ impl<T> Decoder for SteganoDecoder<T>
 where T: Write
 {
     fn unveil(&mut self) -> &mut Self {
-        let source_image = self.input.as_ref().unwrap().pixels();
+        let source_image = self.input.as_ref().unwrap();
         let mut bit_buffer = BitWriter::endian(
             self.output.take().unwrap(),
             LittleEndian
         );
 
-        for pixel in source_image {
-            let image::Rgba(data) = pixel;
-            bit_buffer
-                .write_bit((data[0] & 1) == 1)
-                .expect("Bit R on Pixel({}, {})");
-            bit_buffer
-                .write_bit((data[1] & 1) == 1)
-                .expect("Bit G on Pixel({}, {})");
-            bit_buffer
-                .write_bit((data[2] & 1) == 1)
-                .expect("Bit B on Pixel({}, {})");
+        for x in 0..source_image.width() {
+            for y in 0..source_image.height() {
+                let image::Rgba(data) = source_image.get_pixel(x, y);
+                bit_buffer
+                    .write_bit((data[0] & 1) == 1)
+                    .expect(format!("Bit R on Pixel({}, {})", x, y).as_str());
+                bit_buffer
+                    .write_bit((data[1] & 1) == 1)
+                    .expect(format!("Bit G on Pixel({}, {})", x, y).as_str());
+                bit_buffer
+                    .write_bit((data[2] & 1) == 1)
+                    .expect(format!("Bit B on Pixel({}, {})", x, y).as_str());
+            }
         }
 
         self
@@ -185,7 +187,13 @@ pub struct ZeroFilter<T> {
     inner: T
 }
 
-impl<T> ZeroFilter<T>
+pub trait Filter<T>
+where T: Write + 'static
+{
+    fn decorate(inner: T) -> Self;
+}
+
+impl<T> Filter<T> for ZeroFilter<T>
 where T: Write + 'static
 {
     fn decorate(inner: T) -> Self {
@@ -199,6 +207,54 @@ where T: Write
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         for b in buf {
             if *b != 0 {
+                match self.inner.borrow_mut().write(&[*b]) {
+                    Ok(_) => {},
+                    Err(e) => return Err(e)
+                }
+            }
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+pub struct FFFilter<T> {
+    inner: T,
+    terminators: Vec<u8>,
+    bof: bool,
+}
+
+impl<T> Filter<T> for FFFilter<T>
+where T: Write + 'static
+{
+    fn decorate(inner: T) -> Self {
+        FFFilter { bof: false, inner, terminators: Vec::with_capacity(2) }
+    }
+}
+
+impl<T> Write for FFFilter<T>
+where T: Write
+{
+    fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        for b in buf {
+            if !self.bof && *b == 0x01 {
+                self.bof = true;
+                continue;
+            }
+            if self.terminators.len() >= 2 {
+                continue;
+            }
+            if *b == 0xff {
+                self.terminators.push(*b);
+                continue;
+            } else {
+                self.inner.borrow_mut().write(&self.terminators.to_vec());
+                self.terminators.clear();
+            }
+            if self.terminators.len() < 2 {
                 match self.inner.borrow_mut().write(&[*b]) {
                     Ok(_) => {},
                     Err(e) => return Err(e)
