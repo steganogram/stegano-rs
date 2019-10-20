@@ -1,5 +1,7 @@
 # Stegano App
 
+[![Build Status](https://travis-ci.org/steganogram/cli.rs.svg?branch=master)](https://travis-ci.org/steganogram/cli.rs)
+
 DISCLAIMER: DRAFT not production ready.
 
 Implements LSB steganography for PNG image files in rust-lang. Aims for a command line version only.
