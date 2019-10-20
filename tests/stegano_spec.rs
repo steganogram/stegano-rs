@@ -1,6 +1,7 @@
 use speculate::speculate;
 use std::fs;
 use stegano::{BitIterator, Decoder, Encoder, SteganoDecoder, SteganoEncoder};
+use bitstream_io::{BitReader, LittleEndian};
 
 speculate! {
     describe "SteganoEncoder::new()" {
@@ -106,6 +107,23 @@ speculate! {
             assert_eq!(it.next().unwrap(), 1, "7th bit not correct");
             assert_eq!(it.next().unwrap(), 0, "8th bit not correct");
             assert_eq!(it.next(), None, "it should end after the last bit on the last byte");
+        }
+
+        it "should behave as the BitReader" {
+            let b = vec![0b0100_1000, 0b0110_0001];
+            let mut it = BitIterator::new(&b[..]);
+            let mut reader = BitReader::endian(
+                &b[..],
+                LittleEndian
+            );
+
+            for i in 0..16 {
+                assert_eq!(
+                    it.next().unwrap(),
+                    if reader.read_bit().unwrap() { 1 } else { 0 },
+                    "{} bit not correct", i
+                );
+            }
         }
     }
 }
