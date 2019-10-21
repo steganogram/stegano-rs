@@ -1,7 +1,7 @@
 pub mod bit_iterator;
 
 pub use bit_iterator::BitIterator;
-use bitstream_io::{BitReader, BitWriter, LittleEndian};
+use bitstream_io::{BitWriter, LittleEndian};
 use std::fs::*;
 use std::io::prelude::*;
 use std::io::*;
@@ -9,6 +9,7 @@ use std::path::Path;
 use image::*;
 use std::io;
 use std::borrow::BorrowMut;
+use std::fmt::format;
 
 pub struct SteganoEncoder {
     target: Option<String>,
@@ -268,3 +269,5 @@ where T: Write
         self.inner.flush()
     }
 }
+
+pub type SteganoDecoderV2 = SteganoDecoder<FFFilter<File>>;

@@ -1,6 +1,6 @@
 use speculate::speculate;
 use std::fs;
-use stegano::{BitIterator, Decoder, Encoder, SteganoDecoder, SteganoEncoder};
+use stegano::{BitIterator, Decoder, Encoder, SteganoDecoderV2, SteganoEncoder};
 use bitstream_io::{BitReader, LittleEndian};
 
 speculate! {
@@ -45,7 +45,7 @@ speculate! {
                 .expect("Output image was not written.")
                 .len();
 
-            SteganoDecoder::new()
+            SteganoDecoderV2::new()
                 .use_source_image("/tmp/out-test-image.png")
                 .write_to_file("/tmp/Cargo.toml")
                 .unveil();
@@ -61,7 +61,7 @@ speculate! {
         }
 
         it "should unveil 'Hello World!' to stdout" {
-            SteganoDecoder::new()
+            SteganoDecoderV2::new()
                .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
                .write_to_file("/tmp/HelloWorld.txt")
 //               .write_to_stdout(io::stdout())
