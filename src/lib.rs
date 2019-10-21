@@ -9,7 +9,6 @@ use std::path::Path;
 use image::*;
 use std::io;
 use std::borrow::BorrowMut;
-use std::fmt::format;
 
 pub struct SteganoEncoder {
     target: Option<String>,
@@ -68,11 +67,11 @@ impl Encoder for SteganoEncoder {
         let mut target: RgbaImage = ImageBuffer::new(width, height);
 
         #[inline]
-        fn bit_wave(byte: u8, bit: &Option<u8>) -> u8 {
+        fn bit_wave(byte: u8, bit: Option<u8>) -> u8 {
             let mut b = 0;
             match bit {
                 None => {}
-                Some(byt) => b = *byt,
+                Some(byt) => b = byt,
             }
 
             (byte & 0xFE) | b
@@ -82,9 +81,9 @@ impl Encoder for SteganoEncoder {
             for y in 0..height {
                 let image::Rgba(data) = carrier.get_pixel(x, y);
                 target.put_pixel(x, y,  Rgba([
-                    bit_wave(data[0], &bit_iter.next()),
-                    bit_wave(data[1], &bit_iter.next()),
-                    bit_wave(data[2], &bit_iter.next()),
+                    bit_wave(data[0], bit_iter.next()),
+                    bit_wave(data[1], bit_iter.next()),
+                    bit_wave(data[2], bit_iter.next()),
                     data[3],
                 ]));
             }
@@ -170,13 +169,13 @@ where T: Write
                 let image::Rgba(data) = source_image.get_pixel(x, y);
                 bit_buffer
                     .write_bit((data[0] & 1) == 1)
-                    .expect(format!("Bit R on Pixel({}, {})", x, y).as_str());
+                    .unwrap_or_else(|_| panic!("Color R on Pixel({}, {})", x, y));
                 bit_buffer
                     .write_bit((data[1] & 1) == 1)
-                    .expect(format!("Bit G on Pixel({}, {})", x, y).as_str());
+                    .unwrap_or_else(|_| panic!("Color G on Pixel({}, {})", x, y));
                 bit_buffer
                     .write_bit((data[2] & 1) == 1)
-                    .expect(format!("Bit B on Pixel({}, {})", x, y).as_str());
+                    .unwrap_or_else(|_| panic!("Color B on Pixel({}, {})", x, y));
             }
         }
 
@@ -252,7 +251,10 @@ where T: Write
                 self.terminators.push(*b);
                 continue;
             } else {
-                self.inner.borrow_mut().write(&self.terminators.to_vec());
+                match self.inner.borrow_mut().write(&self.terminators.to_vec()) {
+                    Ok(_) => {},
+                    Err(e) => return Err(e)
+                }
                 self.terminators.clear();
             }
             if self.terminators.len() < 2 {
