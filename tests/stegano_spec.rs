@@ -33,7 +33,7 @@ speculate! {
         }
     }
 
-    describe "Unveil feature" {
+    describe "Hide and Unveil e2e feature" {
         it "should unveil the Cargo.toml of a png" {
             SteganoEncoder::new()
                 .take_data_to_hide_from("Cargo.toml")
@@ -41,9 +41,10 @@ speculate! {
                 .write_to("/tmp/out-test-image.png")
                 .hide();
 
-            let _l = fs::metadata("/tmp/out-test-image.png")
+            let l = fs::metadata("/tmp/out-test-image.png")
                 .expect("Output image was not written.")
                 .len();
+            assert!(l > 0, "File is not supposed to be empty");
 
             SteganoDecoderV2::new()
                 .use_source_image("/tmp/out-test-image.png")
@@ -57,7 +58,7 @@ speculate! {
                 .expect("Output image was not written.")
                 .len();
 
-            assert_eq!(given, expected, "File sizes are not same");
+            assert_eq!(given, expected, "Unveiled file size differs to the original");
         }
 
         it "should unveil 'Hello World!' to stdout" {
