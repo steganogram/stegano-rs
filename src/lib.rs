@@ -1,14 +1,14 @@
 pub mod bit_iterator;
 pub mod decoder_v2;
+
 pub use bit_iterator::BitIterator;
-use bitstream_io::{BitWriter, LittleEndian};
+use bitstream_io::{LittleEndian, BitReader};
 use std::fs::*;
 use std::io::prelude::*;
 use std::io::*;
 use std::path::Path;
 use image::*;
 use std::io;
-use std::borrow::BorrowMut;
 pub use crate::decoder_v2::SteganoDecoderV2;
 
 pub struct SteganoEncoder {
@@ -30,7 +30,7 @@ impl Default for SteganoEncoder {
         Self {
             target: None,
             carrier: None,
-            source: None
+            source: None,
         }
     }
 }
@@ -64,27 +64,38 @@ impl Encoder for SteganoEncoder {
     fn hide(&self) -> &Self {
         let carrier = self.carrier.as_ref().unwrap();
         let (width, height) = carrier.dimensions();
-        let mut bit_iter = BitIterator::new(self.source.as_ref().unwrap());
+        let mut buf = Vec::new();
+        self.source.as_ref().unwrap().read_to_end(&mut buf)
+            .expect("File was probably too big");
+        buf.insert(0, 0x01);
+        buf.push(0xff);
+        buf.push(0xff);
+        let mut bit_iter = BitReader::endian(
+            Cursor::new(buf),
+            LittleEndian,
+        );
         let mut target: RgbaImage = ImageBuffer::new(width, height);
 
         #[inline]
-        fn bit_wave(byte: u8, bit: Option<u8>) -> u8 {
-            let mut b = 0;
+        fn bit_wave(byte: u8, bit: io::Result<bool>) -> u8 {
             match bit {
-                None => {}
-                Some(byt) => b = byt,
+                Err(_) => {
+                    byte
+                }
+                Ok(byt) => {
+                    let b = if byt { 1 } else { 0 };
+                    (byte & 0xFE) | b
+                }
             }
-
-            (byte & 0xFE) | b
         }
 
         for x in 0..width {
             for y in 0..height {
                 let image::Rgba(data) = carrier.get_pixel(x, y);
-                target.put_pixel(x, y,  Rgba([
-                    bit_wave(data[0], bit_iter.next()),
-                    bit_wave(data[1], bit_iter.next()),
-                    bit_wave(data[2], bit_iter.next()),
+                target.put_pixel(x, y, Rgba([
+                    bit_wave(data[0], bit_iter.read_bit()),
+                    bit_wave(data[1], bit_iter.read_bit()),
+                    bit_wave(data[2], bit_iter.read_bit()),
                     data[3],
                 ]));
             }

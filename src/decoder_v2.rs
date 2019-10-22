@@ -6,7 +6,7 @@ use std::path::Path;
 use image::*;
 use std::io;
 use std::borrow::BorrowMut;
-use super::{Decoder, BitIterator};
+use super::{Decoder};
 
 pub type SteganoDecoderV2 = SteganoDecoder<TerminatorFilter<File>>;
 
@@ -100,7 +100,7 @@ impl<T> Decoder for SteganoDecoder<T>
 
 pub struct ByteFilter<T> {
     inner: T,
-    filterByte: u8
+    filter_byte: u8
 }
 
 pub trait Filter<T>
@@ -113,7 +113,7 @@ impl<T> Filter<T> for ByteFilter<T>
     where T: Write + 'static
 {
     fn decorate(inner: T) -> Self {
-        ByteFilter { inner, filterByte: 0x0 }
+        ByteFilter { inner, filter_byte: 0x0 }
     }
 }
 
@@ -122,7 +122,7 @@ impl<T> Write for ByteFilter<T>
 {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         for b in buf {
-            if *b != self.filterByte {
+            if *b != self.filter_byte {
                 match self.inner.borrow_mut().write(&[*b]) {
                     Ok(_) => {},
                     Err(e) => return Err(e)
