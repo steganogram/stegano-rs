@@ -2,11 +2,11 @@ language: rust
 cache: cargo
 os:
   - linux
-  - osx
+#  - osx
 rust:
   - stable
-  - beta
-  - nightly
+#  - beta
+#  - nightly
 sudo: true
 before_install:
   - sudo apt-get update
