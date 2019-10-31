@@ -10,6 +10,9 @@ edition = "2018"
 image = "0.22.3"
 clap = "2.33.0"
 bitstream-io = "0.8"
+block-modes = "0.3.3"
+aes-soft = "0.3.3"
+hex-literal = "0.2.1"
 futures-preview = "=0.3.0-alpha.19"
 
 [dev-dependencies]

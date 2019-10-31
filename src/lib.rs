@@ -1,7 +1,9 @@
 pub mod bit_iterator;
-pub mod decoder_v2;
-
 pub use bit_iterator::BitIterator;
+
+pub mod decoder_v2;
+pub use decoder_v2::{RijndaelFilter, SteganoDecoderV2};
+
 use bitstream_io::{LittleEndian, BitReader};
 use std::fs::*;
 use std::io::prelude::*;
@@ -9,7 +11,6 @@ use std::io::*;
 use std::path::Path;
 use image::*;
 use std::io;
-pub use crate::decoder_v2::SteganoDecoderV2;
 
 pub struct SteganoEncoder {
     target: Option<String>,

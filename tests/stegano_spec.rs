@@ -1,7 +1,6 @@
 use speculate::speculate;
 use std::fs;
-use stegano::{BitIterator, Decoder, Encoder, SteganoDecoderV2, SteganoEncoder};
-use bitstream_io::{BitReader, LittleEndian};
+use stegano::{Decoder, Encoder, SteganoDecoderV2, SteganoEncoder};
 
 speculate! {
     describe "SteganoEncoder::new()" {
@@ -72,59 +71,19 @@ speculate! {
 //            let decipher = str::from_utf8(&*b).unwrap();
 //            assert_eq!(decipher, "Hello World!", "unveiled text is not hello world");
         }
-    }
 
-    describe "BitIterator::next()" {
-        // String: H           e           l
-        // Hex   : 0x48        0x61        0x6C
-        // Binary: 0b01001000  0b01100001  0b01101100
-        it "should return the 8 bits of 'H' in LittleEndian byte order" {
-            let b = vec![0b0100_1000, 0b0110_0001, 0b0110_1100];
-            let mut it = BitIterator::new(&b[..]);
+        it "should test the Read impl" {
+            let dec = SteganoDecoder::new()
+               .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
+               .write_to_file("/tmp/HelloWorld.txt");
 
-            assert_eq!(it.next().unwrap(), 0, "1st bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "2nd bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "3rd bit not correct");
-            assert_eq!(it.next().unwrap(), 1, "4th bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "5th bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "6th bit not correct");
-            assert_eq!(it.next().unwrap(), 1, "7th bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "8th bit not correct");
-        }
+            let mut buf = Vec::new();
+            dec.read(buf);
 
-        // String: H           e           l
-        // Hex   : 0x48        0x61        0x6C
-        // Binary: 0b01001000  0b01100001  0b01101100
-        it "should return 8 bits of 'e' in LittleEndian byte order after skip(8)" {
-            let b = vec![0b0100_1000, 0b0110_0001];
-            let mut it = BitIterator::new(&b[..]).skip(8);
+            print!("{:?}", buf);
 
-            assert_eq!(it.next().unwrap(), 1, "1st bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "2nd bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "3rd bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "4th bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "5th bit not correct");
-            assert_eq!(it.next().unwrap(), 1, "6th bit not correct");
-            assert_eq!(it.next().unwrap(), 1, "7th bit not correct");
-            assert_eq!(it.next().unwrap(), 0, "8th bit not correct");
-            assert_eq!(it.next(), None, "it should end after the last bit on the last byte");
-        }
-
-        it "should behave as the BitReader" {
-            let b = vec![0b0100_1000, 0b0110_0001];
-            let mut it = BitIterator::new(&b[..]);
-            let mut reader = BitReader::endian(
-                &b[..],
-                LittleEndian
-            );
-
-            for i in 0..16 {
-                assert_eq!(
-                    it.next().unwrap(),
-                    if reader.read_bit().unwrap() { 1 } else { 0 },
-                    "{} bit not correct", i
-                );
-            }
+//            let decipher = str::from_utf8(&*b).unwrap();
+//            assert_eq!(decipher, "Hello World!", "unveiled text is not hello world");
         }
     }
 }
