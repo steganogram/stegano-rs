@@ -1,6 +1,7 @@
 # Stegano App
 
 [![Build Status](https://travis-ci.org/steganogram/cli.rs.svg?branch=master)](https://travis-ci.org/steganogram/cli.rs)
+[![codecov](https://codecov.io/gh/steganogram/cli.rs/branch/master/graph/badge.svg)](https://codecov.io/gh/steganogram/cli.rs)
 
 DISCLAIMER: DRAFT not production ready.
 
