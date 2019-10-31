@@ -28,6 +28,7 @@ before_script:
   - |
       [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]] && export COVERAGE=true
 script:
+  - cargo build
   - cargo test
   - .ci/build/linting.sh
 after_success:
