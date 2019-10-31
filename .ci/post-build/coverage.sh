@@ -10,7 +10,7 @@ if [[ $COVERAGE ]]; then
   sudo make install
   cd ../..
   rm -rf kcov-master
-  for file in target/debug/*[^\.d]; do
+  for file in target/debug/*spec-*[^\.d]; do
     mkdir -p "target/cov/$(basename $file)"
     kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"
   done
