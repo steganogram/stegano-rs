@@ -59,6 +59,18 @@ cargo run --bin stegano -- unveil \
  --out Secret.txt
 ```
 
+## Usage: Unveil Raw data
+
+Let's unveil the raw data of the `README.md` that we've hidden just above in `HelloWorld.png`
+
+```bash
+stegano unveil-raw \
+ --in HelloWorld.png \
+ --out Secret.bin
+```
+
+The file `Secret.bin` contains all raw data unfiltered decoded by the LSB decoding algorithm. That is for the curious people, and not so much interesting.
+
 ## License
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)

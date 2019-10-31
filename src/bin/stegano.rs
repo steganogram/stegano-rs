@@ -56,6 +56,26 @@ fn main() -> std::io::Result<()> {
                     .required(true)
                     .help("Final data will be stored as file"),
             )
+        ).subcommand(SubCommand::with_name("unveil-raw")
+            .about("Unveils raw data in PNG images")
+            .arg(
+                Arg::with_name("input_image")
+                    .short("i")
+                    .long("in")
+                    .value_name("image source file")
+                    .takes_value(true)
+                    .required(true)
+                    .help("Source image that contains secret data"),
+            )
+            .arg(
+                Arg::with_name("output_file")
+                    .short("o")
+                    .long("out")
+                    .value_name("output file")
+                    .takes_value(true)
+                    .required(true)
+                    .help("Raw data will be stored as binary file"),
+            )
         ).get_matches();
 
     match matches.subcommand() {
@@ -68,6 +88,12 @@ fn main() -> std::io::Result<()> {
         }
         ("unveil", Some(m)) => {
             SteganoDecoderV2::new()
+                .use_source_image(m.value_of("input_image").unwrap())
+                .write_to_file(m.value_of("output_file").unwrap())
+                .unveil();
+        }
+        ("unveil-raw", Some(m)) => {
+            SteganoRawDecoder::new()
                 .use_source_image(m.value_of("input_image").unwrap())
                 .write_to_file(m.value_of("output_file").unwrap())
                 .unveil();

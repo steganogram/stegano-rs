@@ -9,6 +9,7 @@ use std::borrow::BorrowMut;
 use super::{Decoder};
 
 pub type SteganoDecoderV2 = SteganoDecoder<TerminatorFilter<File>>;
+pub type SteganoRawDecoder = SteganoDecoder<File>;
 
 pub struct SteganoDecoder<T>
     where T: Write + 'static
@@ -52,7 +53,18 @@ impl<T> SteganoDecoder<T>
     pub fn write_to_file(&mut self, output_file: &str) -> &mut Self {
         self.output = Some(
             T::decorate(File::create(output_file.to_string())
-                .expect("Target should be write able"))
+                .expect("Target file should be writeable"))
+        );
+
+        self
+    }
+}
+
+impl SteganoDecoder<File> {
+    pub fn write_to_file(&mut self, output_file: &str) -> &mut Self {
+        self.output = Some(
+            File::create(output_file.to_string())
+                .expect("Target file should be writeable")
         );
 
         self
