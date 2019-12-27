@@ -110,35 +110,6 @@ impl<T> Decoder for SteganoDecoder<T>
     }
 }
 
-impl<T: Write> Read for SteganoDecoder<T>
-{
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        let source_image = self.input.as_ref().unwrap();
-        let mut buf_writer = BufWriter::new(buf);
-        let mut bit_buffer = BitWriter::endian(
-            &mut buf_writer,
-            LittleEndian
-        );
-
-        for x in 0..source_image.width() {
-            for y in 0..source_image.height() {
-                let image::Rgba(data) = source_image.get_pixel(x, y);
-                bit_buffer
-                    .write_bit((data[0] & 1) == 1)
-                    .unwrap_or_else(|_| panic!("Color R on Pixel({}, {})", x, y));
-                bit_buffer
-                    .write_bit((data[1] & 1) == 1)
-                    .unwrap_or_else(|_| panic!("Color G on Pixel({}, {})", x, y));
-                bit_buffer
-                    .write_bit((data[2] & 1) == 1)
-                    .unwrap_or_else(|_| panic!("Color B on Pixel({}, {})", x, y));
-            }
-        }
-
-        Ok(((source_image.width() * source_image.height() * 3) / 8) as usize)
-    }
-}
-
 pub struct ByteFilter<T> {
     inner: T,
     filter_byte: u8
