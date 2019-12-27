@@ -1,6 +1,15 @@
+extern crate image;
+
 use speculate::speculate;
 use std::fs;
-use stegano::{Decoder, Encoder, SteganoEncoder, SteganoDecoderV2, SteganoRawDecoder};
+use std::str;
+use std::io::Read;
+use stegano::*;
+use image::save_buffer;
+
+use std::io::prelude::*;
+use std::io::*;
+use bitstream_io::{BitWriter, LittleEndian};
 
 speculate! {
     describe "SteganoEncoder::new()" {
@@ -71,21 +80,6 @@ speculate! {
 //            let decipher = str::from_utf8(&*b).unwrap();
 //            assert_eq!(decipher, "Hello World!", "unveiled text is not hello world");
         }
-
-// TODO finish that test
-//        it "should test the Read impl" {
-//            let dec = SteganoDecoder::new()
-//               .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
-//               .write_to_file("/tmp/HelloWorld.txt");
-//
-//            let mut buf = Vec::new();
-//            dec.read(buf);
-//
-//            print!("{:?}", buf);
-//
-//            let decipher = str::from_utf8(&*b).unwrap();
-//            assert_eq!(decipher, "Hello World!", "unveiled text is not hello world");
-//        }
 
         it "should raw unveil data contained in the image" {
             let dec = SteganoRawDecoder::new()
