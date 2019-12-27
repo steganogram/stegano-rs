@@ -91,12 +91,7 @@ impl Read for SteganoDecoder {
 
 #[cfg(test)]
 mod tests {
-
-    #![feature(test)]
-    extern crate test;
-
     use super::*;
-    use test::Bencher;
 
     const H: u8 = 'H' as u8;
     const e: u8 = 'e' as u8;
@@ -150,16 +145,6 @@ mod tests {
         assert_eq!(buf[1], H, "2nd byte is not a 'H'");
         assert_eq!(buf[2], e, "3rd byte is not a 'e'");
     }
-
-    #[bench]
-    fn bench_add_two(b: &mut Bencher) {
-        b.iter(|| {
-            let mut dec = SteganoDecoderV3::new("resources/HelloWorld_no_passwd_v2.x.png");
-            let mut buf = Vec::new();
-            let r = dec.read_to_end(&mut buf).unwrap();
-        });
-    }
-
 
     #[test]
     fn test_bit_writer() {
