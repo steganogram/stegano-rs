@@ -17,3 +17,8 @@ futures-preview = "=0.3.0-alpha.19"
 
 [dev-dependencies]
 speculate = "0.1"
+criterion = "0.3.0"
+
+[[bench]]
+name = "byte_reader_benchmark"
+harness = false
