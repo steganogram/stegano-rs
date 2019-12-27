@@ -1,27 +1,33 @@
 use image::*;
-use std::io::prelude::*;
-use std::io::*;
+use std::io::{Read, BufWriter, Result};
 use std::path::Path;
 use bitstream_io::{BitWriter, LittleEndian};
-use crate::BitIterator;
-use std::cmp::min;
 
-pub type SteganoDecoderV3 = SteganoDecoder;
-
-pub struct SteganoDecoder {
+pub struct ByteReader {
     input: Option<RgbaImage>,
     x: u32,
     y: u32,
     c: usize,
 }
 
-impl SteganoDecoder {
+impl ByteReader {
     pub fn new(input_file: &str) -> Self {
-        SteganoDecoder {
-            input: Some(image::open(Path::new(input_file))
-                .expect("Input image is not readable.")
-                .to_rgba()
-            ),
+        ByteReader::of_file(Path::new(input_file))
+    }
+}
+
+impl ByteReader {
+    pub fn of_file(input_file: &Path) -> Self {
+        ByteReader::of_image(image::open(input_file)
+            .expect("Input image is not readable.")
+            .to_rgba())
+    }
+}
+
+impl ByteReader {
+    pub fn of_image(image: RgbaImage) -> Self {
+        ByteReader {
+            input: Some(image),
             x: 0,
             y: 0,
             c: 0,
@@ -29,44 +35,62 @@ impl SteganoDecoder {
     }
 }
 
-impl Read for SteganoDecoder {
+impl Read for ByteReader {
     fn read(&mut self, b: &mut [u8]) -> Result<usize> {
+
+        #[inline]
+        #[cfg(debug_assertions)]
+        fn update_progress(total_progress: u32, progress: &mut u8, x: u32, y: u32) {
+            let p = ((x * y * 100) / total_progress) as u8;
+            if p > *progress {
+                *progress = p;
+                print!("\rProgress: {}%", p);
+                if p == 99 {
+                    println!("\rDone                    ");
+                }
+            }
+        }
+        #[inline]
+        #[cfg(not(debug_assertions))]
+        fn update_progress(total_progress: u32, progress: &mut u8, x: u32, y: u32) {
+            let p = ((x * y * 100) / total_progress) as u8;
+            if p > *progress {
+                *progress = p;
+            }
+        }
+
         let source_image = self.input.as_ref().unwrap();
         let width = source_image.width();
         let height = source_image.height();
         let bytes_to_read = b.len();
         let total_progress = width * height;
 
+        let mut bit_buffer = BitWriter::endian(
+            BufWriter::new(b),
+            LittleEndian
+        );
+
         let mut progress: u8 = ((self.x * self.y * 100) / total_progress) as u8;
-        let mut buf_writer = BufWriter::with_capacity(b.len(), b);
         let mut bits_read = 0;
         let mut bytes_read = 0;
-        let mut byte: u8 = 0;
         for x in self.x..width {
             for y in self.y..height {
-                let p = ((x * y * 100) / total_progress) as u8;
-                if p > progress {
-                    progress = p;
-                    println!("progress: {}%", progress);
-                    std::io::stdout().flush();
-                }
-
                 let image::Rgba(rgba) = source_image.get_pixel(x, y);
                 for c in self.c..3 {
                     if bytes_read >= bytes_to_read {
                         self.x = x;
                         self.y = y;
                         self.c = c;
-                        buf_writer.flush();
                         return Ok(bytes_read);
                     }
-                    let bit_position = (bits_read % 8) as u8;
-                    byte = ((rgba[c] & 1) << bit_position) | (byte);
+                    bit_buffer
+                        .write_bit((rgba[c] & 1) == 1)
+                        .unwrap_or_else(|_| panic!("Color {} on Pixel({}, {})", c, x, y));
                     bits_read += 1;
+
                     if bits_read % 8 == 0 {
-                        bytes_read = bits_read / 8;
-                        buf_writer.write(&[byte]);
-                        byte = 0;
+                        bytes_read = (bits_read / 8) as usize;
+                        update_progress(total_progress, &mut progress, x, y);
                     }
                 }
                 if self.c > 0 {
@@ -79,14 +103,15 @@ impl Read for SteganoDecoder {
         };
         self.x = width;
 
-        buf_writer.flush();
         return Ok(bytes_read);
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bitstream_io::{BitWriter, LittleEndian};
 
     const H: u8 = b'H';
     const e: u8 = b'e';
@@ -95,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_read_trait_behaviour_for_read_once() {
-        let mut dec = SteganoDecoderV3::new("resources/HelloWorld_no_passwd_v2.x.png");
+        let mut dec = ByteReader::new("resources/HelloWorld_no_passwd_v2.x.png");
 
         let mut buf = [0 as u8; 13];
         let r = dec.read(&mut buf).unwrap();
@@ -111,7 +136,7 @@ mod tests {
 
     #[test]
     fn test_read_trait_behaviour_for_read_multiple_times() {
-        let mut dec = SteganoDecoderV3::new("resources/HelloWorld_no_passwd_v2.x.png");
+        let mut dec = ByteReader::new("resources/HelloWorld_no_passwd_v2.x.png");
 
         let mut buf = [0 as u8; 3];
         let r = dec.read(&mut buf).unwrap();
@@ -131,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_read_trait_behaviour_for_read_all() {
-        let mut dec = SteganoDecoderV3::new("resources/HelloWorld_no_passwd_v2.x.png");
+        let mut dec = ByteReader::new("resources/HelloWorld_no_passwd_v2.x.png");
         let expected_bytes = ((515 * 443 * 3) / 8) as usize;
 
         let mut buf = Vec::new();
@@ -154,15 +179,15 @@ mod tests {
                 LittleEndian,
             );
 
-            bit_buffer.write_bit((0 & 1) == 1);
-            bit_buffer.write_bit((0 & 1) == 1);
-            bit_buffer.write_bit((0 & 1) == 1);
-            bit_buffer.write_bit((1 & 1) == 1);
-            bit_buffer.write_bit((0 & 1) == 1);
-            bit_buffer.write_bit((0 & 1) == 1);
-            bit_buffer.write_bit((1 & 1) == 1);
-            bit_buffer.write_bit((0 & 1) == 1);
-            buf_writer.flush();
+            bit_buffer.write_bit((0 & 1) == 1).expect("1 failed");
+            bit_buffer.write_bit((0 & 1) == 1).expect("2 failed");
+            bit_buffer.write_bit((0 & 1) == 1).expect("3 failed");
+            bit_buffer.write_bit((1 & 1) == 1).expect("4 failed");
+            bit_buffer.write_bit((0 & 1) == 1).expect("5 failed");
+            bit_buffer.write_bit((0 & 1) == 1).expect("6 failed");
+            bit_buffer.write_bit((1 & 1) == 1).expect("7 failed");
+            bit_buffer.write_bit((0 & 1) == 1).expect("8 failed");
+            buf_writer.flush().expect("flush failed");
         }
 
         assert_eq!(*buf.first().unwrap(), 'H' as u8);

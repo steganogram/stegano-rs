@@ -1,12 +1,9 @@
-use bitstream_io::{BitWriter, LittleEndian};
 use std::fs::*;
 use std::io::prelude::*;
 use std::io::*;
-use std::path::Path;
-use image::*;
 use std::io;
-use std::borrow::BorrowMut;
-use super::{Decoder};
+use std::borrow::{BorrowMut};
+use super::{Decoder, ByteReader};
 
 pub type SteganoDecoderV2 = SteganoDecoder<TerminatorFilter<File>>;
 pub type SteganoRawDecoder = SteganoDecoder<File>;
@@ -15,7 +12,7 @@ pub struct SteganoDecoder<T>
     where T: Write + 'static
 {
     output: Option<T>,
-    input: Option<RgbaImage>,
+    input: Option<String>,
 }
 
 impl<T> Default for SteganoDecoder<T>
@@ -37,11 +34,7 @@ impl<T> SteganoDecoder<T>
     }
 
     pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
-        self.input = Some(
-            image::open(Path::new(input_file))
-                .expect("Carrier image was not readable.")
-                .to_rgba()
-        );
+        self.input = Some(input_file.to_string());
 
         self
     }
@@ -85,26 +78,10 @@ impl<T> Decoder for SteganoDecoder<T>
     where T: Write
 {
     fn unveil(&mut self) -> &mut Self {
-        let source_image = self.input.as_ref().unwrap();
-        let mut bit_buffer = BitWriter::endian(
-            self.output.take().unwrap(),
-            LittleEndian
-        );
-
-        for x in 0..source_image.width() {
-            for y in 0..source_image.height() {
-                let image::Rgba(data) = source_image.get_pixel(x, y);
-                bit_buffer
-                    .write_bit((data[0] & 1) == 1)
-                    .unwrap_or_else(|_| panic!("Color R on Pixel({}, {})", x, y));
-                bit_buffer
-                    .write_bit((data[1] & 1) == 1)
-                    .unwrap_or_else(|_| panic!("Color G on Pixel({}, {})", x, y));
-                bit_buffer
-                    .write_bit((data[2] & 1) == 1)
-                    .unwrap_or_else(|_| panic!("Color B on Pixel({}, {})", x, y));
-            }
-        }
+        let mut reader = ByteReader::new(self.input.take().unwrap().as_str());
+        let mut writer = self.output.take().unwrap();
+        std::io::copy(&mut reader, &mut writer)
+            .expect("Data was not transferred to output file");
 
         self
     }

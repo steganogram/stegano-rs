@@ -4,8 +4,8 @@ pub use bit_iterator::BitIterator;
 pub mod decoder_v2;
 pub use decoder_v2::*;
 
-pub mod decoder_v3;
-pub use decoder_v3::*;
+pub mod byte_reader;
+pub use byte_reader::*;
 
 use bitstream_io::{LittleEndian, BitReader};
 use std::fs::*;
