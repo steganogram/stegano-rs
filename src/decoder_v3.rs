@@ -34,20 +34,15 @@ impl Read for SteganoDecoder {
         let source_image = self.input.as_ref().unwrap();
         let width = source_image.width();
         let height = source_image.height();
-        const COLORS: [usize; 3] = [0, 1, 2];
         let bytes_to_read = b.len();
         let total_progress = width * height;
-        let mut buf_writer = BufWriter::with_capacity(b.len(), b);
-//        let mut bit_buffer = BitWriter::endian(
-//            &mut buf_writer,
-//            LittleEndian,
-//        );
 
+        let mut progress: u8 = ((self.x * self.y * 100) / total_progress) as u8;
+        let mut buf_writer = BufWriter::with_capacity(b.len(), b);
         let mut bits_read = 0;
         let mut bytes_read = 0;
         let mut byte: u8 = 0;
-        let mut progress: u8 = ((self.x * self.y * 100) / total_progress) as u8;
-        'outer: for x in self.x..width {
+        for x in self.x..width {
             for y in self.y..height {
                 let p = ((x * y * 100) / total_progress) as u8;
                 if p > progress {
@@ -57,7 +52,7 @@ impl Read for SteganoDecoder {
                 }
 
                 let image::Rgba(rgba) = source_image.get_pixel(x, y);
-                for c in self.c..3 {    // TODO better iterate over COLORS
+                for c in self.c..3 {
                     if bytes_read >= bytes_to_read {
                         self.x = x;
                         self.y = y;
@@ -93,9 +88,10 @@ impl Read for SteganoDecoder {
 mod tests {
     use super::*;
 
-    const H: u8 = 'H' as u8;
-    const e: u8 = 'e' as u8;
-    const l: u8 = 'l' as u8;
+    const H: u8 = b'H';
+    const e: u8 = b'e';
+    const l: u8 = b'l';
+    const o: u8 = b'o';
 
     #[test]
     fn test_read_trait_behaviour_for_read_once() {
@@ -129,7 +125,7 @@ mod tests {
         assert_eq!(r, 3, "bytes should have been read");
         assert_eq!(buf[0], l, "4th byte is not a 'l'");
         assert_eq!(buf[1], l, "5th byte is not a 'l'");
-        assert_eq!(buf[2], 'o' as u8, "6th byte is not a 'o'");
+        assert_eq!(buf[2], o, "6th byte is not a 'o'");
         assert_eq!(std::str::from_utf8(&buf).unwrap(), "llo");
     }
 
