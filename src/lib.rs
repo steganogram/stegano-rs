@@ -1,8 +1,8 @@
 pub mod bit_iterator;
 pub use bit_iterator::BitIterator;
 
-pub mod decoder_v2;
-pub use decoder_v2::*;
+pub mod decoder;
+pub use decoder::*;
 
 pub mod byte_reader;
 pub use byte_reader::*;

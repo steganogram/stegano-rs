@@ -87,13 +87,13 @@ fn main() -> std::io::Result<()> {
                 .hide();
         }
         ("unveil", Some(m)) => {
-            SteganoDecoderV2::new()
+            FileOutputDecoder::new()
                 .use_source_image(m.value_of("input_image").unwrap())
                 .write_to_file(m.value_of("output_file").unwrap())
                 .unveil();
         }
         ("unveil-raw", Some(m)) => {
-            SteganoRawDecoder::new()
+            FileOutputRawDecoder::new()
                 .use_source_image(m.value_of("input_image").unwrap())
                 .write_to_file(m.value_of("output_file").unwrap())
                 .unveil();

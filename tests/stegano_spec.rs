@@ -54,7 +54,7 @@ speculate! {
                 .len();
             assert!(l > 0, "File is not supposed to be empty");
 
-            SteganoDecoderV2::new()
+            FileOutputDecoder::new()
                 .use_source_image("/tmp/out-test-image.png")
                 .write_to_file("/tmp/Cargo.toml")
                 .unveil();
@@ -69,20 +69,21 @@ speculate! {
             assert_eq!(given, expected, "Unveiled file size differs to the original");
         }
 
-        it "should unveil 'Hello World!' to stdout" {
-            SteganoDecoderV2::new()
-               .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
-               .write_to_file("/tmp/HelloWorld.txt")
-//               .write_to_stdout(io::stdout())
-//               .write_to_vec(&b)
-               .unveil();
-
-//            let decipher = str::from_utf8(&*b).unwrap();
-//            assert_eq!(decipher, "Hello World!", "unveiled text is not hello world");
-        }
+//        it "should unveil 'Hello World!' to stdout" {
+//            let stdout = stdout();
+//            {
+//                let mut handle = stdout.lock();
+//                SteganoDecoderStdout::new()
+//                   .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
+//                   .write_to_stdout(handle)
+//                   .unveil();
+//            }
+////            let decipher = str::from_utf8(&*b).unwrap();
+////            assert_eq!(decipher, "Hello World!", "unveiled text is not hello world");
+//        }
 
         it "should raw unveil data contained in the image" {
-            let dec = SteganoRawDecoder::new()
+            let dec = FileOutputRawDecoder::new()
                .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
                .write_to_file("/tmp/HelloWorld.bin")
                .unveil();
