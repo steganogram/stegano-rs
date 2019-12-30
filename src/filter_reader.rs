@@ -1,10 +1,11 @@
+use std::io::{BufWriter, Read, Result};
 use std::io::prelude::*;
-use std::io::{Read, Result, Cursor, SeekFrom, BufReader, BufWriter};
 
-struct FilterReader<T> {
+pub struct FilterReader<T> {
     inner: T,
     first_byte: Option<u8>,
     first_read: bool,
+    eof: u8,
 }
 
 impl<T> Read for FilterReader<T>
@@ -23,32 +24,34 @@ impl<T> Read for FilterReader<T>
 impl<T> FilterReader<T>
     where T: Read + Sized
 {
-    fn new(reader: T) -> Self {
+    pub fn new(reader: T) -> Self {
         FilterReader {
             inner: reader,
             first_byte: None,
             first_read: true,
+            eof: 0,
         }
     }
 
     fn read_until_eof(&mut self, b: &mut [u8]) -> Result<usize> {
-        /// there are some issues with Vec, so vec! to the rescue
-        /// https://www.reddit.com/r/rust/comments/4m1snt/issues_with_read_and_vecu8/
-        ///
+        if self.eof == 2 {
+            return Ok(0);
+        }
+        // there are some issues with Vec, so vec! to the rescue
+        // https://www.reddit.com/r/rust/comments/4m1snt/issues_with_read_and_vecu8/
         let mut buf = vec![0; b.len()];
         let mut bytes = 0;
-        let mut eof = 0;
         let s = self.inner.read(&mut buf).unwrap();
         for i in 0..s {
-            if eof == 2 {
+            if self.eof == 2 {
                 return Ok(bytes);
             }
             let byt = buf[i];
             if byt == 0xff {
-                eof += 1;
+                self.eof += 1;
                 continue;
             }
-            eof = 0;
+            self.eof = 0;
             bytes += 1;
             b[i] = byt;
         }
@@ -88,14 +91,14 @@ impl<T> FilterReader<T>
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::BufReader;
+    use super::*;
 
-    const buf: [u8; 6] = [0x1, b'H', b'e', 0xff, 0xff, 0xcd];
+    const BUF: [u8; 6] = [0x1, b'H', b'e', 0xff, 0xff, 0xcd];
 
     #[test]
     fn should_skip_the_first_byte_when_first_byte_is_0x01() {
-        let r = BufReader::new(&buf[..]);
+        let r = BufReader::new(&BUF[..]);
         let mut f = FilterReader::new(r);
 
         let mut b = [0; 2];
@@ -107,7 +110,7 @@ mod tests {
 
     #[test]
     fn should_find_eof_at_0xffff_when_first_byte_is_0x01() {
-        let r = BufReader::new(&buf[..]);
+        let r = BufReader::new(&BUF[..]);
         let mut f = FilterReader::new(r);
 
         let mut b = [0; 4];
@@ -116,6 +119,10 @@ mod tests {
         assert_eq!(b[0], b'H', "first byte was not 'H'");
         assert_eq!(b[1], b'e', "2nd byte was not 'e'");
         assert_eq!(b[2], 0, "3nd byte was not kept as 0");
+
+        let mut b = [0; 4];
+        let read = f.read(&mut b).unwrap();
+        assert_eq!(read, 0);
     }
 
     #[test]
