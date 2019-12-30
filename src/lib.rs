@@ -8,6 +8,7 @@ pub mod byte_reader;
 pub use byte_reader::*;
 
 pub mod filter_reader;
+pub use filter_reader::*;
 
 use bitstream_io::{LittleEndian, BitReader};
 use std::fs::*;
