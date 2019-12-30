@@ -187,7 +187,6 @@ mod tests {
             bit_buffer.write_bit((0 & 1) == 1).expect("6 failed");
             bit_buffer.write_bit((1 & 1) == 1).expect("7 failed");
             bit_buffer.write_bit((0 & 1) == 1).expect("8 failed");
-            buf_writer.flush().expect("flush failed");
         }
 
         assert_eq!(*buf.first().unwrap(), 'H' as u8);
