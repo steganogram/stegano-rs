@@ -1,3 +1,5 @@
+#[macro_use] extern crate hex_literal;
+
 pub mod bit_iterator;
 pub use bit_iterator::BitIterator;
 
@@ -9,6 +11,8 @@ pub use byte_reader::*;
 
 pub mod filter_reader;
 pub use filter_reader::*;
+
+pub mod decipher;
 
 use bitstream_io::{LittleEndian, BitReader};
 use std::fs::*;

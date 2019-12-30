@@ -90,15 +90,3 @@ impl<O, I> Decoder for SteganoDecoder<O, I>
         self
     }
 }
-
-pub struct RijndaelFilter<T> {
-    inner: T
-}
-//
-//impl<T> Filter<T> for RijndaelFilter<T>
-//    where T: Write + 'static
-//{
-//    fn decorate(inner: T) -> Self {
-//        RijndaelFilter { inner }
-//    }
-//}
