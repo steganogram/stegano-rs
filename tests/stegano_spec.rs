@@ -22,14 +22,14 @@ speculate! {
         }
         #[should_panic(expected = "Carrier image was not readable.")]
         it "should panic for invalid carrier image file" {
-            SteganoEncoder::new().use_carrier_image("HelloWorld_no_passwd_v2.x.png");
+            SteganoEncoder::new().use_carrier_image("hello_world.png");
         }
     }
     describe "Hide feature" {
         it "should hide the Cargo.toml on a png carrier to a new png file" {
             SteganoEncoder::new()
                 .take_data_to_hide_from("Cargo.toml")
-                .use_carrier_image("resources/HelloWorld_no_passwd_v2.x.png")
+                .use_carrier_image("resources/with_text/hello_world.png")
                 .write_to("/tmp/out-test-image.png")
                 .hide();
 
@@ -45,7 +45,7 @@ speculate! {
         it "should unveil the Cargo.toml of a png" {
             SteganoEncoder::new()
                 .take_data_to_hide_from("Cargo.toml")
-                .use_carrier_image("resources/HelloWorld_no_passwd_v2.x.png")
+                .use_carrier_image("resources/with_text/hello_world.png")
                 .write_to("/tmp/out-test-image.png")
                 .hide();
 
@@ -74,7 +74,7 @@ speculate! {
 //            {
 //                let mut handle = stdout.lock();
 //                SteganoDecoderStdout::new()
-//                   .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
+//                   .use_source_image("resources/with_text/hello_world.png")
 //                   .write_to_stdout(handle)
 //                   .unveil();
 //            }
@@ -84,7 +84,7 @@ speculate! {
 
         it "should raw unveil data contained in the image" {
             let dec = FileOutputRawDecoder::new()
-               .use_source_image("resources/HelloWorld_no_passwd_v2.x.png")
+               .use_source_image("resources/with_text/hello_world.png")
                .write_to_file("/tmp/HelloWorld.bin")
                .unveil();
 

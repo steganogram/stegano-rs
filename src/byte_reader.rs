@@ -1,5 +1,5 @@
 use image::*;
-use std::io::{Read, BufWriter, Result};
+use std::io::{Read, BufWriter, Result, Write};
 use std::path::Path;
 use bitstream_io::{BitWriter, LittleEndian};
 
@@ -37,7 +37,6 @@ impl ByteReader {
 
 impl Read for ByteReader {
     fn read(&mut self, b: &mut [u8]) -> Result<usize> {
-
         #[inline]
         #[cfg(debug_assertions)]
         fn update_progress(total_progress: u32, progress: &mut u8, x: u32, y: u32) {
@@ -60,14 +59,14 @@ impl Read for ByteReader {
         }
 
         let source_image = self.input.as_ref().unwrap();
-        let width = source_image.width();
-        let height = source_image.height();
+        let (width, height) = source_image.dimensions();
         let bytes_to_read = b.len();
         let total_progress = width * height;
+        let mut buf_writer = BufWriter::new(b);
 
         let mut bit_buffer = BitWriter::endian(
-            BufWriter::new(b),
-            LittleEndian
+            buf_writer,
+            LittleEndian,
         );
 
         let mut progress: u8 = ((self.x * self.y * 100) / total_progress) as u8;
@@ -83,8 +82,9 @@ impl Read for ByteReader {
                         self.c = c;
                         return Ok(bytes_read);
                     }
+                    let bit = rgba[c] & 0x01;
                     bit_buffer
-                        .write_bit((rgba[c] & 1) == 1)
+                        .write_bit(bit > 0)
                         .unwrap_or_else(|_| panic!("Color {} on Pixel({}, {})", c, x, y));
                     bits_read += 1;
 
@@ -102,6 +102,9 @@ impl Read for ByteReader {
             }
         };
         self.x = width;
+        if !bit_buffer.byte_aligned() {
+            bit_buffer.byte_align();
+        }
 
         return Ok(bytes_read);
     }
@@ -114,21 +117,24 @@ mod tests {
     use bitstream_io::{BitWriter, LittleEndian};
 
     const H: u8 = b'H';
-    const e: u8 = b'e';
-    const l: u8 = b'l';
-    const o: u8 = b'o';
+    const E: u8 = b'e';
+    const L: u8 = b'l';
+    const O: u8 = b'o';
+    const HELLO_WORLD_PNG: &str = "resources/with_text/hello_world.png";
+    const CARGO_ZIP_PNG: &str = "resources/with_attachment/contains_one_file.png";
+    const TWO_FILES_ZIP_PNG: &str = "resources/with_attachment/contains_two_files.png";
 
     #[test]
     fn test_read_trait_behaviour_for_read_once() {
-        let mut dec = ByteReader::new("resources/HelloWorld_no_passwd_v2.x.png");
+        let mut dec = ByteReader::new(HELLO_WORLD_PNG);
 
         let mut buf = [0 as u8; 13];
         let r = dec.read(&mut buf).unwrap();
         assert_eq!(r, 13, "bytes should have been read");
         assert_eq!(buf[0], 0x1, "1st byte does not match");
         assert_eq!(buf[1], H, "2nd byte is not a 'H'");
-        assert_eq!(buf[2], e, "3rd byte is not a 'e'");
-        assert_eq!(buf[3], l, "4th byte is not a 'l'");
+        assert_eq!(buf[2], E, "3rd byte is not a 'e'");
+        assert_eq!(buf[3], L, "4th byte is not a 'l'");
 
         println!("{}", std::str::from_utf8(&buf).unwrap());
         assert_eq!(std::str::from_utf8(&buf).unwrap(), "\u{1}Hello World!");
@@ -136,27 +142,27 @@ mod tests {
 
     #[test]
     fn test_read_trait_behaviour_for_read_multiple_times() {
-        let mut dec = ByteReader::new("resources/HelloWorld_no_passwd_v2.x.png");
+        let mut dec = ByteReader::new(HELLO_WORLD_PNG);
 
         let mut buf = [0 as u8; 3];
         let r = dec.read(&mut buf).unwrap();
         assert_eq!(r, 3, "bytes should have been read");
         assert_eq!(buf[0], 0x1, "1st byte does not match");
         assert_eq!(buf[1], H, "2nd byte is not a 'H'");
-        assert_eq!(buf[2], e, "3rd byte is not a 'e'");
+        assert_eq!(buf[2], E, "3rd byte is not a 'e'");
         assert_eq!(std::str::from_utf8(&buf).unwrap(), "\u{1}He");
 
         let r = dec.read(&mut buf).unwrap();
         assert_eq!(r, 3, "bytes should have been read");
-        assert_eq!(buf[0], l, "4th byte is not a 'l'");
-        assert_eq!(buf[1], l, "5th byte is not a 'l'");
-        assert_eq!(buf[2], o, "6th byte is not a 'o'");
+        assert_eq!(buf[0], L, "4th byte is not a 'l'");
+        assert_eq!(buf[1], L, "5th byte is not a 'l'");
+        assert_eq!(buf[2], O, "6th byte is not a 'o'");
         assert_eq!(std::str::from_utf8(&buf).unwrap(), "llo");
     }
 
     #[test]
     fn test_read_trait_behaviour_for_read_all() {
-        let mut dec = ByteReader::new("resources/HelloWorld_no_passwd_v2.x.png");
+        let mut dec = ByteReader::new(TWO_FILES_ZIP_PNG);
         let expected_bytes = ((515 * 443 * 3) / 8) as usize;
 
         let mut buf = Vec::new();
@@ -164,7 +170,29 @@ mod tests {
         assert_eq!(r, expected_bytes, "bytes should have been read"); // filesize
         assert_eq!(buf[0], 0x1, "1st byte does not match");
         assert_eq!(buf[1], H, "2nd byte is not a 'H'");
-        assert_eq!(buf[2], e, "3rd byte is not a 'e'");
+        assert_eq!(buf[2], E, "3rd byte is not a 'e'");
+    }
+
+    #[test]
+    fn should_not_contain_noise_bytes() {
+        let mut dec = ByteReader::new(CARGO_ZIP_PNG);
+        let expected_bytes = ((515 * 443 * 3) / 8) as usize;
+        let zip_file_size = 337;
+
+        let mut buf = Vec::new();
+        let r = dec.read_to_end(&mut buf).unwrap();
+        assert_eq!(r, expected_bytes, "bytes should have been read"); // filesize
+
+        let mut reader = std::io::Cursor::new(&buf[1..]);
+        let mut zip = zip::ZipArchive::new(reader)
+            .expect("zip archive was not readable");
+        for i in 0..zip.len() {
+            let mut file = zip.by_index(i).unwrap();
+            println!("Filename: {}", file.name());
+            let first_byte = file.bytes().next().unwrap()
+                .expect("not able to read next byte");
+            println!("{}", first_byte);
+        }
     }
 
     #[test]
@@ -189,6 +217,6 @@ mod tests {
             bit_buffer.write_bit((0 & 1) == 1).expect("8 failed");
         }
 
-        assert_eq!(*buf.first().unwrap(), 'H' as u8);
+        assert_eq!(*buf.first().unwrap(), H);
     }
 }

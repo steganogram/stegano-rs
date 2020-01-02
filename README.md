@@ -71,6 +71,17 @@ stegano unveil-raw \
 
 The file `Secret.bin` contains all raw data unfiltered decoded by the LSB decoding algorithm. That is for the curious people, and not so much interesting.
 
+### Unveil a Zip file (WIP)
+
+```
+cargo run --bin stegano -- unveil-raw \
+ --in resources/HelloWorld_no_passwd_with_attachment_v2.x.PNG \
+ --out attachment.bin
+dd if=attachment.bin of=attachment.zip bs=1 skip=1
+zip -FF attachment.zip --out attachment-fixed.zip
+unzip attachment-fixed.zip
+```
+
 ## License
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -80,3 +91,4 @@ The file `Secret.bin` contains all raw data unfiltered decoded by the LSB decodi
 
 [1]: https://svenomenal.net/devel/steganoV2
 [2]: https://www.d34dl0ck.me
+[3]: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
