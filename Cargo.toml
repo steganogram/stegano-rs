@@ -15,6 +15,7 @@ aes-soft = "0.3.3"
 hex-literal = "0.2.1"
 futures-preview = "=0.3.0-alpha.19"
 zip = "0.5.3"
+byteorder = "1.3.2"
 
 [dev-dependencies]
 speculate = "0.1"

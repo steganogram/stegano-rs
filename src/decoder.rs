@@ -1,9 +1,10 @@
 use std::fs::*;
 use std::io::prelude::*;
 use super::{Decoder, ByteReader, FilterReader};
-use std::io::{Stdout, stdout, StdoutLock};
+use super::Codec;
+//use std::io::{Stdout, stdout, StdoutLock};
 
-pub type FileOutputDecoder = SteganoDecoder<File, FilterReader<ByteReader>>;
+pub type FileOutputDecoder = SteganoDecoder<File, Codec<ByteReader>>;
 pub type FileOutputRawDecoder = SteganoDecoder<File, ByteReader>;
 
 pub struct SteganoDecoder<O, I>
@@ -40,6 +41,18 @@ impl<O> SteganoDecoder<O, ByteReader>
 {
     pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
         self.input = Some(ByteReader::new(input_file));
+
+        self
+    }
+}
+
+impl<O> SteganoDecoder<O, Codec<ByteReader>>
+    where O: Write + 'static
+{
+    pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
+        self.input = Some(
+            Codec::decoder(
+                ByteReader::new(input_file)));
 
         self
     }

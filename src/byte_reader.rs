@@ -1,7 +1,8 @@
-use image::*;
-use std::io::{Read, BufWriter, Result, Write};
+use std::io::{BufWriter, Read, Result};
 use std::path::Path;
+
 use bitstream_io::{BitWriter, LittleEndian};
+use image::*;
 
 pub struct ByteReader {
     input: Option<RgbaImage>,
@@ -113,8 +114,9 @@ impl Read for ByteReader {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bitstream_io::{BitWriter, LittleEndian};
+
+    use super::*;
 
     const H: u8 = b'H';
     const E: u8 = b'e';
@@ -183,16 +185,22 @@ mod tests {
         let r = dec.read_to_end(&mut buf).unwrap();
         assert_eq!(r, expected_bytes, "bytes should have been read"); // filesize
 
-        let mut reader = std::io::Cursor::new(&buf[1..]);
-        let mut zip = zip::ZipArchive::new(reader)
-            .expect("zip archive was not readable");
-        for i in 0..zip.len() {
-            let mut file = zip.by_index(i).unwrap();
-            println!("Filename: {}", file.name());
-            let first_byte = file.bytes().next().unwrap()
-                .expect("not able to read next byte");
-            println!("{}", first_byte);
-        }
+//        use std::fs::File;
+//        let mut target = File::create("/tmp/contains_one_file.png.zip")
+//            .expect("temp file was not created");
+//        target.write_all(&buf[1..]);
+//        target.flush();
+
+//        let mut reader = std::io::Cursor::new(&buf[1..]);
+//        let mut zip = zip::ZipArchive::new(reader)
+//            .expect("zip archive was not readable");
+//        for i in 0..zip.len() {
+//            let mut file = zip.by_index(i).unwrap();
+//            println!("Filename: {}", file.name());
+//            let first_byte = file.bytes().next().unwrap()
+//                .expect("not able to read next byte");
+//            println!("{}", first_byte);
+//        }
     }
 
     #[test]
