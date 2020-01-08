@@ -106,17 +106,35 @@ impl Encoder for SteganoEncoder {
     fn hide(&mut self) -> &Self {
         let mut files = self.files_to_hide.clone();
         let mut codec = Codec::encoder(self.borrow_mut());
+        let mut buf = Vec::new();
 
-        files
-            .iter()
-            .map(|f| File::open(f).unwrap()
+        {
+            let mut w = std::io::Cursor::new(&mut buf);
+            let mut zip = zip::ZipWriter::new(w);
+
+            let options = zip::write::FileOptions::default()
+                .compression_method(zip::CompressionMethod::Stored);
+
+            files
+                .iter()
+                .map(|f| (f, File::open(f).unwrap())
 //                .unwrap_or_else(panic!("Cannot open file '{}'", f))
-            )
-            .filter(|f| f.metadata().unwrap().is_file())
-            .for_each(|mut f| {
-                std::io::copy(&mut f, &mut codec)
-                    .expect("Failed to copy data to the codec");
-            });
+                )
+                .filter(|(name, f)| f.metadata().unwrap().is_file())
+                .for_each(|(name, mut f)| {
+                    zip.start_file(name, options).
+                        expect("start zip file failed.");
+
+                    std::io::copy(&mut f, &mut zip)
+                        .expect("Failed to copy data to the zip entry");
+                });
+
+            zip.finish().expect("finish zip failed.");
+        }
+
+        let mut w = std::io::Cursor::new(&mut buf);
+        std::io::copy(&mut w, &mut codec)
+            .expect("Failed to copy from zip to codec.");
 
         codec.flush()
             .expect("Failed to flush the codec.");
