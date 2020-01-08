@@ -33,8 +33,19 @@ fn main() -> std::io::Result<()> {
                     .long("data")
                     .value_name("data file")
                     .takes_value(true)
-                    .required(true)
-                    .help("Data of that file that will be hidden"),
+                    .required_unless("message")
+                    .min_values(1)
+                    .max_values(100)
+                    .help("File(s) to hide in the image"),
+            )
+            .arg(
+                Arg::with_name("message")
+                    .short("m")
+                    .long("message")
+                    .value_name("text message")
+                    .takes_value(true)
+                    .required(false)
+                    .help("A text message that will be hidden"),
             )
         ).subcommand(SubCommand::with_name("unveil")
             .about("Unveils data in PNG images")
@@ -80,11 +91,25 @@ fn main() -> std::io::Result<()> {
 
     match matches.subcommand() {
         ("hide", Some(m)) => {
-            SteganoEncoder::new()
-                .use_carrier_image(m.value_of("carrier_image").unwrap())
-                .take_data_to_hide_from(m.value_of("data_file").unwrap())
-                .write_to(m.value_of("write_to_file").unwrap())
-                .hide();
+            let mut s = SteganoEncoder::new();
+
+            s.use_carrier_image(m.value_of("carrier_image").unwrap())
+             .write_to(m.value_of("write_to_file").unwrap());
+
+            match m.value_of("message") {
+                None => {}
+                Some(msg) => {
+                    s.hide_message(msg);
+                },
+            }
+
+            match m.values_of("data_file") {
+                None => {},
+                Some(files) => {
+                    s.hide_files(files.collect());
+                },
+            }
+            s.hide();
         }
         ("unveil", Some(m)) => {
             FileOutputDecoder::new()

@@ -36,7 +36,7 @@ pub struct SteganoEncoder {
     target: Option<String>,
     target_image: Option<RgbaImage>,
     carrier: Option<image::DynamicImage>,
-    source: Option<std::fs::File>,
+    files_to_hide: Vec<String>,
     x: u32,
     y: u32,
     c: usize,
@@ -56,7 +56,7 @@ impl Default for SteganoEncoder {
             target: None,
             target_image: None,
             carrier: None,
-            source: None,
+            files_to_hide: Vec::new(),
             x: 0,
             y: 0,
             c: 0,
@@ -81,26 +81,45 @@ impl SteganoEncoder {
         self
     }
 
-    pub fn take_data_to_hide_from(&mut self, input_file: &str) -> &mut Self {
-        self.source = Some(
-            File::open(input_file)
-                .expect("Source file was not readable."));
+    pub fn hide_message(&mut self, msg: &str) -> &mut Self {
+        unimplemented!("TODO hide_message not implemented");
+        self
+    }
+
+    pub fn hide_file(&mut self, input_file: &str) -> &mut Self {
+        self.files_to_hide.push(input_file.to_string());
+
+        self
+    }
+
+    pub fn hide_files(&mut self, input_files: Vec<&str>) -> &mut Self {
+        self.files_to_hide = input_files
+            .iter()
+            .map(|f| f.to_string())
+            .collect();
+
         self
     }
 }
 
 impl Encoder for SteganoEncoder {
     fn hide(&mut self) -> &Self {
-        {
-            let mut reader = self.source.take().unwrap();
-            let mut codec = Codec::encoder(self.borrow_mut());
+        let mut files = self.files_to_hide.clone();
+        let mut codec = Codec::encoder(self.borrow_mut());
 
-            std::io::copy(&mut reader, &mut codec)
-                .expect("Failed to copy data to the codec");
+        files
+            .iter()
+            .map(|f| File::open(f).unwrap()
+//                .unwrap_or_else(panic!("Cannot open file '{}'", f))
+            )
+            .filter(|f| f.metadata().unwrap().is_file())
+            .for_each(|mut f| {
+                std::io::copy(&mut f, &mut codec)
+                    .expect("Failed to copy data to the codec");
+            });
 
-            codec.flush()
-                .expect("Failed to flush the codec.");
-        }
+        codec.flush()
+            .expect("Failed to flush the codec.");
 
         self
     }
@@ -204,7 +223,7 @@ mod tests {
         let out = "/tmp/foo.zip.png";
         let input = "tmp/foo.zip";
         SteganoEncoder::new()
-            .take_data_to_hide_from(input)
+            .hide_file(input)
             .use_carrier_image("resources/Base.png")
             .write_to(out)
             .hide();
