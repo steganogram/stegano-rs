@@ -96,10 +96,22 @@ impl<O, I> Unveil for SteganoDecoder<O, I>
           I: Read + Sized
 {
     fn unveil(&mut self) -> &mut Self {
+        let mut buf = Vec::new();
         let mut reader = self.input.take().unwrap();
         let mut writer = self.output.take().unwrap();
-        std::io::copy(&mut reader, &mut writer)
-            .expect("Data was not transferred to output file");
+        std::io::copy(&mut reader, &mut buf)
+            .expect("Data was not transferred to internal buffer");
+
+        let mut reader = std::io::Cursor::new(&buf);
+        let mut zip = zip::ZipArchive::new(reader)
+            .expect("zip archive was not readable");
+        if zip.len() > 1 {
+            unimplemented!("Only one target file is supported right now");
+        }
+        for i in 0..zip.len() {
+            let mut file = zip.by_index(i).unwrap();
+            std::io::copy(&mut file, &mut writer);
+        }
 
         self
     }

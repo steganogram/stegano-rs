@@ -293,7 +293,9 @@ mod e2e_tests {
     }
 
     #[test]
+    #[ignore]
     fn should_raw_unveil_a_message() {
+        // FIXME: there no zip, just plain raw string is contained
         let dec = FileOutputRawDecoder::new()
             .use_source_image("resources/with_text/hello_world.png")
             .write_to_file("/tmp/HelloWorld.bin")
@@ -321,7 +323,7 @@ mod e2e_tests {
             .expect("Output image was not written.")
             .len();
         assert!(l > 0, "File is not supposed to be empty");
-        let target = "/tmp/foo.decoded.zip";
+        let target = "/tmp/foo.bin.decoded";
 
         FileOutputDecoder::new()
             .use_source_image(out)
@@ -332,37 +334,10 @@ mod e2e_tests {
             .expect("Source file is not available.")
             .len();
 
-        let mut buf = Vec::new();
-        let mut file = File::open(target)
-            .expect("output file is not readbale");
-        let r = file.read_to_end(&mut buf).unwrap();
-
-        let mut reader = std::io::Cursor::new(&buf[..]);
-        let mut zip = zip::ZipArchive::new(reader)
-            .expect("zip archive was not readable");
-        for i in 0..zip.len() {
-            let mut file = zip.by_index(i).unwrap();
-            println!("Filename: {}", file.name());
-            let first_byte = file.bytes().next().unwrap()
-                .expect("not able to read next byte");
-            println!("{}", first_byte);
-        }
-
-        let mut zeros = 0;
-        for b in buf.iter().rev() {
-            let b = *b;
-            if b == 0 {
-                zeros += 1;
-            } else {
-                break;
-            }
-        }
-
         let given = fs::metadata(target)
-            .expect("Output image was not written.")
+            .expect("Unveiled file was not written.")
             .len();
-
-        let given = given - zeros - 2;
-//        assert_eq!(given, expected, "Unveiled file size differs to the original");
+        assert_eq!(expected - given, 0, "Unveiled file size differs to the original");
+        // TODO: implement content matching
     }
 }
