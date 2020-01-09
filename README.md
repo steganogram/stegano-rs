@@ -13,7 +13,7 @@ Rewrite of the core of the [originally stegano.net tool][1]
 
 Let's assume we want to hide data of a file called `README.md`, into an image called `HelloWorld.png`, based on a image called `resources/HelloWorld_no_passwd_v2.x.png`. So we would run:
 
-```bash
+```sh
 stegano hide \
  --data README.md \
  --in resources/HelloWorld_no_passwd_v2.x.png \
@@ -22,7 +22,7 @@ stegano hide \
 
 or by cargo
 
-```bash
+```sh
 cargo run --bin stegano -- hide \
  --data README.md \
  --in resources/HelloWorld_no_passwd_v2.x.png \
@@ -35,7 +35,7 @@ Let's assume we want to hide a simple message like `Hello World!` in an existing
 
 So we would run:
 
-```bash
+```sh
 cat "Hello World!" | stegano hide --in resources/HelloWorld_no_passwd_v2.x.png > HelloWorld.png
 ```
 
@@ -45,7 +45,7 @@ The final result is then contained in the image `HelloWorld.png`.
 
 Let's unveil the `README.md` that we've hidden just above in `HelloWorld.png`
 
-```bash
+```sh
 stegano unveil \
  --in HelloWorld.png \
  --out Secret.txt
@@ -53,7 +53,7 @@ stegano unveil \
 
 or by cargo
 
-```bash
+```sh
 cargo run --bin stegano -- unveil \
  --in HelloWorld.png \
  --out Secret.txt
@@ -63,7 +63,7 @@ cargo run --bin stegano -- unveil \
 
 Let's unveil the raw data of the `README.md` that we've hidden just above in `HelloWorld.png`
 
-```bash
+```sh
 stegano unveil-raw \
  --in HelloWorld.png \
  --out Secret.bin
@@ -73,7 +73,7 @@ The file `Secret.bin` contains all raw data unfiltered decoded by the LSB decodi
 
 ### Unveil a Zip file (WIP)
 
-```
+```sh
 cargo run --bin stegano -- unveil-raw \
  --in resources/HelloWorld_no_passwd_with_attachment_v2.x.PNG \
  --out attachment.bin
@@ -86,9 +86,8 @@ unzip attachment-fixed.zip
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-- **[GNU GPL v3 license](https://www.gnu.org/licenses/gpl-3.0)**
-- Copyright 2019 © [Sven Assmann][2].
+  - **[GNU GPL v3 license](https://www.gnu.org/licenses/gpl-3.0)**
+  - Copyright 2019 © [Sven Assmann][2].
 
 [1]: https://svenomenal.net/devel/steganoV2
 [2]: https://www.d34dl0ck.me
-[3]: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
