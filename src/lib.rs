@@ -87,16 +87,22 @@ impl SteganoEncoder {
     }
 
     pub fn hide_file(&mut self, input_file: &str) -> &mut Self {
+        {
+            let f = File::open(input_file)
+                .expect("Data file was not readable.");
+        }
         self.files_to_hide.push(input_file.to_string());
 
         self
     }
 
     pub fn hide_files(&mut self, input_files: Vec<&str>) -> &mut Self {
-        self.files_to_hide = input_files
+        self.files_to_hide = Vec::new();
+        input_files
             .iter()
-            .map(|f| f.to_string())
-            .collect();
+            .for_each(|&f| {
+                self.hide_file(f);
+            });
 
         self
     }
