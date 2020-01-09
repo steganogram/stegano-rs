@@ -310,8 +310,8 @@ mod e2e_tests {
     }
 
     #[test]
-    fn should_encode_decode_a_binary_file() {
-        let out = "/tmp/foo.zip.png";
+    fn should_hide_and_unveil_a_binary_file() {
+        let out = "/tmp/random_1666_byte.bin.png";
         let input = "resources/secrets/random_1666_byte.bin";
         SteganoCore::new()
             .hide_file(input)
@@ -323,7 +323,40 @@ mod e2e_tests {
             .expect("Output image was not written.")
             .len();
         assert!(l > 0, "File is not supposed to be empty");
-        let target = "/tmp/foo.bin.decoded";
+        let target = "/tmp/random_1666_byte.bin.decoded";
+
+        FileOutputDecoder::new()
+            .use_source_image(out)
+            .write_to_file(target)
+            .unveil();
+
+        let expected = fs::metadata(input)
+            .expect("Source file is not available.")
+            .len();
+
+        let given = fs::metadata(target)
+            .expect("Unveiled file was not written.")
+            .len();
+        assert_eq!(expected - given, 0, "Unveiled file size differs to the original");
+        // TODO: implement content matching
+    }
+
+    #[test]
+    fn should_hide_and_unveil_a_zip_file() {
+        let input = "resources/secrets/zip_with_2_files.zip";
+        let out = "/tmp/zip_with_2_files.zip.png";
+        let target = "/tmp/zip_with_2_files.zip.decoded";
+
+        SteganoCore::new()
+            .hide_file(input)
+            .use_carrier_image("resources/Base.png")
+            .write_to(out)
+            .hide();
+
+        let l = fs::metadata(out)
+            .expect("Output image was not written.")
+            .len();
+        assert!(l > 0, "File is not supposed to be empty");
 
         FileOutputDecoder::new()
             .use_source_image(out)
