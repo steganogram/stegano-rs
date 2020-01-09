@@ -32,7 +32,7 @@ use image::*;
 use std::io;
 use std::borrow::BorrowMut;
 
-pub struct SteganoEncoder {
+pub struct SteganoCore {
     target: Option<String>,
     target_image: Option<RgbaImage>,
     carrier: Option<image::DynamicImage>,
@@ -42,15 +42,15 @@ pub struct SteganoEncoder {
     c: usize,
 }
 
-pub trait Encoder {
+pub trait Hide {
     fn hide(&mut self) -> &Self;
 }
 
-pub trait Decoder {
+pub trait Unveil {
     fn unveil(&mut self) -> &mut Self;
 }
 
-impl Default for SteganoEncoder {
+impl Default for SteganoCore {
     fn default() -> Self {
         Self {
             target: None,
@@ -64,7 +64,7 @@ impl Default for SteganoEncoder {
     }
 }
 
-impl SteganoEncoder {
+impl SteganoCore {
     pub fn new() -> Self {
         Self::default()
     }
@@ -108,7 +108,7 @@ impl SteganoEncoder {
     }
 }
 
-impl Encoder for SteganoEncoder {
+impl Hide for SteganoCore {
     fn hide(&mut self) -> &Self {
         let mut files = self.files_to_hide.clone();
         let mut codec = Codec::encoder(self.borrow_mut());
@@ -123,9 +123,8 @@ impl Encoder for SteganoEncoder {
 
             files
                 .iter()
-                .map(|f| (f, File::open(f).unwrap())
-//                .unwrap_or_else(panic!("Cannot open file '{}'", f))
-                )
+                .map(|f| (f, File::open(f).expect("Data file was not readable.")))
+                // TODO instead of filtering, accepting directories would be nice
                 .filter(|(name, f)| f.metadata().unwrap().is_file())
                 .for_each(|(name, mut f)| {
                     zip.start_file(name, options).
@@ -149,7 +148,7 @@ impl Encoder for SteganoEncoder {
     }
 }
 
-impl Write for SteganoEncoder {
+impl Write for SteganoCore {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         #[inline]
         fn bit_wave(byte: u8, bit: io::Result<bool>) -> u8 {
@@ -245,29 +244,29 @@ mod e2e_tests {
     #[test]
     #[should_panic(expected = "Data file was not readable.")]
     fn should_panic_on_invalid_data_file() {
-        SteganoEncoder::new().hide_file("foofile");
+        SteganoCore::new().hide_file("foofile");
     }
 
     #[test]
     #[should_panic(expected = "Data file was not readable.")]
     fn should_panic_on_invalid_data_file_among_valid() {
-        SteganoEncoder::new().hide_files(vec!["Cargo.toml", "foofile"]);
+        SteganoCore::new().hide_files(vec!["Cargo.toml", "foofile"]);
     }
 
     #[test]
     #[should_panic(expected = "Carrier image was not readable.")]
     fn should_panic_for_invalid_carrier_image_file() {
-        SteganoEncoder::new().use_carrier_image("random_file.png");
+        SteganoCore::new().use_carrier_image("random_file.png");
     }
 
     #[test]
     fn should_accecpt_a_png_as_target_file() {
-        SteganoEncoder::new().write_to("/tmp/out-test-image.png");
+        SteganoCore::new().write_to("/tmp/out-test-image.png");
     }
 
     #[test]
     fn should_hide_and_unveil_one_text_file() {
-        SteganoEncoder::new()
+        SteganoCore::new()
             .hide_file("Cargo.toml")
             .use_carrier_image("resources/with_text/hello_world.png")
             .write_to("/tmp/out-test-image.png")
@@ -311,8 +310,8 @@ mod e2e_tests {
     #[test]
     fn should_encode_decode_a_binary_file() {
         let out = "/tmp/foo.zip.png";
-        let input = "tmp/foo.zip";
-        SteganoEncoder::new()
+        let input = "resources/secrets/random_1666_byte.bin";
+        SteganoCore::new()
             .hide_file(input)
             .use_carrier_image("resources/Base.png")
             .write_to(out)

@@ -91,7 +91,7 @@ fn main() -> std::io::Result<()> {
 
     match matches.subcommand() {
         ("hide", Some(m)) => {
-            let mut s = SteganoEncoder::new();
+            let mut s = SteganoCore::new();
 
             s.use_carrier_image(m.value_of("carrier_image").unwrap())
              .write_to(m.value_of("write_to_file").unwrap());

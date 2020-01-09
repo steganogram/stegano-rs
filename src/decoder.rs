@@ -1,7 +1,8 @@
 use std::fs::*;
 use std::io::prelude::*;
-use super::{Decoder, ByteReader, FilterReader};
+use super::{Unveil, ByteReader, FilterReader};
 use super::Codec;
+use std::io::Cursor;
 //use std::io::{Stdout, stdout, StdoutLock};
 
 pub type FileOutputDecoder = SteganoDecoder<File, Codec<ByteReader>>;
@@ -90,7 +91,7 @@ impl<I> SteganoDecoder<File, I>
 //    }
 //}
 
-impl<O, I> Decoder for SteganoDecoder<O, I>
+impl<O, I> Unveil for SteganoDecoder<O, I>
     where O: Write,
           I: Read + Sized
 {
