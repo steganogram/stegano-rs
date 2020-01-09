@@ -232,9 +232,75 @@ impl Write for SteganoEncoder {
 }
 
 #[cfg(test)]
-mod tests {
+mod e2e_tests {
     use super::*;
     use std::fs;
+
+    #[test]
+    #[should_panic(expected = "Data file was not readable.")]
+    fn should_panic_on_invalid_data_file() {
+        SteganoEncoder::new().hide_file("foofile");
+    }
+
+    #[test]
+    #[should_panic(expected = "Data file was not readable.")]
+    fn should_panic_on_invalid_data_file_among_valid() {
+        SteganoEncoder::new().hide_files(vec!["Cargo.toml", "foofile"]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Carrier image was not readable.")]
+    fn should_panic_for_invalid_carrier_image_file() {
+        SteganoEncoder::new().use_carrier_image("random_file.png");
+    }
+
+    #[test]
+    fn should_accecpt_a_png_as_target_file() {
+        SteganoEncoder::new().write_to("/tmp/out-test-image.png");
+    }
+
+    #[test]
+    fn should_hide_and_unveil_one_text_file() {
+        SteganoEncoder::new()
+            .hide_file("Cargo.toml")
+            .use_carrier_image("resources/with_text/hello_world.png")
+            .write_to("/tmp/out-test-image.png")
+            .hide();
+
+        let l = fs::metadata("/tmp/out-test-image.png")
+            .expect("Output image was not written.")
+            .len();
+        assert!(l > 0, "File is not supposed to be empty");
+
+        FileOutputDecoder::new()
+            .use_source_image("/tmp/out-test-image.png")
+            .write_to_file("/tmp/Cargo.toml")
+            .unveil();
+
+        let expected = fs::metadata("Cargo.toml")
+            .expect("Source file is not available.")
+            .len();
+        let given = fs::metadata("/tmp/Cargo.toml")
+            .expect("Output image was not written.")
+            .len();
+
+        assert_eq!(given, expected, "Unveiled file size differs to the original");
+    }
+
+    #[test]
+    fn should_raw_unveil_a_message() {
+        let dec = FileOutputRawDecoder::new()
+            .use_source_image("resources/with_text/hello_world.png")
+            .write_to_file("/tmp/HelloWorld.bin")
+            .unveil();
+
+        let l = fs::metadata("/tmp/HelloWorld.bin")
+            .expect("Output file was not written.")
+            .len();
+
+        // TODO content verification needs to be done as well
+        assert_ne!(l, 0, "Output raw data file was empty.");
+    }
 
     #[test]
     fn should_encode_decode_a_binary_file() {
