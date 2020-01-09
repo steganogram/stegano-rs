@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_read_trait_behaviour_for_read_all() {
-        let mut dec = ByteReader::new(TWO_FILES_ZIP_PNG);
+        let mut dec = ByteReader::new(HELLO_WORLD_PNG);
         let expected_bytes = ((515 * 443 * 3) / 8) as usize;
 
         let mut buf = Vec::new();
