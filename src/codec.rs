@@ -28,8 +28,14 @@ impl<W> Write for Codec<W>
     where W: Write
 {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
-        self.byte_count += buf.len() as u32;
-        self.buffer.write(buf)
+        let r = self.buffer.write(buf);
+        match r {
+            Ok(bytes) => {
+                self.byte_count += bytes as u32;
+                Ok(bytes)
+            }
+            Err(e) => Err(e)
+        }
     }
 
     fn flush(&mut self) -> Result<(), Error> {
