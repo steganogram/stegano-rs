@@ -19,6 +19,7 @@ addons:
       - cmake
       - gcc
       - binutils-dev
+      - libssl-dev
 before_script:
   - source $HOME/.cargo/env
   - |
@@ -27,15 +28,23 @@ before_script:
       if [[ $CLIPPY ]]; then rustup component add clippy; fi
   - |
       export PUBLISH_DOCS=$([[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_BRANCH" == "master" ]])
-  - |
-      export COVERAGE=$([[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]])
-  - |
-    if [[ $COVERAGE ]]; then cargo install cargo-tarpaulin -f; fi
+#  - |
+#      export COVERAGE=$([[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]])
+#  - |
+#    if [[ $COVERAGE ]]; then cargo install cargo-tarpaulin -f; fi
+
+before_cache: |
+  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+    cargo install cargo-tarpaulin -f
+  fi
+
 script:
   - cargo clean
   - cargo build
   - cargo test
   - .ci/build/linting.sh
-after_success:
-  - .ci/post-build/coverage.sh
-  - .ci/post-build/publish-docs.sh
+after_success: |
+  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+    cargo tarpaulin --out Xml
+    bash <(curl -s https://codecov.io/bash)
+  fi
