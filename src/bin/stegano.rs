@@ -91,7 +91,7 @@ fn main() -> std::io::Result<()> {
 
     match matches.subcommand() {
         ("hide", Some(m)) => {
-            let mut s = SteganoCore::new();
+            let mut s = SteganoCore::encoder();
 
             s.use_carrier_image(m.value_of("carrier_image").unwrap())
              .write_to(m.value_of("write_to_file").unwrap());
@@ -112,13 +112,13 @@ fn main() -> std::io::Result<()> {
             s.hide();
         }
         ("unveil", Some(m)) => {
-            FileOutputDecoder::new()
+            SteganoCore::raw_decoder()
                 .use_source_image(m.value_of("input_image").unwrap())
                 .write_to_file(m.value_of("output_file").unwrap())
                 .unveil();
         }
         ("unveil-raw", Some(m)) => {
-            FileOutputRawDecoder::new()
+            SteganoCore::decoder()
                 .use_source_image(m.value_of("input_image").unwrap())
                 .write_to_file(m.value_of("output_file").unwrap())
                 .unveil();

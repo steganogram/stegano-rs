@@ -2,26 +2,13 @@
 extern crate hex_literal;
 
 pub mod bit_iterator;
-
 pub use bit_iterator::BitIterator;
 
-pub mod decoder;
+pub mod lsb_codec;
+pub use lsb_codec::LSBCodec;
 
-pub use decoder::*;
-
-pub mod byte_reader;
-
-pub use byte_reader::*;
-
-pub mod filter_reader;
-
-pub use filter_reader::*;
-
-pub mod codec;
-
-pub use codec::Codec;
-
-pub mod decipher;
+pub mod content;
+pub use content::*;
 
 use bitstream_io::{LittleEndian, BitReader};
 use std::fs::*;
@@ -32,25 +19,43 @@ use image::*;
 use std::io;
 use std::borrow::BorrowMut;
 
-pub struct SteganoCore {
+pub struct SteganoCore {}
+
+impl SteganoCore {
+    pub fn encoder() -> SteganoEncoder {
+        SteganoEncoder::new()
+    }
+
+    pub fn decoder() -> SteganoDecoder {
+        SteganoDecoder::new()
+    }
+
+    pub fn raw_decoder() -> SteganoDecoder {
+        unimplemented!("Raw Decoder not yet refactored")
+    }
+}
+
+pub trait Hide {
+    // TODO should return Result<()>
+    fn hide(&mut self) -> &Self;
+}
+
+pub trait Unveil {
+    // TODO should return Result<()>
+    fn unveil(&mut self) -> &mut Self;
+}
+
+pub struct SteganoEncoder {
     target: Option<String>,
     target_image: Option<RgbaImage>,
-    carrier: Option<image::DynamicImage>,
+    carrier: Option<RgbaImage>,
     files_to_hide: Vec<String>,
     x: u32,
     y: u32,
     c: usize,
 }
 
-pub trait Hide {
-    fn hide(&mut self) -> &Self;
-}
-
-pub trait Unveil {
-    fn unveil(&mut self) -> &mut Self;
-}
-
-impl Default for SteganoCore {
+impl Default for SteganoEncoder {
     fn default() -> Self {
         Self {
             target: None,
@@ -64,7 +69,7 @@ impl Default for SteganoCore {
     }
 }
 
-impl SteganoCore {
+impl SteganoEncoder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -72,7 +77,10 @@ impl SteganoCore {
     pub fn use_carrier_image(&mut self, input_file: &str) -> &mut Self {
         self.carrier = Some(
             image::open(Path::new(input_file))
-                .expect("Carrier image was not readable."));
+                .expect("Carrier image was not readable.")
+                .to_rgba()
+        );
+
         self
     }
 
@@ -108,131 +116,93 @@ impl SteganoCore {
     }
 }
 
-impl Hide for SteganoCore {
+impl Hide for SteganoEncoder {
     fn hide(&mut self) -> &Self {
-        let mut files = self.files_to_hide.clone();
-        let mut codec = Codec::encoder(self.borrow_mut());
-        let mut buf = Vec::new();
+        let mut fc = FileContent::new(&self.files_to_hide);
+        let mut img = self.carrier.as_mut().unwrap();
+        let mut dec = LSBCodec::new(&mut img);
+        let mut message = Message::new(fc);
 
-        {
-            let mut w = std::io::Cursor::new(&mut buf);
-            let mut zip = zip::ZipWriter::new(w);
+        let mut buf: Vec<u8> = message.into();
+//        fc.into::<[u8]>(buf);
+        dec.write_all(&buf[..]);
 
-            let options = zip::write::FileOptions::default()
-                .compression_method(zip::CompressionMethod::Stored);
-
-            files
-                .iter()
-                .map(|f| (f, File::open(f).expect("Data file was not readable.")))
-                // TODO instead of filtering, accepting directories would be nice
-                .filter(|(name, f)| f.metadata().unwrap().is_file())
-                .for_each(|(name, mut f)| {
-                    zip.start_file(name, options).
-                        expect("start zip file failed.");
-
-                    std::io::copy(&mut f, &mut zip)
-                        .expect("Failed to copy data to the zip entry");
-                });
-
-            zip.finish().expect("finish zip failed.");
-        }
-
-        let mut w = std::io::Cursor::new(&mut buf);
-        std::io::copy(&mut w, &mut codec)
-            .expect("Failed to copy from zip to codec.");
-
-        codec.flush()
-            .expect("Failed to flush the codec.");
+        self.carrier.as_mut()
+            .expect("Image was not there for saving.")
+            .save(self.target.as_ref().unwrap());
 
         self
     }
 }
 
-impl Write for SteganoCore {
-    fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        #[inline]
-        fn bit_wave(byte: u8, bit: io::Result<bool>) -> u8 {
-            let byt = match bit {
-                // TODO here we need some configurability, to prevent 0 writing on demand
-//                Err(_) => 0,
-                Err(_) => byte,
-                Ok(byt) => if byt { 1 } else { 0 }
-            };
-            (byte & 0xFE) | byt
+pub struct SteganoDecoder {
+    input: Option<RgbaImage>,
+    output: Option<File>,
+}
+
+impl Default for SteganoDecoder
+{
+    fn default() -> Self {
+        Self {
+            output: None,
+            input: None,
         }
+    }
+}
 
-        let carrier = self.carrier.as_ref().unwrap();
-        let (width, height) = carrier.dimensions();
-        let bytes_to_write = buf.len();
-        match self.target_image {
-            None => {
-                self.target_image = Some(ImageBuffer::new(width, height));
-            }
-            _ => {}
-        }
-        let mut bit_iter = BitReader::endian(
-            Cursor::new(buf),
-            LittleEndian,
-        );
+impl SteganoDecoder
+{
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
 
-        let mut bits_written = 0;
-        let mut bytes_written = 0;
-        for x in self.x..width {
-            for y in self.y..height {
-                let image::Rgba(mut rgba) = carrier.get_pixel(x, y);
-                for c in self.c..3 as usize {
-                    if bytes_written >= bytes_to_write {
-                        self.x = x;
-                        self.y = y;
-                        self.c = c;
-                        self.target_image.as_mut()
-                            .expect("Target Image was not present.")
-                            .put_pixel(x, y, Rgba(rgba));
-                        return Ok(bytes_written);
-                    }
+impl SteganoDecoder {
+    pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
+        let mut img = image::open(input_file)
+            .expect("Input image is not readable.")
+            .to_rgba();
 
-                    rgba[c] = bit_wave(rgba[c], bit_iter.read_bit());
-                    bits_written += 1;
-                    if bits_written % 8 == 0 {
-                        bytes_written = (bits_written / 8) as usize;
-                    }
-                }
-                self.target_image.as_mut()
-                    .unwrap()
-                    .put_pixel(x, y, Rgba(rgba));
-                if self.c > 0 {
-                    self.c = 0;
-                }
-            }
-            if self.y > 0 {
-                self.y = 0;
-            }
-        }
-        self.x = width;
+        self.input = Some(img);
 
-        Ok(bytes_written)
+        self
     }
 
-    fn flush(&mut self) -> Result<()> {
-        // copy the other pixel as they are..
-        {
-            let (width, height) = self.carrier.as_ref().unwrap().dimensions();
-            for x in self.x..width {
-                for y in self.y..height {
-                    let pixel = self.carrier.as_ref().unwrap().get_pixel(x, y);
-                    self.target_image.as_mut()
-                        .unwrap()
-                        .put_pixel(x, y, pixel);
-                }
-                if self.y > 0 {
-                    self.y = 0;
-                }
+    pub fn write_to_file(&mut self, output_file: &str) -> &mut Self {
+        let file = File::create(output_file.to_string())
+            .expect("Output cannot be created.");
+        self.output = Some(file);
+
+        self
+    }
+}
+
+impl Unveil for SteganoDecoder {
+    fn unveil(&mut self) -> &mut Self {
+        let mut dec = LSBCodec::new(self.input.as_mut().unwrap());
+        // TODO find a way to load with dynamic Contents
+        let mut msg = Message::<FileContent>::of(&mut dec);
+
+        match msg.content {
+            Some(mut fc) => {
+                fc.files()
+                    .iter()
+                    .map(|b| b.as_ref())
+                    .for_each(|(file_name, buf)| {
+                        // TODO for now we have only one target file
+//                        let mut target_file = File::create(format!("/tmp/{}", file_name))
+//                            .expect("File was not writeable");
+                        let mut target_file = self.output.as_mut().unwrap();
+
+                        let mut c = Cursor::new(buf);
+                        std::io::copy(&mut c, &mut target_file);
+                    });
+            }
+            _ => {
+                unimplemented!("TODO other file types that Zip not yet done.")
             }
         }
-
-        self.target_image.as_mut()
-            .expect("Image was not there for saving.")
-            .save(self.target.as_ref().unwrap())
+        self
     }
 }
 
@@ -244,29 +214,29 @@ mod e2e_tests {
     #[test]
     #[should_panic(expected = "Data file was not readable.")]
     fn should_panic_on_invalid_data_file() {
-        SteganoCore::new().hide_file("foofile");
+        SteganoEncoder::new().hide_file("foofile");
     }
 
     #[test]
     #[should_panic(expected = "Data file was not readable.")]
     fn should_panic_on_invalid_data_file_among_valid() {
-        SteganoCore::new().hide_files(vec!["Cargo.toml", "foofile"]);
+        SteganoEncoder::new().hide_files(vec!["Cargo.toml", "foofile"]);
     }
 
     #[test]
     #[should_panic(expected = "Carrier image was not readable.")]
     fn should_panic_for_invalid_carrier_image_file() {
-        SteganoCore::new().use_carrier_image("random_file.png");
+        SteganoEncoder::new().use_carrier_image("random_file.png");
     }
 
     #[test]
     fn should_accecpt_a_png_as_target_file() {
-        SteganoCore::new().write_to("/tmp/out-test-image.png");
+        SteganoEncoder::new().write_to("/tmp/out-test-image.png");
     }
 
     #[test]
     fn should_hide_and_unveil_one_text_file() {
-        SteganoCore::new()
+        SteganoEncoder::new()
             .hide_file("Cargo.toml")
             .use_carrier_image("resources/with_text/hello_world.png")
             .write_to("/tmp/out-test-image.png")
@@ -277,7 +247,7 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        FileOutputDecoder::new()
+        SteganoDecoder::new()
             .use_source_image("/tmp/out-test-image.png")
             .write_to_file("/tmp/Cargo.toml")
             .unveil();
@@ -292,28 +262,28 @@ mod e2e_tests {
         assert_eq!(given, expected, "Unveiled file size differs to the original");
     }
 
-    #[test]
-    #[ignore]
-    fn should_raw_unveil_a_message() {
-        // FIXME: there no zip, just plain raw string is contained
-        let dec = FileOutputRawDecoder::new()
-            .use_source_image("resources/with_text/hello_world.png")
-            .write_to_file("/tmp/HelloWorld.bin")
-            .unveil();
-
-        let l = fs::metadata("/tmp/HelloWorld.bin")
-            .expect("Output file was not written.")
-            .len();
-
-        // TODO content verification needs to be done as well
-        assert_ne!(l, 0, "Output raw data file was empty.");
-    }
+//    #[test]
+//    #[ignore]
+//    fn should_raw_unveil_a_message() {
+//        // FIXME: there no zip, just plain raw string is contained
+//        let dec = SteganoRawDecoder::new()
+//            .use_source_image("resources/with_text/hello_world.png")
+//            .write_to_file("/tmp/HelloWorld.bin")
+//            .unveil();
+//
+//        let l = fs::metadata("/tmp/HelloWorld.bin")
+//            .expect("Output file was not written.")
+//            .len();
+//
+//        // TODO content verification needs to be done as well
+//        assert_ne!(l, 0, "Output raw data file was empty.");
+//    }
 
     #[test]
     fn should_hide_and_unveil_a_binary_file() {
         let out = "/tmp/random_1666_byte.bin.png";
         let input = "resources/secrets/random_1666_byte.bin";
-        SteganoCore::new()
+        SteganoEncoder::new()
             .hide_file(input)
             .use_carrier_image("resources/Base.png")
             .write_to(out)
@@ -325,7 +295,7 @@ mod e2e_tests {
         assert!(l > 0, "File is not supposed to be empty");
         let target = "/tmp/random_1666_byte.bin.decoded";
 
-        FileOutputDecoder::new()
+        SteganoDecoder::new()
             .use_source_image(out)
             .write_to_file(target)
             .unveil();
@@ -347,7 +317,7 @@ mod e2e_tests {
         let out = "/tmp/zip_with_2_files.zip.png";
         let target = "/tmp/zip_with_2_files.zip.decoded";
 
-        SteganoCore::new()
+        SteganoEncoder::new()
             .hide_file(input)
             .use_carrier_image("resources/Base.png")
             .write_to(out)
@@ -358,7 +328,7 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        FileOutputDecoder::new()
+        SteganoDecoder::new()
             .use_source_image(out)
             .write_to_file(target)
             .unveil();

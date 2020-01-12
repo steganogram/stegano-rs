@@ -4,6 +4,8 @@ use byteorder::{BigEndian, WriteBytesExt, ReadBytesExt};
 use std::io::{BufWriter, Cursor, Read, Take};
 use std::borrow::BorrowMut;
 
+// TODO remove the whole deprecated file
+
 pub struct Codec<W> {
     inner: Option<W>,
     payload_reader: Option<Take<W>>,

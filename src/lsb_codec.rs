@@ -1,34 +1,19 @@
-use std::io::{BufWriter, Read, Result};
-use std::path::Path;
+use std::io::{BufWriter, Read, Result, Write, Cursor};
 
-use bitstream_io::{BitWriter, LittleEndian};
+use bitstream_io::{BitWriter, LittleEndian, BitReader};
 use image::*;
 
-pub struct ByteReader {
-    input: Option<RgbaImage>,
+pub struct LSBCodec<'img> {
+    subject: &'img mut RgbaImage,
     x: u32,
     y: u32,
     c: usize,
 }
 
-impl ByteReader {
-    pub fn new(input_file: &str) -> Self {
-        ByteReader::of_file(Path::new(input_file))
-    }
-}
-
-impl ByteReader {
-    pub fn of_file(input_file: &Path) -> Self {
-        ByteReader::of_image(image::open(input_file)
-            .expect("Input image is not readable.")
-            .to_rgba())
-    }
-}
-
-impl ByteReader {
-    pub fn of_image(image: RgbaImage) -> Self {
-        ByteReader {
-            input: Some(image),
+impl<'img> LSBCodec<'img> {
+    pub fn new(image: &'img mut RgbaImage) -> Self {
+        LSBCodec {
+            subject: image,
             x: 0,
             y: 0,
             c: 0,
@@ -36,7 +21,7 @@ impl ByteReader {
     }
 }
 
-impl Read for ByteReader {
+impl<'img> Read for LSBCodec<'img> {
     fn read(&mut self, b: &mut [u8]) -> Result<usize> {
         #[inline]
         #[cfg(debug_assertions)]
@@ -59,7 +44,7 @@ impl Read for ByteReader {
             }
         }
 
-        let source_image = self.input.as_ref().unwrap();
+        let source_image = &self.subject;
         let (width, height) = source_image.dimensions();
         let bytes_to_read = b.len();
         let total_progress = width * height;
@@ -111,11 +96,69 @@ impl Read for ByteReader {
     }
 }
 
+impl<'img> Write for LSBCodec<'img> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        #[inline]
+        fn bit_wave(byte: u8, bit: Result<bool>) -> u8 {
+            let byt = match bit {
+                // TODO here we need some configurability, to prevent 0 writing on demand
+                Err(_) => byte,
+                Ok(byt) => if byt { 1 } else { 0 }
+            };
+            (byte & 0xFE) | byt
+        }
+
+        let mut carrier = &mut self.subject;
+        let (width, height) = carrier.dimensions();
+        let bytes_to_write = buf.len();
+        let mut bit_iter = BitReader::endian(
+            Cursor::new(buf),
+            LittleEndian,
+        );
+
+        let mut bits_written = 0;
+        let mut bytes_written = 0;
+        for x in self.x..width {
+            for y in self.y..height {
+                let image::Rgba(mut rgba) = carrier.get_pixel(x, y);
+                for c in self.c..3 as usize {
+                    if bytes_written >= bytes_to_write {
+                        self.x = x;
+                        self.y = y;
+                        self.c = c;
+                        carrier.put_pixel(x, y, Rgba(rgba));
+                        return Ok(bytes_written);
+                    }
+
+                    rgba[c] = bit_wave(rgba[c], bit_iter.read_bit());
+                    bits_written += 1;
+                    if bits_written % 8 == 0 {
+                        bytes_written = (bits_written / 8) as usize;
+                    }
+                }
+                carrier.put_pixel(x, y, Rgba(rgba));
+                if self.c > 0 {
+                    self.c = 0;
+                }
+            }
+            if self.y > 0 {
+                self.y = 0;
+            }
+        }
+        self.x = width;
+
+        Ok(bytes_written)
+    }
+
+    fn flush(&mut self) -> Result<()> {
+        Ok(())
+    }
+}
+
 
 #[cfg(test)]
-mod tests {
-    use bitstream_io::{BitWriter, LittleEndian};
-
+mod decoder_tests {
+    use image::*;
     use super::*;
 
     const H: u8 = b'H';
@@ -124,11 +167,13 @@ mod tests {
     const O: u8 = b'o';
     const HELLO_WORLD_PNG: &str = "resources/with_text/hello_world.png";
     const CARGO_ZIP_PNG: &str = "resources/with_attachment/contains_one_file.png";
-    const TWO_FILES_ZIP_PNG: &str = "resources/with_attachment/contains_two_files.png";
 
     #[test]
     fn test_read_trait_behaviour_for_read_once() {
-        let mut dec = ByteReader::new(HELLO_WORLD_PNG);
+        let mut img = image::open(HELLO_WORLD_PNG)
+            .expect("Input image is not readable.")
+            .to_rgba();
+        let mut dec = LSBCodec::new(&mut img);
 
         let mut buf = [0 as u8; 13];
         let r = dec.read(&mut buf).unwrap();
@@ -144,7 +189,10 @@ mod tests {
 
     #[test]
     fn test_read_trait_behaviour_for_read_multiple_times() {
-        let mut dec = ByteReader::new(HELLO_WORLD_PNG);
+        let mut img = image::open(HELLO_WORLD_PNG)
+            .expect("Input image is not readable.")
+            .to_rgba();
+        let mut dec = LSBCodec::new(&mut img);
 
         let mut buf = [0 as u8; 3];
         let r = dec.read(&mut buf).unwrap();
@@ -163,45 +211,23 @@ mod tests {
     }
 
     #[test]
-    fn test_read_trait_behaviour_for_read_all() {
-        let mut dec = ByteReader::new(HELLO_WORLD_PNG);
-        let expected_bytes = ((515 * 443 * 3) / 8) as usize;
-
-        let mut buf = Vec::new();
-        let r = dec.read_to_end(&mut buf).unwrap();
-        assert_eq!(r, expected_bytes, "bytes should have been read"); // filesize
-        assert_eq!(buf[0], 0x1, "1st byte does not match");
-        assert_eq!(buf[1], H, "2nd byte is not a 'H'");
-        assert_eq!(buf[2], E, "3rd byte is not a 'e'");
-    }
-
-    #[test]
     fn should_not_contain_noise_bytes() {
-        let mut dec = ByteReader::new(CARGO_ZIP_PNG);
+        let mut img = image::open(CARGO_ZIP_PNG)
+            .expect("Input image is not readable.")
+            .to_rgba();
+        let mut dec = LSBCodec::new(&mut img);
         let expected_bytes = ((515 * 443 * 3) / 8) as usize;
         let zip_file_size = 337;
 
         let mut buf = Vec::new();
         let r = dec.read_to_end(&mut buf).unwrap();
         assert_eq!(r, expected_bytes, "bytes should have been read"); // filesize
-
-//        use std::fs::File;
-//        let mut target = File::create("/tmp/contains_one_file.png.zip")
-//            .expect("temp file was not created");
-//        target.write_all(&buf[1..]);
-//        target.flush();
-
-//        let mut reader = std::io::Cursor::new(&buf[1..]);
-//        let mut zip = zip::ZipArchive::new(reader)
-//            .expect("zip archive was not readable");
-//        for i in 0..zip.len() {
-//            let mut file = zip.by_index(i).unwrap();
-//            println!("Filename: {}", file.name());
-//            let first_byte = file.bytes().next().unwrap()
-//                .expect("not able to read next byte");
-//            println!("{}", first_byte);
-//        }
     }
+}
+
+#[cfg(test)]
+mod bit_writer_tests {
+    use super::*;
 
     #[test]
     fn test_bit_writer() {
@@ -225,6 +251,6 @@ mod tests {
             bit_buffer.write_bit((0 & 1) == 1).expect("8 failed");
         }
 
-        assert_eq!(*buf.first().unwrap(), H);
+        assert_eq!(*buf.first().unwrap(), b'H');
     }
 }
