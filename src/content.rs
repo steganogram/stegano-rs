@@ -159,6 +159,60 @@ impl Into<Vec<u8>> for &FileContent {
     }
 }
 
+pub struct TextContent {
+    content: String
+}
+
+impl TextContent {
+    fn new(c: String) -> Self {
+        TextContent {
+            content: c
+        }
+    }
+
+    fn text(&self) -> &str {
+        &self.content[..]
+    }
+}
+
+impl From<Vec<u8>> for TextContent {
+    fn from(buf: Vec<u8>) -> Self {
+        TextContent::new(String::from_utf8(buf)
+            .expect("Failed to convert from buf into TextContent"))
+    }
+}
+
+impl Into<Vec<u8>> for &TextContent {
+    fn into(self) -> Vec<u8> {
+        self.content.as_bytes().to_vec()
+    }
+}
+
+#[cfg(test)]
+mod text_content_tests {
+    use super::*;
+
+    #[test]
+    fn should_create_a_new_text_content() {
+        let t = TextContent::new("Hello World!".to_string());
+        assert_eq!(t.text(), "Hello World!", "TextContent.text() was wrong.");
+    }
+
+    #[test]
+    fn should_convert_into_buffer() {
+        let t = TextContent::new("Hello Wörld!".to_string());
+        let v: Vec<u8> = (&t).into();
+        assert_eq!(v, "Hello Wörld!".as_bytes(), "Conversion to Vec<u8> was wrong.");
+    }
+
+    #[test]
+    fn should_convert_from_buffer() {
+        let hw = "Hello Wörld!".as_bytes().to_vec();
+        let t = TextContent::from(hw);
+        assert_eq!(t.text(), "Hello Wörld!", "Conversion from Vec<u8> was wrong.");
+    }
+}
+
 #[cfg(test)]
 mod message_tests {
     use super::*;
