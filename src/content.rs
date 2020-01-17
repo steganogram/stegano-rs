@@ -3,80 +3,26 @@ use byteorder::{ReadBytesExt, BigEndian, WriteBytesExt};
 use std::io::{Read, Cursor};
 use std::fs::File;
 
-pub struct Message<T> {
+pub struct Message {
     pub header: u8,
-    pub content: Option<T>,
+    pub files: Vec<Box<(String, Vec<u8>)>>,
+    pub text: Option<String>
 }
 
-impl Message<FileContent> {
+impl Message {
     const VERSION: u8 = 0x04;
 
-    pub fn of(dec: &mut LSBCodec) -> Self {
+    pub fn of(dec: &mut dyn Read) -> Self {
         let version = dec.read_u8()
             .expect("Failed to read version header");
 
         match version {
-            Self::VERSION => {
-                Self::from(dec)
-            }
-            _ => {
-                Message {
-                    header: version,
-                    content: None,
-                }
-            }
+            Self::VERSION => Self::new_of_v4(dec),
+            _ => unimplemented!("Other than version 4 is not implemented yet")
         }
     }
 
-    pub fn new(fc: FileContent) -> Self {
-        Message {
-            header: 0x04,
-            content: Some(fc)
-        }
-    }
-
-    pub fn load(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-impl<T> From<T> for Message<FileContent>
-where T: Read
-{
-    fn from(mut dec: T) -> Self {
-        let payload_size = dec.read_u32::<BigEndian>()
-            .expect("Failed to read payload size header");
-
-        let mut buf = Vec::new();
-        let mut i = dec.take(payload_size as u64)
-            .read_to_end(&mut buf)
-            .expect("Message read of convent version 0x04 failed.");
-
-        Message {
-            header: Self::VERSION,
-            content: Some(FileContent::from(buf))
-        }
-    }
-}
-
-impl Into<Vec<u8>> for Message<FileContent> {
-    fn into(self) -> Vec<u8> {
-        let mut v = Vec::new();
-        v.push(self.header);
-        let mut c: Vec<u8> = self.content.as_ref().unwrap().into();
-        v.write_u32::<BigEndian>(c.len() as u32);
-        v.append(&mut c);
-        v
-    }
-}
-
-pub struct FileContent {
-    content: Vec<Box<(String, Vec<u8>)>>
-}
-
-impl FileContent {
-    pub fn new(files: &Vec<String>) -> Self {
-
+    pub fn new_of_files(files: &Vec<String>) -> Self {
         let mut buf: Vec<Box<(String, Vec<u8>)>> = Vec::new();
 
         files
@@ -89,24 +35,33 @@ impl FileContent {
                     .expect("File was not readable");
                 let mut fb: Vec<u8> = Vec::new();
 
-
                 fd.read_to_end(&mut fb);
-
                 buf.push(Box::new((f.to_owned(), fb)));
             });
 
-        FileContent {
-            content: buf
+        let mut m = Self::new(Self::VERSION);
+        m.files.append(&mut buf);
+
+        m
+    }
+
+    fn new(version: u8) -> Self {
+        Message {
+            header: version,
+            files: Vec::new(),
+            text: None,
         }
     }
 
-    pub fn files(&self) -> &Vec<Box<(String, Vec<u8>)>> {
-        &self.content
-    }
-}
+    fn new_of_v4(r: &mut dyn Read) -> Self {
+        let payload_size = r.read_u32::<BigEndian>()
+            .expect("Failed to read payload size header");
 
-impl From<Vec<u8>> for FileContent {
-    fn from(buf: Vec<u8>) -> Self {
+        let mut buf = Vec::new();
+        let mut i = r.take(payload_size as u64)
+            .read_to_end(&mut buf)
+            .expect("Message read of convent version 0x04 failed.");
+
         let mut files = Vec::new();
 
         let mut buf = Cursor::new(buf);
@@ -123,93 +78,55 @@ impl From<Vec<u8>> for FileContent {
             files.push(Box::new((file.name().to_string(), writer)));
         }
 
-        FileContent {
-            content: files
-        }
+        let mut m = Message::new(Self::VERSION);
+        m.files.append(&mut files);
+
+        m
     }
 }
 
-impl Into<Vec<u8>> for &FileContent {
+impl From<&mut Vec<u8>> for Message {
+    fn from(buf: &mut Vec<u8>) -> Self {
+        let mut c = Cursor::new(buf);
+        Message::of(&mut c)
+    }
+}
+
+impl Into<Vec<u8>> for Message {
     fn into(self) -> Vec<u8> {
-        let mut buf = Vec::new();
+        let mut v = Vec::new();
+        v.push(self.header);
 
         {
-            let mut w = std::io::Cursor::new(&mut buf);
-            let mut zip = zip::ZipWriter::new(w);
+            let mut buf = Vec::new();
 
-            let options = zip::write::FileOptions::default()
-                .compression_method(zip::CompressionMethod::Stored);
+            {
+                let mut w = std::io::Cursor::new(&mut buf);
+                let mut zip = zip::ZipWriter::new(w);
 
-            self.files()
-                .iter()
-                .map(|b| b.as_ref())
-                .for_each(|(name, buf)| {
-                    zip.start_file(name, options).
-                        expect(format!("processing file '{}' failed.", name).as_str());
+                let options = zip::write::FileOptions::default()
+                    .compression_method(zip::CompressionMethod::Stored);
 
-                    let mut r = std::io::Cursor::new(buf);
-                    std::io::copy(&mut r, &mut zip)
-                        .expect("Failed to copy data to the zip entry");
-                });
+                (&self.files)
+                    .iter()
+                    .map(|b| b.as_ref())
+                    .for_each(|(name, buf)| {
+                        zip.start_file(name, options).
+                            expect(format!("processing file '{}' failed.", name).as_str());
 
-            zip.finish().expect("finish zip failed.");
+                        let mut r = std::io::Cursor::new(buf);
+                        std::io::copy(&mut r, &mut zip)
+                            .expect("Failed to copy data to the zip entry");
+                    });
+
+                zip.finish().expect("finish zip failed.");
+            }
+
+            v.write_u32::<BigEndian>(buf.len() as u32);
+            v.append(&mut buf);
         }
 
-        buf
-    }
-}
-
-pub struct TextContent {
-    content: String
-}
-
-impl TextContent {
-    fn new(c: String) -> Self {
-        TextContent {
-            content: c
-        }
-    }
-
-    fn text(&self) -> &str {
-        &self.content[..]
-    }
-}
-
-impl From<Vec<u8>> for TextContent {
-    fn from(buf: Vec<u8>) -> Self {
-        TextContent::new(String::from_utf8(buf)
-            .expect("Failed to convert from buf into TextContent"))
-    }
-}
-
-impl Into<Vec<u8>> for &TextContent {
-    fn into(self) -> Vec<u8> {
-        self.content.as_bytes().to_vec()
-    }
-}
-
-#[cfg(test)]
-mod text_content_tests {
-    use super::*;
-
-    #[test]
-    fn should_create_a_new_text_content() {
-        let t = TextContent::new("Hello World!".to_string());
-        assert_eq!(t.text(), "Hello World!", "TextContent.text() was wrong.");
-    }
-
-    #[test]
-    fn should_convert_into_buffer() {
-        let t = TextContent::new("Hello Wörld!".to_string());
-        let v: Vec<u8> = (&t).into();
-        assert_eq!(v, "Hello Wörld!".as_bytes(), "Conversion to Vec<u8> was wrong.");
-    }
-
-    #[test]
-    fn should_convert_from_buffer() {
-        let hw = "Hello Wörld!".as_bytes().to_vec();
-        let t = TextContent::from(hw);
-        assert_eq!(t.text(), "Hello Wörld!", "Conversion from Vec<u8> was wrong.");
+        v
     }
 }
 
@@ -218,35 +135,42 @@ mod message_tests {
     use super::*;
 
     #[test]
-    fn should_convert_file_content_into_vec_and_back() {
+    fn should_convert_into_vec_of_bytes() {
         let files = vec!["resources/with_text/hello_world.png".to_string()];
-        let fc = FileContent::new(&files);
-        let mut m = Message::new(fc);
+        let mut m = Message::new_of_files(&files);
+
+        assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
+        let (name, buf) = m.files[0].as_ref();
+        assert_eq!(name, &files[0], "One file was not there, buffer was broken");
 
         let mut b: Vec<u8> = m.into();
         assert_ne!(b.len(), 0, "File buffer was empty");
-
-        // reverse way
-        let mut c = Cursor::new(&mut b);
-        let m = Message::from(c);
-        let fc = FileContent::new(&files);
-        assert_eq!(fc.files().len(), 1, "One file was not there, buffer was broken");
-        let (name, buf) = fc.files()[0].as_ref();
-        assert_eq!(name, "resources/with_text/hello_world.png", "One file was not there, buffer was broken")
     }
-}
-
-#[cfg(test)]
-mod file_content_tests {
-    use super::*;
 
     #[test]
-    fn should_convert_files_into_vec_and_back() {
+    fn should_convert_from_vec_of_bytes() {
         let files = vec!["resources/with_text/hello_world.png".to_string()];
-        let fc = FileContent::new(&files);
+        let mut m = Message::new_of_files(&files);
+        let mut b: Vec<u8> = m.into();
 
-        let mut buf: Vec<u8> = (&fc).into();
-        assert_ne!(buf.len(), 0, "File buffer was empty");
+        let m = Message::from(&mut b);
+        assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
+        let (name, buf) = m.files[0].as_ref();
+        assert_eq!(name, &files[0], "One file was not there, buffer was broken");
+    }
+
+    #[test]
+    fn should_instantiate_from_read_trait() {
+        let files = vec!["resources/with_text/hello_world.png".to_string()];
+        let mut m = Message::new_of_files(&files);
+        let mut b: Vec<u8> = m.into();
+        let mut r = Cursor::new(&mut b);
+
+        let m = Message::of(&mut r);
+        assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
+        let (name, buf) = m.files[0].as_ref();
+        assert_eq!(name, &files[0], "One file was not there, buffer was broken");
+    }
 
         // reverse way now
         let fc = FileContent::from(buf);
@@ -255,4 +179,3 @@ mod file_content_tests {
         assert_eq!(name, "resources/with_text/hello_world.png", "One file was not there, buffer was broken")
     }
 }
-

@@ -118,13 +118,11 @@ impl SteganoEncoder {
 
 impl Hide for SteganoEncoder {
     fn hide(&mut self) -> &Self {
-        let mut fc = FileContent::new(&self.files_to_hide);
         let mut img = self.carrier.as_mut().unwrap();
         let mut dec = LSBCodec::new(&mut img);
-        let mut message = Message::new(fc);
+        let mut message = Message::new_of_files(&self.files_to_hide);
 
         let mut buf: Vec<u8> = message.into();
-//        fc.into::<[u8]>(buf);
         dec.write_all(&buf[..]);
 
         self.carrier.as_mut()
@@ -180,28 +178,21 @@ impl SteganoDecoder {
 impl Unveil for SteganoDecoder {
     fn unveil(&mut self) -> &mut Self {
         let mut dec = LSBCodec::new(self.input.as_mut().unwrap());
-        // TODO find a way to load with dynamic Contents
-        let mut msg = Message::<FileContent>::of(&mut dec);
+        let mut msg = Message::of(&mut dec);
 
-        match msg.content {
-            Some(mut fc) => {
-                fc.files()
-                    .iter()
-                    .map(|b| b.as_ref())
-                    .for_each(|(file_name, buf)| {
-                        // TODO for now we have only one target file
+        (&msg.files)
+            .iter()
+            .map(|b| b.as_ref())
+            .for_each(|(file_name, buf)| {
+                // TODO for now we have only one target file
 //                        let mut target_file = File::create(format!("/tmp/{}", file_name))
 //                            .expect("File was not writeable");
-                        let mut target_file = self.output.as_mut().unwrap();
+                let mut target_file = self.output.as_mut().unwrap();
 
-                        let mut c = Cursor::new(buf);
-                        std::io::copy(&mut c, &mut target_file);
-                    });
-            }
-            _ => {
-                unimplemented!("TODO other file types that Zip not yet done.")
-            }
-        }
+                let mut c = Cursor::new(buf);
+                std::io::copy(&mut c, &mut target_file);
+            });
+
         self
     }
 }
