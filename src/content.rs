@@ -10,14 +10,16 @@ pub struct Message {
 }
 
 impl Message {
-    const VERSION: u8 = 0x04;
+    const V1: u8 = 0x01;
+    const V4: u8 = 0x04;
 
     pub fn of(dec: &mut dyn Read) -> Self {
         let version = dec.read_u8()
             .expect("Failed to read version header");
 
         match version {
-            Self::VERSION => Self::new_of_v4(dec),
+            Self::V4 => Self::new_of_v4(dec),
+            Self::V1 => Self::new_of_v1(dec),
             _ => unimplemented!("Other than version 4 is not implemented yet")
         }
     }
@@ -39,7 +41,7 @@ impl Message {
                 buf.push(Box::new((f.to_owned(), fb)));
             });
 
-        let mut m = Self::new(Self::VERSION);
+        let mut m = Self::new(Self::V4);
         m.files.append(&mut buf);
 
         m
@@ -78,8 +80,28 @@ impl Message {
             files.push(Box::new((file.name().to_string(), writer)));
         }
 
-        let mut m = Message::new(Self::VERSION);
+        let mut m = Message::new(Self::V4);
         m.files.append(&mut files);
+
+        m
+    }
+
+    fn new_of_v1(r: &mut dyn Read) -> Self {
+        const EOF: u8 = 0xff;
+        let mut buf = Vec::new();
+
+        while let Ok(b) = r.read_u8() {
+            if b == EOF {
+                break;
+            }
+            buf.push(b);
+        }
+
+        // TODO shall we upgrade all v1 to v4, to get rid of the legacy?
+        let mut m = Message::new(Self::V1);
+        m.text = Some(String::from_utf8(buf)
+                .expect("Message failed to decode from image")
+            );
 
         m
     }
@@ -172,10 +194,14 @@ mod message_tests {
         assert_eq!(name, &files[0], "One file was not there, buffer was broken");
     }
 
-        // reverse way now
-        let fc = FileContent::from(buf);
-        assert_eq!(fc.files().len(), 1, "One file was not there, buffer was broken");
-        let (name, buf) = fc.files()[0].as_ref();
-        assert_eq!(name, "resources/with_text/hello_world.png", "One file was not there, buffer was broken")
+    #[test]
+    fn should_instantiate_from_read_trait_from_message_buffer() {
+        use std::io::BufReader;
+        const BUF: [u8; 6] = [0x1, b'H', b'e', 0xff, 0xff, 0xcd];
+
+        let mut r = BufReader::new(&BUF[..]);
+        let m = Message::of(&mut r);
+        assert_eq!(m.text.unwrap(), "He", "Message.text was not as expected");
+        assert_eq!(m.files.len(), 0, "Message.files were not empty.");
     }
 }
