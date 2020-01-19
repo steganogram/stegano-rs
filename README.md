@@ -82,6 +82,28 @@ zip -FF attachment.zip --out attachment-fixed.zip
 unzip attachment-fixed.zip
 ```
 
+## Architecture
+
+Overview about the used components:
+
+LSBCodec(Image):
+ - impl Read
+ - impl Write
+ - PNG LSB
+
+Message()
+ - Header
+ - Files
+ - Text
+ - of<LSBReader>
+ - into([u8])
+
+RawMessage(LSBReader)
+ - all data from Reader
+ - of<LSBReader>
+ - into([u8])
+
+
 ## License
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
