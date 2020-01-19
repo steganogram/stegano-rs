@@ -2,13 +2,20 @@
 extern crate hex_literal;
 
 pub mod bit_iterator;
+
 pub use bit_iterator::BitIterator;
 
 pub mod lsb_codec;
+
 pub use lsb_codec::LSBCodec;
 
-pub mod content;
-pub use content::*;
+pub mod message;
+
+pub use message::*;
+
+pub mod raw_message;
+
+pub use raw_message::*;
 
 use bitstream_io::{LittleEndian, BitReader};
 use std::fs::*;
@@ -30,8 +37,8 @@ impl SteganoCore {
         SteganoDecoder::new()
     }
 
-    pub fn raw_decoder() -> SteganoDecoder {
-        unimplemented!("Raw Decoder not yet refactored")
+    pub fn raw_decoder() -> SteganoRawDecoder {
+        SteganoRawDecoder::new()
     }
 }
 
@@ -49,7 +56,7 @@ pub struct SteganoEncoder {
     target: Option<String>,
     target_image: Option<RgbaImage>,
     carrier: Option<RgbaImage>,
-    files_to_hide: Vec<String>,
+    message: Message,
     x: u32,
     y: u32,
     c: usize,
@@ -61,7 +68,7 @@ impl Default for SteganoEncoder {
             target: None,
             target_image: None,
             carrier: None,
-            files_to_hide: Vec::new(),
+            message: Message::empty(),
             x: 0,
             y: 0,
             c: 0,
@@ -90,7 +97,8 @@ impl SteganoEncoder {
     }
 
     pub fn hide_message(&mut self, msg: &str) -> &mut Self {
-        unimplemented!("TODO hide_message not implemented");
+        self.message.text = Some(msg.to_string());
+
         self
     }
 
@@ -99,13 +107,13 @@ impl SteganoEncoder {
             let f = File::open(input_file)
                 .expect("Data file was not readable.");
         }
-        self.files_to_hide.push(input_file.to_string());
+        self.message.add_file(&input_file.to_string());
 
         self
     }
 
     pub fn hide_files(&mut self, input_files: Vec<&str>) -> &mut Self {
-        self.files_to_hide = Vec::new();
+        self.message.files = Vec::new();
         input_files
             .iter()
             .for_each(|&f| {
@@ -120,9 +128,8 @@ impl Hide for SteganoEncoder {
     fn hide(&mut self) -> &Self {
         let mut img = self.carrier.as_mut().unwrap();
         let mut dec = LSBCodec::new(&mut img);
-        let mut message = Message::new_of_files(&self.files_to_hide);
 
-        let mut buf: Vec<u8> = message.into();
+        let mut buf: Vec<u8> = (&self.message).into();
         dec.write_all(&buf[..]);
 
         self.carrier.as_mut()
@@ -153,9 +160,7 @@ impl SteganoDecoder
     pub fn new() -> Self {
         Self::default()
     }
-}
 
-impl SteganoDecoder {
     pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
         let mut img = image::open(input_file)
             .expect("Input image is not readable.")
@@ -180,6 +185,10 @@ impl Unveil for SteganoDecoder {
         let mut dec = LSBCodec::new(self.input.as_mut().unwrap());
         let mut msg = Message::of(&mut dec);
 
+        if msg.files.len() > 1 {
+            unimplemented!("More than one content file is not yet supported.")
+        }
+
         (&msg.files)
             .iter()
             .map(|b| b.as_ref())
@@ -196,6 +205,52 @@ impl Unveil for SteganoDecoder {
         self
     }
 }
+
+pub struct SteganoRawDecoder {
+    inner: SteganoDecoder,
+}
+
+impl Default for SteganoRawDecoder
+{
+    fn default() -> Self {
+        Self {
+            inner: SteganoDecoder::new(),
+        }
+    }
+}
+
+impl SteganoRawDecoder
+{
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
+        self.inner.use_source_image(input_file);
+
+        self
+    }
+
+    pub fn write_to_file(&mut self, output_file: &str) -> &mut Self {
+        self.inner.write_to_file(output_file);
+
+        self
+    }
+}
+
+impl Unveil for SteganoRawDecoder {
+    fn unveil(&mut self) -> &mut Self {
+        let mut dec = LSBCodec::new(self.inner.input.as_mut().unwrap());
+        let mut msg = RawMessage::of(&mut dec);
+        let mut target_file = self.inner.output.as_mut().unwrap();
+
+        let mut c = Cursor::new(&mut msg.content);
+        std::io::copy(&mut c, &mut target_file);
+
+        self
+    }
+}
+
 
 #[cfg(test)]
 mod e2e_tests {
@@ -253,22 +308,21 @@ mod e2e_tests {
         assert_eq!(given, expected, "Unveiled file size differs to the original");
     }
 
-//    #[test]
-//    #[ignore]
-//    fn should_raw_unveil_a_message() {
-//        // FIXME: there no zip, just plain raw string is contained
-//        let dec = SteganoRawDecoder::new()
-//            .use_source_image("resources/with_text/hello_world.png")
-//            .write_to_file("/tmp/HelloWorld.bin")
-//            .unveil();
-//
-//        let l = fs::metadata("/tmp/HelloWorld.bin")
-//            .expect("Output file was not written.")
-//            .len();
-//
-//        // TODO content verification needs to be done as well
-//        assert_ne!(l, 0, "Output raw data file was empty.");
-//    }
+    #[test]
+    fn should_raw_unveil_a_message() {
+        // FIXME: there no zip, just plain raw string is contained
+        let dec = SteganoRawDecoder::new()
+            .use_source_image("resources/with_text/hello_world.png")
+            .write_to_file("/tmp/HelloWorld.bin")
+            .unveil();
+
+        let l = fs::metadata("/tmp/HelloWorld.bin")
+            .expect("Output file was not written.")
+            .len();
+
+        // TODO content verification needs to be done as well
+        assert_ne!(l, 0, "Output raw data file was empty.");
+    }
 
     #[test]
     fn should_hide_and_unveil_a_binary_file() {

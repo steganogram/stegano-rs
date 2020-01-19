@@ -25,7 +25,7 @@ impl Message {
     }
 
     pub fn new_of_files(files: &Vec<String>) -> Self {
-        let mut buf: Vec<Box<(String, Vec<u8>)>> = Vec::new();
+        let mut m = Self::new(Self::V4);
 
         files
             .iter()
@@ -33,18 +33,26 @@ impl Message {
 //            // TODO instead of filtering, accepting directories would be nice
 //            .filter(|(name, f)| f.metadata().unwrap().is_file())
             .for_each(|f| {
-                let mut fd = File::open(f)
-                    .expect("File was not readable");
-                let mut fb: Vec<u8> = Vec::new();
-
-                fd.read_to_end(&mut fb);
-                buf.push(Box::new((f.to_owned(), fb)));
+                m.add_file(f);
             });
 
-        let mut m = Self::new(Self::V4);
-        m.files.append(&mut buf);
-
         m
+    }
+
+    pub fn add_file(&mut self, file: &String) -> &mut Self{
+        let mut fd = File::open(file)
+            .expect("File was not readable");
+        let mut fb: Vec<u8> = Vec::new();
+
+        fd.read_to_end(&mut fb);
+
+        self.files.push(Box::new((file.to_owned(), fb)));
+
+        self
+    }
+
+    pub fn empty() -> Self {
+        Self::new(Self::V4)
     }
 
     fn new(version: u8) -> Self {
@@ -114,7 +122,7 @@ impl From<&mut Vec<u8>> for Message {
     }
 }
 
-impl Into<Vec<u8>> for Message {
+impl Into<Vec<u8>> for &Message {
     fn into(self) -> Vec<u8> {
         let mut v = Vec::new();
         v.push(self.header);
@@ -165,7 +173,7 @@ mod message_tests {
         let (name, buf) = m.files[0].as_ref();
         assert_eq!(name, &files[0], "One file was not there, buffer was broken");
 
-        let mut b: Vec<u8> = m.into();
+        let mut b: Vec<u8> = (&m).into();
         assert_ne!(b.len(), 0, "File buffer was empty");
     }
 
@@ -173,7 +181,7 @@ mod message_tests {
     fn should_convert_from_vec_of_bytes() {
         let files = vec!["resources/with_text/hello_world.png".to_string()];
         let mut m = Message::new_of_files(&files);
-        let mut b: Vec<u8> = m.into();
+        let mut b: Vec<u8> = (&m).into();
 
         let m = Message::from(&mut b);
         assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
@@ -185,7 +193,7 @@ mod message_tests {
     fn should_instantiate_from_read_trait() {
         let files = vec!["resources/with_text/hello_world.png".to_string()];
         let mut m = Message::new_of_files(&files);
-        let mut b: Vec<u8> = m.into();
+        let mut b: Vec<u8> = (&m).into();
         let mut r = Cursor::new(&mut b);
 
         let m = Message::of(&mut r);
