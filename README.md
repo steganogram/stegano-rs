@@ -71,18 +71,19 @@ stegano unveil-raw \
 
 The file `Secret.bin` contains all raw data unfiltered decoded by the LSB decoding algorithm. That is for the curious people, and not so much interesting.
 
-### Unveil a Zip file (WIP)
+## Technical Details
 
-```sh
-cargo run --bin stegano -- unveil-raw \
- --in resources/HelloWorld_no_passwd_with_attachment_v2.x.PNG \
- --out attachment.bin
-dd if=attachment.bin of=attachment.zip bs=1 skip=1
-zip -FF attachment.zip --out attachment-fixed.zip
-unzip attachment-fixed.zip
-```
+### Stegano Header (Content Version 4)
 
-## Architecture
+| Size in Byte  |     Meaning      | Example Data |
+|---------------|:----------------:|-------------:|
+| 1             | Format Version   | 1, 2, 4      |
+| 4 (BigEndian) | Payload Size (p) | 1634         |
+|-------------------------------------------------|
+| p             | Payload          |              |
+
+
+### Architecture
 
 Overview about the used components:
 
@@ -103,6 +104,23 @@ RawMessage(LSBReader)
  - of<LSBReader>
  - into([u8])
 
+## TODOs
+
+- investigate broken Version 2 content format
+  - investigate ICSharpCode.SharpZipLib.Zip format that ends up being broken for unzip
+    - http://mvdnes.github.io/rust-docs/zip-rs/zip/read/struct.ZipArchive.html
+```sh
+cargo run --bin stegano -- unveil-raw \
+ --in resources/HelloWorld_no_passwd_with_attachment_v2.x.PNG \
+ --out attachment.bin
+dd if=attachment.bin of=attachment.zip bs=1 skip=1
+zip -FF attachment.zip --out attachment-fixed.zip
+unzip attachment-fixed.zip
+```
+
+- implement MessageContainer Version 2
+  - first byte = 0x02
+  - separate the parsing algorithms Version 1 and Version 2 somehow
 
 ## License
 
