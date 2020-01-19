@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate hex_literal;
 
 pub mod bit_iterator;
@@ -17,14 +16,11 @@ pub mod raw_message;
 
 pub use raw_message::*;
 
-use bitstream_io::{LittleEndian, BitReader};
 use std::fs::*;
 use std::io::prelude::*;
 use std::io::*;
 use std::path::Path;
 use image::*;
-use std::io;
-use std::borrow::BorrowMut;
 
 pub struct SteganoCore {}
 
@@ -54,24 +50,16 @@ pub trait Unveil {
 
 pub struct SteganoEncoder {
     target: Option<String>,
-    target_image: Option<RgbaImage>,
     carrier: Option<RgbaImage>,
     message: Message,
-    x: u32,
-    y: u32,
-    c: usize,
 }
 
 impl Default for SteganoEncoder {
     fn default() -> Self {
         Self {
             target: None,
-            target_image: None,
             carrier: None,
             message: Message::empty(),
-            x: 0,
-            y: 0,
-            c: 0,
         }
     }
 }
@@ -104,7 +92,7 @@ impl SteganoEncoder {
 
     pub fn hide_file(&mut self, input_file: &str) -> &mut Self {
         {
-            let f = File::open(input_file)
+            let _f = File::open(input_file)
                 .expect("Data file was not readable.");
         }
         self.message.add_file(&input_file.to_string());
@@ -129,12 +117,14 @@ impl Hide for SteganoEncoder {
         let mut img = self.carrier.as_mut().unwrap();
         let mut dec = LSBCodec::new(&mut img);
 
-        let mut buf: Vec<u8> = (&self.message).into();
-        dec.write_all(&buf[..]);
+        let buf: Vec<u8> = (&self.message).into();
+        dec.write_all(&buf[..])
+            .expect("Failed to hide data in carrier image.");
 
         self.carrier.as_mut()
             .expect("Image was not there for saving.")
-            .save(self.target.as_ref().unwrap());
+            .save(self.target.as_ref().unwrap())
+            .expect("Failed to save final image");
 
         self
     }
@@ -162,7 +152,7 @@ impl SteganoDecoder
     }
 
     pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
-        let mut img = image::open(input_file)
+        let img = image::open(input_file)
             .expect("Input image is not readable.")
             .to_rgba();
 
@@ -183,7 +173,7 @@ impl SteganoDecoder
 impl Unveil for SteganoDecoder {
     fn unveil(&mut self) -> &mut Self {
         let mut dec = LSBCodec::new(self.input.as_mut().unwrap());
-        let mut msg = Message::of(&mut dec);
+        let msg = Message::of(&mut dec);
 
         if msg.files.len() > 1 {
             unimplemented!("More than one content file is not yet supported.")
@@ -191,15 +181,16 @@ impl Unveil for SteganoDecoder {
 
         (&msg.files)
             .iter()
-            .map(|b| b.as_ref())
-            .for_each(|(file_name, buf)| {
+            .map(|b| b)
+            .for_each(|(_file_name, buf)| {
                 // TODO for now we have only one target file
 //                        let mut target_file = File::create(format!("/tmp/{}", file_name))
 //                            .expect("File was not writeable");
                 let mut target_file = self.output.as_mut().unwrap();
 
                 let mut c = Cursor::new(buf);
-                std::io::copy(&mut c, &mut target_file);
+                std::io::copy(&mut c, &mut target_file).
+                    expect("Failed to write data to final target file.");
             });
 
         self
@@ -245,7 +236,8 @@ impl Unveil for SteganoRawDecoder {
         let mut target_file = self.inner.output.as_mut().unwrap();
 
         let mut c = Cursor::new(&mut msg.content);
-        std::io::copy(&mut c, &mut target_file);
+        std::io::copy(&mut c, &mut target_file)
+            .expect("Failed to write RawMessage to target file.");
 
         self
     }
@@ -311,7 +303,7 @@ mod e2e_tests {
     #[test]
     fn should_raw_unveil_a_message() {
         // FIXME: there no zip, just plain raw string is contained
-        let dec = SteganoRawDecoder::new()
+        SteganoRawDecoder::new()
             .use_source_image("resources/with_text/hello_world.png")
             .write_to_file("/tmp/HelloWorld.bin")
             .unveil();

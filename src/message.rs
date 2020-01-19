@@ -1,11 +1,10 @@
-use crate::LSBCodec;
 use byteorder::{ReadBytesExt, BigEndian, WriteBytesExt};
 use std::io::{Read, Cursor};
 use std::fs::File;
 
 pub struct Message {
     pub header: u8,
-    pub files: Vec<Box<(String, Vec<u8>)>>,
+    pub files: Vec<(String, Vec<u8>)>,
     pub text: Option<String>
 }
 
@@ -24,7 +23,7 @@ impl Message {
         }
     }
 
-    pub fn new_of_files(files: &Vec<String>) -> Self {
+    pub fn new_of_files(files: &[String]) -> Self {
         let mut m = Self::new(Self::V4);
 
         files
@@ -39,14 +38,15 @@ impl Message {
         m
     }
 
-    pub fn add_file(&mut self, file: &String) -> &mut Self{
+    pub fn add_file(&mut self, file: &str) -> &mut Self{
         let mut fd = File::open(file)
             .expect("File was not readable");
         let mut fb: Vec<u8> = Vec::new();
 
-        fd.read_to_end(&mut fb);
+        fd.read_to_end(&mut fb)
+            .expect("Failed buffer whole file.");
 
-        self.files.push(Box::new((file.to_owned(), fb)));
+        self.files.push((file.to_owned(), fb));
 
         self
     }
@@ -68,13 +68,13 @@ impl Message {
             .expect("Failed to read payload size header");
 
         let mut buf = Vec::new();
-        let mut i = r.take(payload_size as u64)
+        r.take(payload_size as u64)
             .read_to_end(&mut buf)
             .expect("Message read of convent version 0x04 failed.");
 
         let mut files = Vec::new();
 
-        let mut buf = Cursor::new(buf);
+        let buf = Cursor::new(buf);
         let mut zip = zip::ZipArchive::new(buf)
             .expect("FileContent was invalid.");
 
@@ -84,8 +84,10 @@ impl Message {
         for i in 0..zip.len() {
             let mut writer = Vec::new();
             let mut file = zip.by_index(i).unwrap();
-            file.read_to_end(&mut writer);
-            files.push(Box::new((file.name().to_string(), writer)));
+            file.read_to_end(&mut writer)
+                .expect("Failed to read data from inner Message structure");
+
+            files.push((file.name().to_string(), writer));
         }
 
         let mut m = Message::new(Self::V4);
@@ -131,7 +133,7 @@ impl Into<Vec<u8>> for &Message {
             let mut buf = Vec::new();
 
             {
-                let mut w = std::io::Cursor::new(&mut buf);
+                let w = std::io::Cursor::new(&mut buf);
                 let mut zip = zip::ZipWriter::new(w);
 
                 let options = zip::write::FileOptions::default()
@@ -139,10 +141,10 @@ impl Into<Vec<u8>> for &Message {
 
                 (&self.files)
                     .iter()
-                    .map(|b| b.as_ref())
+                    .map(|b| b)
                     .for_each(|(name, buf)| {
                         zip.start_file(name, options).
-                            expect(format!("processing file '{}' failed.", name).as_str());
+                            unwrap_or_else(|_| panic!("processing file '{}' failed.", name));
 
                         let mut r = std::io::Cursor::new(buf);
                         std::io::copy(&mut r, &mut zip)
@@ -152,7 +154,9 @@ impl Into<Vec<u8>> for &Message {
                 zip.finish().expect("finish zip failed.");
             }
 
-            v.write_u32::<BigEndian>(buf.len() as u32);
+            v.write_u32::<BigEndian>(buf.len() as u32)
+                .expect("Failed to write the inner message size.");
+
             v.append(&mut buf);
         }
 
@@ -167,38 +171,38 @@ mod message_tests {
     #[test]
     fn should_convert_into_vec_of_bytes() {
         let files = vec!["resources/with_text/hello_world.png".to_string()];
-        let mut m = Message::new_of_files(&files);
+        let m = Message::new_of_files(&files);
 
         assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
-        let (name, buf) = m.files[0].as_ref();
+        let (name, _buf) = &m.files[0];
         assert_eq!(name, &files[0], "One file was not there, buffer was broken");
 
-        let mut b: Vec<u8> = (&m).into();
+        let b: Vec<u8> = (&m).into();
         assert_ne!(b.len(), 0, "File buffer was empty");
     }
 
     #[test]
     fn should_convert_from_vec_of_bytes() {
         let files = vec!["resources/with_text/hello_world.png".to_string()];
-        let mut m = Message::new_of_files(&files);
+        let m = Message::new_of_files(&files);
         let mut b: Vec<u8> = (&m).into();
 
         let m = Message::from(&mut b);
         assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
-        let (name, buf) = m.files[0].as_ref();
+        let (name, _buf) = &m.files[0];
         assert_eq!(name, &files[0], "One file was not there, buffer was broken");
     }
 
     #[test]
     fn should_instantiate_from_read_trait() {
         let files = vec!["resources/with_text/hello_world.png".to_string()];
-        let mut m = Message::new_of_files(&files);
+        let m = Message::new_of_files(&files);
         let mut b: Vec<u8> = (&m).into();
         let mut r = Cursor::new(&mut b);
 
         let m = Message::of(&mut r);
         assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
-        let (name, buf) = m.files[0].as_ref();
+        let (name, _buf) = &m.files[0];
         assert_eq!(name, &files[0], "One file was not there, buffer was broken");
     }
 

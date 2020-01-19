@@ -1,8 +1,4 @@
-use crate::LSBCodec;
-use byteorder::{ReadBytesExt, BigEndian, WriteBytesExt};
-use std::io::{Read, Cursor};
-use std::fs::File;
-use futures::AsyncReadExt;
+use std::io::Read;
 
 pub struct RawMessage {
     pub content: Vec<u8>
@@ -11,7 +7,8 @@ pub struct RawMessage {
 impl RawMessage {
     pub fn of(dec: &mut dyn Read) -> Self {
         let mut m = Self::new();
-        dec.read_to_end(&mut m.content);
+        dec.read_to_end(&mut m.content)
+            .expect("Failed to read raw message contents.");
 
         m
     }

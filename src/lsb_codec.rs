@@ -1,7 +1,7 @@
 use std::io::{BufWriter, Read, Result, Write, Cursor};
 
 use bitstream_io::{BitWriter, LittleEndian, BitReader};
-use image::*;
+use image::{RgbaImage, Rgba};
 
 pub struct LSBCodec<'img> {
     subject: &'img mut RgbaImage,
@@ -48,8 +48,7 @@ impl<'img> Read for LSBCodec<'img> {
         let (width, height) = source_image.dimensions();
         let bytes_to_read = b.len();
         let total_progress = width * height;
-        let mut buf_writer = BufWriter::new(b);
-
+        let buf_writer = BufWriter::new(b);
         let mut bit_buffer = BitWriter::endian(
             buf_writer,
             LittleEndian,
@@ -61,14 +60,14 @@ impl<'img> Read for LSBCodec<'img> {
         for x in self.x..width {
             for y in self.y..height {
                 let image::Rgba(rgba) = source_image.get_pixel(x, y);
-                for c in self.c..3 {
+                for (c, color) in rgba.iter().enumerate().take(3).skip(self.c) {
                     if bytes_read >= bytes_to_read {
                         self.x = x;
                         self.y = y;
                         self.c = c;
                         return Ok(bytes_read);
                     }
-                    let bit = rgba[c] & 0x01;
+                    let bit = color & 0x01;
                     bit_buffer
                         .write_bit(bit > 0)
                         .unwrap_or_else(|_| panic!("Color {} on Pixel({}, {})", c, x, y));
@@ -89,10 +88,11 @@ impl<'img> Read for LSBCodec<'img> {
         };
         self.x = width;
         if !bit_buffer.byte_aligned() {
-            bit_buffer.byte_align();
+            bit_buffer.byte_align()
+                .expect("Failed to align the last byte read from image.");
         }
 
-        return Ok(bytes_read);
+        Ok(bytes_read)
     }
 }
 
@@ -108,7 +108,7 @@ impl<'img> Write for LSBCodec<'img> {
             (byte & 0xFE) | byt
         }
 
-        let mut carrier = &mut self.subject;
+        let carrier = &mut self.subject;
         let (width, height) = carrier.dimensions();
         let bytes_to_write = buf.len();
         let mut bit_iter = BitReader::endian(
@@ -158,7 +158,6 @@ impl<'img> Write for LSBCodec<'img> {
 
 #[cfg(test)]
 mod decoder_tests {
-    use image::*;
     use super::*;
 
     const H: u8 = b'H';
@@ -217,7 +216,6 @@ mod decoder_tests {
             .to_rgba();
         let mut dec = LSBCodec::new(&mut img);
         let expected_bytes = ((515 * 443 * 3) / 8) as usize;
-        let zip_file_size = 337;
 
         let mut buf = Vec::new();
         let r = dec.read_to_end(&mut buf).unwrap();
@@ -231,7 +229,7 @@ mod bit_writer_tests {
 
     #[test]
     fn test_bit_writer() {
-        let b = vec![0b0100_1000, 0b0110_0001, 0b0110_1100];
+        let _b = vec![0b0100_1000, 0b0110_0001, 0b0110_1100];
         let mut buf = Vec::with_capacity(3);
 
         {
@@ -241,14 +239,14 @@ mod bit_writer_tests {
                 LittleEndian,
             );
 
-            bit_buffer.write_bit((0 & 1) == 1).expect("1 failed");
-            bit_buffer.write_bit((0 & 1) == 1).expect("2 failed");
-            bit_buffer.write_bit((0 & 1) == 1).expect("3 failed");
-            bit_buffer.write_bit((1 & 1) == 1).expect("4 failed");
-            bit_buffer.write_bit((0 & 1) == 1).expect("5 failed");
-            bit_buffer.write_bit((0 & 1) == 1).expect("6 failed");
-            bit_buffer.write_bit((1 & 1) == 1).expect("7 failed");
-            bit_buffer.write_bit((0 & 1) == 1).expect("8 failed");
+            bit_buffer.write_bit(0 == 1).expect("1 failed");
+            bit_buffer.write_bit(0 == 1).expect("2 failed");
+            bit_buffer.write_bit(0 == 1).expect("3 failed");
+            bit_buffer.write_bit(true).expect("4 failed");
+            bit_buffer.write_bit(0 == 1).expect("5 failed");
+            bit_buffer.write_bit(0 == 1).expect("6 failed");
+            bit_buffer.write_bit(true).expect("7 failed");
+            bit_buffer.write_bit(0 == 1).expect("8 failed");
         }
 
         assert_eq!(*buf.first().unwrap(), b'H');
