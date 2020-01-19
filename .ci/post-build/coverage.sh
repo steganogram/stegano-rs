@@ -1,4 +1,2 @@
-if [[ $COVERAGE ]]; then
-    cargo tarpaulin --out Xml
-    bash <(curl -s https://codecov.io/bash)
-fi
+# run on osx
+docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin
