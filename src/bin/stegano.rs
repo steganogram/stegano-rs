@@ -112,13 +112,13 @@ fn main() -> std::io::Result<()> {
             s.hide();
         }
         ("unveil", Some(m)) => {
-            SteganoCore::raw_decoder()
+            SteganoCore::decoder()
                 .use_source_image(m.value_of("input_image").unwrap())
                 .write_to_file(m.value_of("output_file").unwrap())
                 .unveil();
         }
         ("unveil-raw", Some(m)) => {
-            SteganoCore::decoder()
+            SteganoCore::raw_decoder()
                 .use_source_image(m.value_of("input_image").unwrap())
                 .write_to_file(m.value_of("output_file").unwrap())
                 .unveil();
