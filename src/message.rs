@@ -137,7 +137,7 @@ impl Into<Vec<u8>> for &Message {
                 let mut zip = zip::ZipWriter::new(w);
 
                 let options = zip::write::FileOptions::default()
-                    .compression_method(zip::CompressionMethod::Stored);
+                    .compression_method(zip::CompressionMethod::Deflated);
 
                 (&self.files)
                     .iter()
