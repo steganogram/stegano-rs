@@ -110,6 +110,12 @@ impl SteganoEncoder {
 
         self
     }
+
+    pub fn force_content_version(&mut self, c: ContentVersion) -> &mut Self {
+        self.message.header = c;
+
+        self
+    }
 }
 
 impl Hide for SteganoEncoder {

@@ -47,6 +47,14 @@ fn main() -> std::io::Result<()> {
                     .required(false)
                     .help("A text message that will be hidden"),
             )
+            .arg(
+                Arg::with_name("force_content_version2")
+                    .long("force-content-version-2")
+                    .value_name("text message")
+                    .takes_value(false)
+                    .required(false)
+                    .help("Enforces content version 2 encoding (for backwards compatibility)"),
+            )
         ).subcommand(SubCommand::with_name("unveil")
             .about("Unveils data in PNG images")
             .arg(
@@ -109,6 +117,11 @@ fn main() -> std::io::Result<()> {
                     s.hide_files(files.collect());
                 },
             }
+
+            if m.is_present("force_content_version2") {
+                s.force_content_version(ContentVersion::V2);
+            }
+
             s.hide();
         }
         ("unveil", Some(m)) => {

@@ -2,29 +2,57 @@ use byteorder::{ReadBytesExt, BigEndian, WriteBytesExt};
 use std::io::{Read, Cursor};
 use std::fs::File;
 
+#[derive(PartialEq, Debug)]
+pub enum ContentVersion {
+    V1,
+    V2,
+    V4,
+    Unsupported(u8),
+}
+
+impl ContentVersion {
+    pub fn to_u8(&self) -> u8 {
+        match self {
+            Self::V1 => 0x01,
+            Self::V2 => 0x02,
+            Self::V4 => 0x04,
+            Self::Unsupported(v) => *v,
+        }
+    }
+
+    pub fn from_u8(value: u8) -> Self {
+        match value {
+            0x01 => Self::V1,
+            0x02 => Self::V2,
+            0x04 => Self::V4,
+            b => Self::Unsupported(b),
+        }
+    }
+}
+
 pub struct Message {
-    pub header: u8,
+    pub header: ContentVersion,
     pub files: Vec<(String, Vec<u8>)>,
     pub text: Option<String>
 }
 
 impl Message {
-    const V1: u8 = 0x01;
-    const V4: u8 = 0x04;
-
     pub fn of(dec: &mut dyn Read) -> Self {
         let version = dec.read_u8()
             .expect("Failed to read version header");
 
+        let version = ContentVersion::from_u8(version);
+
         match version {
-            Self::V4 => Self::new_of_v4(dec),
-            Self::V1 => Self::new_of_v1(dec),
-            _ => unimplemented!("Other than version 4 is not implemented yet")
+            ContentVersion::V1 => Self::new_of_v1(dec),
+            ContentVersion::V2 => unimplemented!("Version {} is not yet implemented.", 2),
+            ContentVersion::V4 => Self::new_of_v4(dec),
+            ContentVersion::Unsupported(v) => unimplemented!("Version {} is not implemented.", v)
         }
     }
 
     pub fn new_of_files(files: &[String]) -> Self {
-        let mut m = Self::new(Self::V4);
+        let mut m = Self::new(ContentVersion::V4);
 
         files
             .iter()
@@ -52,10 +80,10 @@ impl Message {
     }
 
     pub fn empty() -> Self {
-        Self::new(Self::V4)
+        Self::new(ContentVersion::V4)
     }
 
-    fn new(version: u8) -> Self {
+    fn new(version: ContentVersion) -> Self {
         Message {
             header: version,
             files: Vec::new(),
@@ -90,7 +118,7 @@ impl Message {
             files.push((file.name().to_string(), writer));
         }
 
-        let mut m = Message::new(Self::V4);
+        let mut m = Message::new(ContentVersion::V4);
         m.files.append(&mut files);
 
         m
@@ -108,7 +136,7 @@ impl Message {
         }
 
         // TODO shall we upgrade all v1 to v4, to get rid of the legacy?
-        let mut m = Message::new(Self::V1);
+        let mut m = Message::new(ContentVersion::V1);
         m.text = Some(String::from_utf8(buf)
                 .expect("Message failed to decode from image")
             );
@@ -127,7 +155,7 @@ impl From<&mut Vec<u8>> for Message {
 impl Into<Vec<u8>> for &Message {
     fn into(self) -> Vec<u8> {
         let mut v = Vec::new();
-        v.push(self.header);
+        v.push(self.header.to_u8());
 
         {
             let mut buf = Vec::new();
@@ -154,8 +182,10 @@ impl Into<Vec<u8>> for &Message {
                 zip.finish().expect("finish zip failed.");
             }
 
-            v.write_u32::<BigEndian>(buf.len() as u32)
-                .expect("Failed to write the inner message size.");
+            if self.header == ContentVersion::V4 {
+                v.write_u32::<BigEndian>(buf.len() as u32)
+                    .expect("Failed to write the inner message size.");
+            }
 
             v.append(&mut buf);
         }
