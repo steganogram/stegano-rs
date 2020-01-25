@@ -165,7 +165,7 @@ mod decoder_tests {
     const L: u8 = b'l';
     const O: u8 = b'o';
     const HELLO_WORLD_PNG: &str = "resources/with_text/hello_world.png";
-    const CARGO_ZIP_PNG: &str = "resources/with_attachment/contains_one_file.png";
+    const ZIP_PNG: &str = "resources/with_attachment/Blah.txt.png";
 
     #[test]
     fn test_read_trait_behaviour_for_read_once() {
@@ -211,7 +211,7 @@ mod decoder_tests {
 
     #[test]
     fn should_not_contain_noise_bytes() {
-        let mut img = image::open(CARGO_ZIP_PNG)
+        let mut img = image::open(ZIP_PNG)
             .expect("Input image is not readable.")
             .to_rgba();
         let mut dec = LSBCodec::new(&mut img);

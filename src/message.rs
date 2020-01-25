@@ -45,7 +45,7 @@ impl Message {
 
         match version {
             ContentVersion::V1 => Self::new_of_v1(dec),
-            ContentVersion::V2 => unimplemented!("Version {} is not yet implemented.", 2),
+            ContentVersion::V2 => Self::new_of_v2(dec),
             ContentVersion::V4 => Self::new_of_v4(dec),
             ContentVersion::Unsupported(v) => unimplemented!("Version {} is not implemented.", v)
         }
@@ -98,29 +98,51 @@ impl Message {
         let mut buf = Vec::new();
         r.take(payload_size as u64)
             .read_to_end(&mut buf)
-            .expect("Message read of convent version 0x04 failed.");
+            .expect("Message read of content version 0x04 failed.");
 
+        Self::new_of(buf)
+    }
+
+    fn new_of_v2(r: &mut dyn Read) -> Self {
+        const EOF: u8 = 0xff;
+        let mut buf = Vec::new();
+
+        while let Ok(b) = r.read_u8() {
+            if b == EOF {
+                if let Ok(bn) = r.read_u8() {
+                    if bn == EOF {
+                        break;
+                    } else {
+                        buf.push(b);
+                        buf.push(bn);
+                        continue;
+                    }
+                }
+            }
+            buf.push(b);
+        }
+
+        Self::new_of(buf)
+    }
+
+    fn new_of(buf: Vec<u8>) -> Message {
         let mut files = Vec::new();
-
         let buf = Cursor::new(buf);
         let mut zip = zip::ZipArchive::new(buf)
             .expect("FileContent was invalid.");
-
         if zip.len() > 1 {
-            unimplemented!("Only one target file is supported right now");
+            unimplemented!("Only one target file is supported right now.");
         }
         for i in 0..zip.len() {
             let mut writer = Vec::new();
             let mut file = zip.by_index(i).unwrap();
             file.read_to_end(&mut writer)
-                .expect("Failed to read data from inner Message structure");
+                .expect("Failed to read data from inner message structure.");
 
             files.push((file.name().to_string(), writer));
         }
-
         let mut m = Message::new(ContentVersion::V4);
         m.files.append(&mut files);
-
         m
     }
 
@@ -188,6 +210,11 @@ impl Into<Vec<u8>> for &Message {
             }
 
             v.append(&mut buf);
+
+            if self.header == ContentVersion::V2 {
+                v.write_u16::<BigEndian>(0xffff)
+                    .expect("Failed to write content format 2 termination.");
+            }
         }
 
         v

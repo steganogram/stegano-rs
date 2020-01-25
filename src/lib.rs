@@ -384,6 +384,27 @@ mod e2e_tests {
             .expect("Unveiled file was not written.")
             .len();
         assert_eq!(expected - given, 0, "Unveiled file size differs to the original");
-        // TODO: implement content matching
+    }
+
+    #[test]
+    fn should_ensure_content_v2_compatibility() {
+        SteganoDecoder::new()
+            .use_source_image("resources/with_attachment/Blah.txt.png")
+            .write_to_file("/tmp/Blah.txt")
+            .unveil();
+
+        let mut given_content = Vec::new();
+        File::open("/tmp/Blah.txt")
+            .expect("Output file was not openable.")
+            .read_to_end(&mut given_content)
+            .expect("Output file was not readable.");
+
+        let mut expected_content = Vec::new();
+        File::open("resources/secrets/Blah.txt")
+            .expect("Fixture file was not openable.")
+            .read_to_end(&mut expected_content)
+            .expect("Fixture file was not readable.");
+
+        assert_eq!(given_content, expected_content, "Unveiled data did not match expected");
     }
 }
