@@ -49,11 +49,11 @@ fn main() -> std::io::Result<()> {
             )
             .arg(
                 Arg::with_name("force_content_version2")
-                    .long("force-content-version-2")
+                    .long("x-force-content-version-2")
                     .value_name("text message")
                     .takes_value(false)
                     .required(false)
-                    .help("Enforces content version 2 encoding (for backwards compatibility)"),
+                    .help("Experimental: enforce content version 2 encoding (for backwards compatibility)"),
             )
         ).subcommand(SubCommand::with_name("unveil")
             .about("Unveils data in PNG images")
