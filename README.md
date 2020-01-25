@@ -11,13 +11,13 @@ Rewrite of the core of the [originally stegano.net tool][1]
 
 ## Usage: Hide
 
-Let's assume we want to hide data of a file called `README.md`, into an image called `HelloWorld.png`, based on a image called `resources/HelloWorld_no_passwd_v2.x.png`. So we would run:
+Let's assume we want to hide data of a file called `README.md`, into an image called `HelloWorld.png`, based on a image called `resources/with_attachment/Blah.txt.png`. So we would run:
 
 ```sh
 stegano hide \
  --data README.md \
- --in resources/HelloWorld_no_passwd_v2.x.png \
- --out HelloWorld.png
+ --in resources/Base.png \
+ --out README.png
 ```
 
 or by cargo
@@ -25,51 +25,41 @@ or by cargo
 ```sh
 cargo run --bin stegano -- hide \
  --data README.md \
- --in resources/HelloWorld_no_passwd_v2.x.png \
- --out HelloWorld.png
+ --in resources/Base.png \
+ --out README.png
 ```
 
-TODO this is not yet implemented
-
-Let's assume we want to hide a simple message like `Hello World!` in an existing png image (without touching the original image), so that we get a new png image that would contain the message.
-
-So we would run:
-
-```sh
-cat "Hello World!" | stegano hide --in resources/HelloWorld_no_passwd_v2.x.png > HelloWorld.png
-```
-
-The final result is then contained in the image `HelloWorld.png`.
+The final result is then contained in the image `README.png`.
 
 ## Usage: Unveil
 
-Let's unveil the `README.md` that we've hidden just above in `HelloWorld.png`
+Let's unveil the `README.md` that we've hidden just above in `README.png`
 
 ```sh
 stegano unveil \
- --in HelloWorld.png \
- --out Secret.txt
+ --in README.png \
+ --out README-2.md
 ```
 
 or by cargo
 
 ```sh
 cargo run --bin stegano -- unveil \
- --in HelloWorld.png \
- --out Secret.txt
+ --in README.png \
+ --out README-2.md
 ```
 
 ## Usage: Unveil Raw data
 
-Let's unveil the raw data of the `README.md` that we've hidden just above in `HelloWorld.png`
+Let's unveil the raw data of the `README.md` that we've hidden just above in `README.png`
 
 ```sh
 stegano unveil-raw \
- --in HelloWorld.png \
- --out Secret.bin
+ --in README.png \
+ --out README.bin
 ```
 
-The file `Secret.bin` contains all raw data unfiltered decoded by the LSB decoding algorithm. That is for the curious people, and not so much interesting.
+The file `README.bin` contains all raw data unfiltered decoded by the LSB decoding algorithm. That is for the curious people, and not so much interesting.
 
 ## Technical Details
 
@@ -103,24 +93,6 @@ RawMessage(LSBReader)
  - all data from Reader
  - of<LSBReader>
  - into([u8])
-
-## TODOs
-
-- investigate broken Version 2 content format
-  - investigate ICSharpCode.SharpZipLib.Zip format that ends up being broken for unzip
-    - http://mvdnes.github.io/rust-docs/zip-rs/zip/read/struct.ZipArchive.html
-```sh
-cargo run --bin stegano -- unveil-raw \
- --in resources/HelloWorld_no_passwd_with_attachment_v2.x.PNG \
- --out attachment.bin
-dd if=attachment.bin of=attachment.zip bs=1 skip=1
-zip -FF attachment.zip --out attachment-fixed.zip
-unzip attachment-fixed.zip
-```
-
-- implement MessageContainer Version 2
-  - first byte = 0x02
-  - separate the parsing algorithms Version 1 and Version 2 somehow
 
 ## License
 
