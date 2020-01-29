@@ -1,6 +1,7 @@
 use byteorder::{ReadBytesExt, BigEndian, WriteBytesExt};
 use std::io::{Read, Cursor};
 use std::fs::File;
+use std::path::Path;
 
 #[derive(PartialEq, Debug)]
 pub enum ContentVersion {
@@ -73,6 +74,12 @@ impl Message {
 
         fd.read_to_end(&mut fb)
             .expect("Failed buffer whole file.");
+
+        let file = Path::new(file)
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap();
 
         self.files.push((file.to_owned(), fb));
 
@@ -194,14 +201,16 @@ impl Into<Vec<u8>> for &Message {
 
                 (&self.files)
                     .iter()
-                    .map(|b| b)
+                    .map(|(name, buf)| {
+                        (name, buf)
+                    })
                     .for_each(|(name, buf)| {
                         zip.start_file(name, options).
                             unwrap_or_else(|_| panic!("processing file '{}' failed.", name));
 
                         let mut r = std::io::Cursor::new(buf);
                         std::io::copy(&mut r, &mut zip)
-                            .expect("Failed to copy data to the zip entry");
+                            .expect("Failed to copy data to the zip entry.");
                     });
 
                 zip.finish().expect("finish zip failed.");
@@ -235,7 +244,7 @@ mod message_tests {
 
         assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
         let (name, _buf) = &m.files[0];
-        assert_eq!(name, &files[0], "One file was not there, buffer was broken");
+        assert_eq!(name, "hello_world.png", "One file was not there, buffer was broken");
 
         let b: Vec<u8> = (&m).into();
         assert_ne!(b.len(), 0, "File buffer was empty");
@@ -250,7 +259,7 @@ mod message_tests {
         let m = Message::from(&mut b);
         assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
         let (name, _buf) = &m.files[0];
-        assert_eq!(name, &files[0], "One file was not there, buffer was broken");
+        assert_eq!(name, "hello_world.png", "One file was not there, buffer was broken");
     }
 
     #[test]
@@ -263,7 +272,7 @@ mod message_tests {
         let m = Message::of(&mut r);
         assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
         let (name, _buf) = &m.files[0];
-        assert_eq!(name, &files[0], "One file was not there, buffer was broken");
+        assert_eq!(name, "hello_world.png", "One file was not there, buffer was broken");
     }
 
     #[test]

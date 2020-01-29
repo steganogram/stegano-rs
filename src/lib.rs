@@ -202,14 +202,18 @@ impl Unveil for SteganoDecoder {
 
         (&msg.files)
             .iter()
-            .map(|b| b)
-            .for_each(|(file_name, buf)| {
-                let file_name = file_name.split('/')
-                    .collect::<Vec<&str>>()
-                    .last()
+            .map(|(file_name, buf)| {
+                let file = Path::new(file_name)
+                    .file_name()
                     .unwrap()
-                    .to_string();
-                let target_file = format!("{}/{}", self.output.as_ref().unwrap(), file_name);
+                    .to_str()
+                    .unwrap();
+
+                (file, buf)
+            })
+            .for_each(|(file_name, buf)| {
+                let target_file = Path::new(self.output.as_ref().unwrap())
+                    .join(file_name);
                 let mut target_file = File::create(target_file)
                     .expect("Cannot create target output file");
 
@@ -276,6 +280,8 @@ mod e2e_tests {
     use super::*;
     use std::fs;
     use tempdir::TempDir;
+
+    const BASE_IMAGE: &str = "resources/Base.png";
 
     #[test]
     #[should_panic(expected = "Data file was not readable.")]
@@ -363,7 +369,7 @@ mod e2e_tests {
 
         SteganoEncoder::new()
             .hide_file(secret_to_hide)
-            .use_carrier_image("resources/Base.png")
+            .use_carrier_image(BASE_IMAGE)
             .write_to(image_with_secret)
             .hide();
 
@@ -396,14 +402,11 @@ mod e2e_tests {
 
         SteganoEncoder::new()
             .hide_file(secret_to_hide)
-            .use_carrier_image("resources/Base.png")
+            .use_carrier_image(BASE_IMAGE)
             .write_to(image_with_secret)
             .hide();
 
-        let l = fs::metadata(image_with_secret)
-            .expect("Output image was not written.")
-            .len();
-        assert!(l > 0, "File is not supposed to be empty");
+        assert_file_not_empty(image_with_secret);
 
         SteganoDecoder::new()
             .use_source_image(image_with_secret)
@@ -439,7 +442,7 @@ mod e2e_tests {
     }
 
     #[test]
-    fn should_ensure_content_v2_compatibility_with_2_files() -> Result<()> {
+    fn should_ensure_content_v2_compatibility_with_2_files_reading() -> Result<()> {
         let out_dir = TempDir::new("Blah.txt__and__Blah-2.txt.png")?;
         let output_folder = out_dir.path().to_str().unwrap();
         let decoded_secret_1 = out_dir.path().join("Blah.txt");
@@ -465,6 +468,40 @@ mod e2e_tests {
         Ok(())
     }
 
+    #[test]
+    fn should_ensure_content_v2_compatibility_with_2_files_writing() -> Result<()> {
+        let out_dir = TempDir::new("secret.png")?;
+        let output_folder = out_dir.path().to_str().unwrap();
+        let image_with_secret_path = out_dir.path().join("Blah.txt.png");
+        let image_with_secret = image_with_secret_path.to_str().unwrap();
+        let secret_to_hide = "resources/secrets/Blah.txt";
+
+        SteganoEncoder::new()
+            .force_content_version(ContentVersion::V2)
+            .use_carrier_image(BASE_IMAGE)
+            .hide_file(secret_to_hide)
+            .write_to(image_with_secret)
+            .hide();
+
+        assert_file_not_empty(image_with_secret);
+
+        SteganoDecoder::new()
+            .use_source_image(image_with_secret)
+            .write_to_folder(output_folder)
+            .unveil();
+
+        let decoded_secret = out_dir.path().join("Blah.txt");
+        assert_eq_file_content(
+            decoded_secret.as_ref(),
+            secret_to_hide.as_ref(),
+            "Unveiled data file did not match expected"
+        );
+
+        Ok(())
+    }
+
+    // TODO test for hide_message
+
     fn assert_eq_file_content(file1: &Path, file2: &Path, msg: &str) {
         let mut content1 = Vec::new();
         File::open(file1)
@@ -479,5 +516,12 @@ mod e2e_tests {
             .expect("file right was not readable.");
 
         assert_eq!(content1, content2, "{}", msg);
+    }
+
+    fn assert_file_not_empty(image_with_secret: &str) {
+        let l = fs::metadata(image_with_secret)
+            .expect("image was not written.")
+            .len();
+        assert!(l > 0, "File is not supposed to be empty");
     }
 }
