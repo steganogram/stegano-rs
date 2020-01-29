@@ -22,6 +22,7 @@ byteorder = "1.3.2"
 [dev-dependencies]
 speculate = "0.1"
 criterion = "0.3.0"
+tempdir = "0.3.7"
 
 [[bench]]
 name = "byte_reader_benchmark"

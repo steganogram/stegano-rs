@@ -296,52 +296,61 @@ mod e2e_tests {
     }
 
     #[test]
-    fn should_accecpt_a_png_as_target_file() {
+    fn should_accept_a_png_as_target_file() {
         SteganoEncoder::new().write_to("/tmp/out-test-image.png");
     }
 
     #[test]
-    fn should_hide_and_unveil_one_text_file() {
+    fn should_hide_and_unveil_one_text_file() -> Result<()> {
+        let out_dir = TempDir::new("hello_world.png")?;
+        let image_with_secret_path = out_dir.path().join("secret.png");
+        let image_with_secret = image_with_secret_path.to_str().unwrap();
+
         SteganoEncoder::new()
             .hide_file("Cargo.toml")
             .use_carrier_image("resources/with_text/hello_world.png")
-            .write_to("/tmp/out-test-image.png")
+            .write_to(image_with_secret)
             .hide();
 
-        let l = fs::metadata("/tmp/out-test-image.png")
+        let l = fs::metadata(image_with_secret)
             .expect("Output image was not written.")
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
         SteganoDecoder::new()
-            .use_source_image("/tmp/out-test-image.png")
-            .write_to_folder("/tmp/Cargo.toml.d")
+            .use_source_image(image_with_secret)
+            .write_to_folder(out_dir.path().to_str().unwrap())
             .unveil();
 
-        let expected = fs::metadata("Cargo.toml")
-            .expect("Source file is not available.")
-            .len();
-        let given = fs::metadata("/tmp/Cargo.toml.d/Cargo.toml")
-            .expect("Output image was not written.")
-            .len();
+        let given_decoded_secret = out_dir.path().join("Cargo.toml");
+        assert_eq_file_content(
+            &given_decoded_secret,
+            "Cargo.toml".as_ref(),
+            "Unveiled data did not match expected"
+        );
 
-        assert_eq!(given, expected, "Unveiled file size differs to the original");
+        Ok(())
     }
 
     #[test]
-    fn should_raw_unveil_a_message() {
-        // FIXME: there no zip, just plain raw string is contained
+    fn should_raw_unveil_a_message() -> Result<()> {
+        let out_dir = TempDir::new("hello_world.png")?;
+        let expected_file = out_dir.path().join("hello_world.bin");
+        let raw_decoded_secret = expected_file.to_str().unwrap();
+
         SteganoRawDecoder::new()
             .use_source_image("resources/with_text/hello_world.png")
-            .write_to_file("/tmp/HelloWorld.bin")
+            .write_to_file(raw_decoded_secret)
             .unveil();
 
-        let l = fs::metadata("/tmp/HelloWorld.bin")
+        let l = fs::metadata(raw_decoded_secret)
             .expect("Output file was not written.")
             .len();
 
         // TODO content verification needs to be done as well
         assert_ne!(l, 0, "Output raw data file was empty.");
+
+        Ok(())
     }
 
     #[test]
@@ -350,6 +359,7 @@ mod e2e_tests {
         let secret_to_hide = "resources/secrets/random_1666_byte.bin";
         let image_with_secret_path = out_dir.path().join("random_1666_byte.bin.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
+        let expected_file = out_dir.path().join("random_1666_byte.bin");
 
         SteganoEncoder::new()
             .hide_file(secret_to_hide)
@@ -367,16 +377,11 @@ mod e2e_tests {
             .write_to_folder(out_dir.path().to_str().unwrap())
             .unveil();
 
-        let expected_file_size = fs::metadata(secret_to_hide)
-            .expect("Source file is not available.")
-            .len();
-
-        let expected_file = out_dir.path().join("random_1666_byte.bin");
-        let given = fs::metadata(expected_file.to_str().unwrap())
-            .expect("Unveiled file was not written.")
-            .len();
-        assert_eq!(expected_file_size - given, 0, "Unveiled file size differs to the original");
-        // TODO: implement content matching
+        assert_eq_file_content(
+            &expected_file,
+            secret_to_hide.as_ref(),
+            "Unveiled data did not match expected"
+        );
 
         Ok(())
     }
@@ -387,6 +392,7 @@ mod e2e_tests {
         let secret_to_hide = "resources/secrets/zip_with_2_files.zip";
         let image_with_secret_path = out_dir.path().join("zip_with_2_files.zip.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
+        let expected_file = out_dir.path().join("zip_with_2_files.zip");
 
         SteganoEncoder::new()
             .hide_file(secret_to_hide)
@@ -404,75 +410,74 @@ mod e2e_tests {
             .write_to_folder(out_dir.path().to_str().unwrap())
             .unveil();
 
-        let expected = fs::metadata(secret_to_hide)
-            .expect("Source file is not available.")
-            .len();
-
-        let expected_file = out_dir.path().join("zip_with_2_files.zip");
-        let given = fs::metadata(expected_file.to_str().unwrap())
-            .expect("Unveiled file was not written.")
-            .len();
-        assert_eq!(expected - given, 0, "Unveiled file size differs to the original");
+        assert_eq_file_content(
+            &expected_file,
+            secret_to_hide.as_ref(),
+            "Unveiled data did not match expected"
+        );
 
         Ok(())
     }
 
     #[test]
-    fn should_ensure_content_v2_compatibility() {
+    fn should_ensure_content_v2_compatibility() -> Result<()> {
+        let out_dir = TempDir::new("Blah.txt.png")?;
+        let decoded_secret = out_dir.path().join("Blah.txt");
+
         SteganoDecoder::new()
             .use_source_image("resources/with_attachment/Blah.txt.png")
-            .write_to_folder("/tmp")
+            .write_to_folder(out_dir.path().to_str().unwrap())
             .unveil();
 
-        let mut given_content = Vec::new();
-        File::open("/tmp/Blah.txt")
-            .expect("Output file was not openable.")
-            .read_to_end(&mut given_content)
-            .expect("Output file was not readable.");
+        assert_eq_file_content(
+            &decoded_secret,
+            "resources/secrets/Blah.txt".as_ref(),
+            "Unveiled data did not match expected"
+        );
 
-        let mut expected_content = Vec::new();
-        File::open("resources/secrets/Blah.txt")
-            .expect("Fixture file was not openable.")
-            .read_to_end(&mut expected_content)
-            .expect("Fixture file was not readable.");
-
-        assert_eq!(given_content, expected_content, "Unveiled data did not match expected");
+        Ok(())
     }
 
     #[test]
-    fn should_ensure_content_v2_compatibility_with_2_files() {
-        let output_folder = "/tmp/Blah.txt__and__Blah-2.txt.d";
+    fn should_ensure_content_v2_compatibility_with_2_files() -> Result<()> {
+        let out_dir = TempDir::new("Blah.txt__and__Blah-2.txt.png")?;
+        let output_folder = out_dir.path().to_str().unwrap();
+        let decoded_secret_1 = out_dir.path().join("Blah.txt");
+        let decoded_secret_2 = out_dir.path().join("Blah-2.txt");
+
         SteganoDecoder::new()
             .use_source_image("resources/with_attachment/Blah.txt__and__Blah-2.txt.png")
             .write_to_folder(output_folder)
             .unveil();
 
-        let mut given_content = Vec::new();
-        File::open(format!("{}/Blah.txt", output_folder))
-            .expect("Output file #1 was not openable.")
-            .read_to_end(&mut given_content)
-            .expect("Output file #1 was not readable.");
+        assert_eq_file_content(
+            &decoded_secret_1,
+            "resources/secrets/Blah.txt".as_ref(),
+            "Unveiled data file #1 did not match expected"
+        );
 
-        let mut expected_content = Vec::new();
-        File::open("resources/secrets/Blah.txt")
-            .expect("Fixture file was not openable.")
-            .read_to_end(&mut expected_content)
-            .expect("Fixture file was not readable.");
+        assert_eq_file_content(
+            &decoded_secret_2,
+            "resources/secrets/Blah-2.txt".as_ref(),
+            "Unveiled data file #2 did not match expected"
+        );
 
-        assert_eq!(given_content, expected_content, "Unveiled data file #1 did not match expected");
+        Ok(())
+    }
 
-        let mut given_content = Vec::new();
-        File::open(format!("{}/Blah-2.txt", output_folder))
-            .expect("Output file #1 was not openable.")
-            .read_to_end(&mut given_content)
-            .expect("Output file #1 was not readable.");
+    fn assert_eq_file_content(file1: &Path, file2: &Path, msg: &str) {
+        let mut content1 = Vec::new();
+        File::open(file1)
+            .expect("file left was not openable.")
+            .read_to_end(&mut content1)
+            .expect("file left was not readable.");
 
-        let mut expected_content = Vec::new();
-        File::open("resources/secrets/Blah-2.txt")
-            .expect("Fixture file was not openable.")
-            .read_to_end(&mut expected_content)
-            .expect("Fixture file was not readable.");
+        let mut content2 = Vec::new();
+        File::open(file2)
+            .expect("file right was not openable.")
+            .read_to_end(&mut content2)
+            .expect("file right was not readable.");
 
-        assert_eq!(given_content, expected_content, "Unveiled data file #2 did not match expected");
+        assert_eq!(content1, content2, "{}", msg);
     }
 }
