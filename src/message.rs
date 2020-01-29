@@ -106,20 +106,21 @@ impl Message {
     fn new_of_v2(r: &mut dyn Read) -> Self {
         const EOF: u8 = 0xff;
         let mut buf = Vec::new();
+        r.read_to_end(&mut buf)
+            .expect("Message read of content version 0x04 failed.");
 
-        while let Ok(b) = r.read_u8() {
-            if b == EOF {
-                if let Ok(bn) = r.read_u8() {
-                    if bn == EOF {
-                        break;
-                    } else {
-                        buf.push(b);
-                        buf.push(bn);
-                        continue;
-                    }
-                }
+        let mut eof = 0;
+        for (i, b) in buf.iter().enumerate().rev() {
+            if *b == EOF {
+                eof = i;
+                break;
+            } else {
+                eof = 0;
             }
-            buf.push(b);
+        }
+
+        if eof > 0 {
+            buf.resize(eof, 0);
         }
 
         Self::new_of(buf)
@@ -127,22 +128,24 @@ impl Message {
 
     fn new_of(buf: Vec<u8>) -> Message {
         let mut files = Vec::new();
-        let buf = Cursor::new(buf);
-        let mut zip = zip::ZipArchive::new(buf)
-            .expect("FileContent was invalid.");
-        if zip.len() > 1 {
-            unimplemented!("Only one target file is supported right now.");
-        }
-        for i in 0..zip.len() {
-            let mut writer = Vec::new();
-            let mut file = zip.by_index(i).unwrap();
-            file.read_to_end(&mut writer)
-                .expect("Failed to read data from inner message structure.");
+        let mut buf = Cursor::new(buf);
 
-            files.push((file.name().to_string(), writer));
+        while let Ok(zip) = zip::read::read_zipfile_from_stream(&mut buf) {
+            match zip {
+                None => {},
+                Some(mut file) => {
+                    let mut writer = Vec::new();
+                    file.read_to_end(&mut writer)
+                        .expect("Failed to read data from inner message structure.");
+
+                    files.push((file.name().to_string(), writer));
+                },
+            }
         }
+
         let mut m = Message::new(ContentVersion::V4);
         m.files.append(&mut files);
+
         m
     }
 
