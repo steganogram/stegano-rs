@@ -1,12 +1,13 @@
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg, SubCommand, crate_version, AppSettings};
 
 use stegano::*;
 
 fn main() -> std::io::Result<()> {
-    let matches = App::new("Stegano App")
-        .version("0.1")
+    let matches = App::new("Stegano CLI")
+        .version(crate_version!())
         .author("Sven Assmann <sven.assmann.it@gmail.com>")
-        .about("Implements LSB steganography for PNG image files in rust-lang. Aims for a command line version only.")
+        .about("Hiding secrets with steganography in PNG images.")
+        .setting(AppSettings::ArgRequiredElseHelp)
         .subcommand(SubCommand::with_name("hide")
             .about("Hides data in PNG images")
             .arg(
@@ -56,7 +57,7 @@ fn main() -> std::io::Result<()> {
                     .help("Experimental: enforce content version 2 encoding (for backwards compatibility)"),
             )
         ).subcommand(SubCommand::with_name("unveil")
-            .about("Unveils data in PNG images")
+            .about("Unveils data from PNG images")
             .arg(
                 Arg::with_name("input_image")
                     .short("i")
@@ -67,13 +68,13 @@ fn main() -> std::io::Result<()> {
                     .help("Source image that contains secret data"),
             )
             .arg(
-                Arg::with_name("output_file")
+                Arg::with_name("output_folder")
                     .short("o")
                     .long("out")
-                    .value_name("output file")
+                    .value_name("output folder")
                     .takes_value(true)
                     .required(true)
-                    .help("Final data will be stored as file"),
+                    .help("Final data will be stored in that folder"),
             )
         ).subcommand(SubCommand::with_name("unveil-raw")
             .about("Unveils raw data in PNG images")
@@ -127,7 +128,7 @@ fn main() -> std::io::Result<()> {
         ("unveil", Some(m)) => {
             SteganoCore::decoder()
                 .use_source_image(m.value_of("input_image").unwrap())
-                .write_to_file(m.value_of("output_file").unwrap())
+                .write_to_folder(m.value_of("output_folder").unwrap())
                 .unveil();
         }
         ("unveil-raw", Some(m)) => {
@@ -137,7 +138,6 @@ fn main() -> std::io::Result<()> {
                 .unveil();
         }
         _ => {
-            // TODO consider to show the sub command list
         }
     }
 
