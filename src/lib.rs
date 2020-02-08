@@ -133,7 +133,7 @@ impl Hide for SteganoEncoder {
             space_to_fill -= buf.len();
 
             for _ in 0..space_to_fill {
-                dec.write(&[0])
+                dec.write_all(&[0])
                     .expect("Failed to terminate version 2 content.");
             }
         }
