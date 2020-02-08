@@ -9,6 +9,10 @@ Implements LSB steganography for PNG image files in rust-lang. Aims for a comman
 
 Rewrite of the core of the [originally stegano.net tool][1]
 
+## Watch it in action
+
+[![asciicast](https://asciinema.org/a/gNNTVcj6EZm3ZTaihZYoC7rfC.svg)](https://asciinema.org/a/gNNTVcj6EZm3ZTaihZYoC7rfC)
+
 ## Usage: Hide
 
 Let's assume we want to hide data of a file called `README.md`, into an image called `HelloWorld.png`, based on a image called `resources/with_attachment/Blah.txt.png`. So we would run:
