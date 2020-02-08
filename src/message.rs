@@ -48,7 +48,7 @@ impl Message {
             ContentVersion::V1 => Self::new_of_v1(dec),
             ContentVersion::V2 => Self::new_of_v2(dec),
             ContentVersion::V4 => Self::new_of_v4(dec),
-            ContentVersion::Unsupported(v) => unimplemented!("Version {} is not implemented.", v)
+            ContentVersion::Unsupported(_) => panic!("Seems like not a valid stegano file.")
         }
     }
 

@@ -120,12 +120,23 @@ impl SteganoEncoder {
 
 impl Hide for SteganoEncoder {
     fn hide(&mut self) -> &Self {
+        let (x, y) = (&self.carrier).as_ref().unwrap().dimensions();
         let mut img = self.carrier.as_mut().unwrap();
         let mut dec = LSBCodec::new(&mut img);
 
         let buf: Vec<u8> = (&self.message).into();
         dec.write_all(&buf[..])
             .expect("Failed to hide data in carrier image.");
+
+        if self.message.header == ContentVersion::V2 {
+            let mut space_to_fill = ((x * y * 3) / 8) as usize;
+            space_to_fill -= buf.len();
+
+            for _ in 0..space_to_fill {
+                dec.write(&[0])
+                    .expect("Failed to terminate version 2 content.");
+            }
+        }
 
         self.carrier.as_mut()
             .expect("Image was not there for saving.")
