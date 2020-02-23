@@ -1,5 +1,8 @@
 # Stegano Core Library
 
+[![Build Status](https://travis-ci.org/steganogram/core.stegano.org.svg?branch=master)](https://travis-ci.org/steganogram/core.stegano.org)
+[![codecov](https://codecov.io/gh/steganogram/core.stegano.org/branch/master/graph/badge.svg)](https://codecov.io/gh/steganogram/core.stegano.org)
+
 DISCLAIMER: not production ready, core changes can be done at any time.
 
 Implements LSB steganography for PNG image files in rust-lang.
