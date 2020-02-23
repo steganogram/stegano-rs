@@ -236,6 +236,9 @@ impl Into<Vec<u8>> for &Message {
 #[cfg(test)]
 mod message_tests {
     use super::*;
+    use zip::{ZipWriter, CompressionMethod};
+    use zip::write::FileOptions;
+    use std::io::{Write, copy};
 
     #[test]
     fn should_convert_into_vec_of_bytes() {
@@ -284,5 +287,34 @@ mod message_tests {
         let m = Message::of(&mut r);
         assert_eq!(m.text.unwrap(), "He", "Message.text was not as expected");
         assert_eq!(m.files.len(), 0, "Message.files were not empty.");
+    }
+
+    #[test]
+    fn should_create_zip_that_is_windows_compatible() -> std::io::Result<()> {
+        let mut file = File::open("resources/with_text/hello_world.png")?;
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf)?;
+
+        let mut out_buf = Vec::new();
+
+        {
+            let w = Cursor::new(&mut out_buf);
+            let mut zip = ZipWriter::new(w);
+
+            let options = FileOptions::default()
+                .compression_method(CompressionMethod::Deflated);
+
+            zip.start_file("hello_world.png", options).
+                unwrap_or_else(|_| panic!("processing file '{}' failed.", "hello_world.png"));
+
+            let mut r = Cursor::new(buf);
+            copy(&mut r, &mut zip)
+                .expect("Failed to copy data to the zip entry.");
+
+            zip.finish().expect("finish zip failed.");
+        }
+
+        let mut out = File::create("/tmp/test-zip.zip")?;
+        out.write_all(&out_buf)
     }
 }
