@@ -8,3 +8,7 @@ license-file = "LICENSE"
 [dependencies]
 stegano-core = { path = "../stegano-core" }
 clap = "2.33.0"
+
+[[bin]]
+name = "stegano"
+path = "src/main.rs"
