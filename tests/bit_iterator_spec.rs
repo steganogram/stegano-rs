@@ -1,7 +1,7 @@
 use speculate::speculate;
 use bitstream_io::{BitReader, LittleEndian};
 
-use stegano::BitIterator;
+use stegano_core::BitIterator;
 
 speculate! {
     describe "BitIterator::next()" {
