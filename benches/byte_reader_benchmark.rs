@@ -1,9 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use stegano::LSBCodec;
+use stegano_core::LSBCodec;
 use std::io::Read;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("Stegano::LSBCodec for resources/with_text/hello_world.png (decode)", |b| b.iter(|| {
+    c.bench_function("SteganoCore::LSBCodec for resources/with_text/hello_world.png (decode)", |b| b.iter(|| {
         let mut img = image::open("resources/with_text/hello_world.png")
             .expect("Input image is not readable.")
             .to_rgba();
