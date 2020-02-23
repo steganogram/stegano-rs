@@ -6,7 +6,8 @@ edition = "2018"
 license-file = "LICENSE"
 
 [dependencies]
-stegano-core = { path = "../stegano-core" }
+# stegano-core = { path = "../stegano-core" }
+stegano-core = { git = "https://github.com/steganogram/core.stegano.org", branch = "master" }
 clap = "2.33.0"
 
 [[bin]]
