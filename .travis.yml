@@ -1,0 +1,42 @@
+language: rust
+cache: cargo
+os:
+  - linux
+rust:
+  - stable
+sudo: true
+before_install:
+  - sudo apt-get update
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - cmake
+      - gcc
+      - binutils-dev
+      - libssl-dev
+before_script:
+  - source $HOME/.cargo/env
+  - |
+      if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then rustup component add clippy; fi
+  - |
+      export PUBLISH_DOCS=$([[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_BRANCH" == "master" ]])
+
+before_cache: |
+  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+    cargo install cargo-tarpaulin -f
+  fi
+
+script:
+  - cargo clean
+  - cargo build
+  - cargo test
+  - |
+      if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then ./.ci/build/linting.sh; fi
+after_success: |
+  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+    cargo tarpaulin --out Xml
+    bash <(curl -s https://codecov.io/bash)
+  fi
