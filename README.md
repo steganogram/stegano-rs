@@ -1,7 +1,5 @@
 # Stegano CLI
 
-DISCLAIMER: not production ready, core changes can be done at any time.
-
 Implements LSB steganography for PNG image files in rust-lang.
 
 Aims for compatibility to the [Stegano for windows version][1]
@@ -10,7 +8,26 @@ Aims for compatibility to the [Stegano for windows version][1]
 
 [![asciicast](https://asciinema.org/a/gNNTVcj6EZm3ZTaihZYoC7rfC.svg)](https://asciinema.org/a/gNNTVcj6EZm3ZTaihZYoC7rfC)
 
-## Usage: Hide
+## Quick Start
+
+### Install
+
+To install the stegano cli, you just need to run 
+
+```bash
+cargo install --force stegano-cli
+```
+
+(--force just makes it update to the latest stegano-cli if it's already installed)
+
+*Note* the binary is called `stegano` (without `-cli`)
+
+to verify if the installation went thru, you can run `which stegano` that should output similar to 
+```bash
+$HOME/.cargo/bin/stegano
+```
+
+### Hide data
 
 Let's assume we want to hide data of a file called `README.md`, into an image called `HelloWorld.png`, based on a image called `resources/with_attachment/Blah.txt.png`. So we would run:
 
@@ -31,8 +48,8 @@ cargo run -- hide \
 ```
 
 The final result is then contained in the image `README.png`.
-
-## Usage: Unveil
+ 
+### Unveil data
 
 Let's unveil the `README.md` that we've hidden just above in `README.png`
 
@@ -50,7 +67,7 @@ cargo run -- unveil \
  --out README-2.md
 ```
 
-## Usage: Unveil Raw data
+### Unveil Raw data
 
 Let's unveil the raw data of the `README.md` that we've hidden just above in `README.png`
 
@@ -69,5 +86,5 @@ The file `README.bin` contains all raw data unfiltered decoded by the LSB decodi
   - **[GNU GPL v3 license](https://www.gnu.org/licenses/gpl-3.0)**
   - Copyright 2019 © [Sven Assmann][2].
 
-[1]: http://www.stegano.org
+[1]: https://www.stegano.org/pages/downloads-en.html
 [2]: https://www.d34dl0ck.me
