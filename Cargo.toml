@@ -1,9 +1,21 @@
 [package]
 name = "stegano-core"
-version = "0.3.1"
+description = "Steganography core library for stegano-cli. Supports hiding data in PNG images via LSB Encoding."
+version = "0.3.1-beta.1"
 authors = ["Sven Assmann <sven.assmann.it@gmail.com>"]
 edition = "2018"
 license-file = "LICENSE"
+homepage = "https://www.stegano.org"
+readme = "README.md"
+keywords = ["steganography", "image", "png", "hiding", "unveil"]
+categories = ["Encoding", "Image processing", "Images"]
+maintenance = { status = "actively-developed" }
+repository = "https://github.com/steganogram/core.stegano.org"
+exclude = ["resources/*", "tests/*", ".gitignore", ".travis.yml"]
+
+[badges]
+travis-ci = { repository = "steganogram/core.stegano.org", branch = "master" }
+codecov = { repository = "steganogram/core.stegano.org", branch = "master", service = "github" }
 
 [workspace]
 
