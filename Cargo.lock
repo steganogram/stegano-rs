@@ -654,7 +654,7 @@ checksum = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
 
 [[package]]
 name = "stegano-cli"
-version = "0.3.1-beta.1"
+version = "0.3.1-beta.2"
 dependencies = [
  "clap",
  "stegano-core",
