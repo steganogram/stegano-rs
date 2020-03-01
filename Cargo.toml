@@ -1,7 +1,7 @@
 [package]
 name = "stegano-cli"
 description = "Steganography command line tool. Supports hiding data in PNG images via LSB Encoding."
-version = "0.3.1-beta.3"
+version = "0.3.1-beta.4"
 authors = ["Sven Assmann <sven.assmann.it@gmail.com>"]
 edition = "2018"
 license = "GPL-3.0-only"
@@ -19,7 +19,7 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 # stegano-core = { path = "../stegano-core" }
 # stegano-core = { git = "https://github.com/steganogram/cli.stegano.org", branch = "master" }
-stegano-core = "0.3.1-beta.2"
+stegano-core = "0.3.1-beta.3"
 clap = "2.33.0"
 
 [[bin]]
