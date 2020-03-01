@@ -1,6 +1,6 @@
-use byteorder::{ReadBytesExt, BigEndian, WriteBytesExt};
-use std::io::{Read, Cursor};
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::fs::File;
+use std::io::{Cursor, Read};
 use std::path::Path;
 
 #[derive(PartialEq, Debug)]
@@ -34,13 +34,12 @@ impl ContentVersion {
 pub struct Message {
     pub header: ContentVersion,
     pub files: Vec<(String, Vec<u8>)>,
-    pub text: Option<String>
+    pub text: Option<String>,
 }
 
 impl Message {
     pub fn of(dec: &mut dyn Read) -> Self {
-        let version = dec.read_u8()
-            .expect("Failed to read version header");
+        let version = dec.read_u8().expect("Failed to read version header");
 
         let version = ContentVersion::from_u8(version);
 
@@ -48,7 +47,7 @@ impl Message {
             ContentVersion::V1 => Self::new_of_v1(dec),
             ContentVersion::V2 => Self::new_of_v2(dec),
             ContentVersion::V4 => Self::new_of_v4(dec),
-            ContentVersion::Unsupported(_) => panic!("Seems like not a valid stegano file.")
+            ContentVersion::Unsupported(_) => panic!("Seems like not a valid stegano file."),
         }
     }
 
@@ -57,9 +56,9 @@ impl Message {
 
         files
             .iter()
-//            .map(|f| (f, File::open(f).expect("Data file was not readable.")))
-//            // TODO instead of filtering, accepting directories would be nice
-//            .filter(|(name, f)| f.metadata().unwrap().is_file())
+            //            .map(|f| (f, File::open(f).expect("Data file was not readable.")))
+            //            // TODO instead of filtering, accepting directories would be nice
+            //            .filter(|(name, f)| f.metadata().unwrap().is_file())
             .for_each(|f| {
                 m.add_file(f);
             });
@@ -67,21 +66,22 @@ impl Message {
         m
     }
 
-    pub fn add_file(&mut self, file: &str) -> &mut Self{
-        let mut fd = File::open(file)
-            .expect("File was not readable");
+    pub fn add_file(&mut self, file: &str) -> &mut Self {
+        let mut fd = File::open(file).expect("File was not readable");
         let mut fb: Vec<u8> = Vec::new();
 
-        fd.read_to_end(&mut fb)
-            .expect("Failed buffer whole file.");
+        fd.read_to_end(&mut fb).expect("Failed buffer whole file.");
 
-        let file = Path::new(file)
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap();
+        let file = Path::new(file).file_name().unwrap().to_str().unwrap();
 
-        self.files.push((file.to_owned(), fb));
+        self.add_file_data(file, fb);
+        // self.files.push((file.to_owned(), fb));
+
+        self
+    }
+
+    pub fn add_file_data(&mut self, file: &str, data: Vec<u8>) -> &mut Self {
+        self.files.push((file.to_owned(), data));
 
         self
     }
@@ -99,7 +99,8 @@ impl Message {
     }
 
     fn new_of_v4(r: &mut dyn Read) -> Self {
-        let payload_size = r.read_u32::<BigEndian>()
+        let payload_size = r
+            .read_u32::<BigEndian>()
             .expect("Failed to read payload size header");
 
         let mut buf = Vec::new();
@@ -139,14 +140,14 @@ impl Message {
 
         while let Ok(zip) = zip::read::read_zipfile_from_stream(&mut buf) {
             match zip {
-                None => {},
+                None => {}
                 Some(mut file) => {
                     let mut writer = Vec::new();
                     file.read_to_end(&mut writer)
                         .expect("Failed to read data from inner message structure.");
 
                     files.push((file.name().to_string(), writer));
-                },
+                }
             }
         }
 
@@ -169,9 +170,7 @@ impl Message {
 
         // TODO shall we upgrade all v1 to v4, to get rid of the legacy?
         let mut m = Message::new(ContentVersion::V1);
-        m.text = Some(String::from_utf8(buf)
-                .expect("Message failed to decode from image")
-            );
+        m.text = Some(String::from_utf8(buf).expect("Message failed to decode from image"));
 
         m
     }
@@ -201,12 +200,10 @@ impl Into<Vec<u8>> for &Message {
 
                 (&self.files)
                     .iter()
-                    .map(|(name, buf)| {
-                        (name, buf)
-                    })
+                    .map(|(name, buf)| (name, buf))
                     .for_each(|(name, buf)| {
-                        zip.start_file(name, options).
-                            unwrap_or_else(|_| panic!("processing file '{}' failed.", name));
+                        zip.start_file(name, options)
+                            .unwrap_or_else(|_| panic!("processing file '{}' failed.", name));
 
                         let mut r = std::io::Cursor::new(buf);
                         std::io::copy(&mut r, &mut zip)
@@ -236,18 +233,25 @@ impl Into<Vec<u8>> for &Message {
 #[cfg(test)]
 mod message_tests {
     use super::*;
-    use zip::{ZipWriter, CompressionMethod};
+    use std::io::{copy, Write};
     use zip::write::FileOptions;
-    use std::io::{Write, copy};
+    use zip::{CompressionMethod, ZipWriter};
 
     #[test]
     fn should_convert_into_vec_of_bytes() {
         let files = vec!["resources/with_text/hello_world.png".to_string()];
         let m = Message::new_of_files(&files);
 
-        assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
+        assert_eq!(
+            m.files.len(),
+            1,
+            "One file was not there, buffer was broken"
+        );
         let (name, _buf) = &m.files[0];
-        assert_eq!(name, "hello_world.png", "One file was not there, buffer was broken");
+        assert_eq!(
+            name, "hello_world.png",
+            "One file was not there, buffer was broken"
+        );
 
         let b: Vec<u8> = (&m).into();
         assert_ne!(b.len(), 0, "File buffer was empty");
@@ -260,9 +264,16 @@ mod message_tests {
         let mut b: Vec<u8> = (&m).into();
 
         let m = Message::from(&mut b);
-        assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
+        assert_eq!(
+            m.files.len(),
+            1,
+            "One file was not there, buffer was broken"
+        );
         let (name, _buf) = &m.files[0];
-        assert_eq!(name, "hello_world.png", "One file was not there, buffer was broken");
+        assert_eq!(
+            name, "hello_world.png",
+            "One file was not there, buffer was broken"
+        );
     }
 
     #[test]
@@ -273,9 +284,16 @@ mod message_tests {
         let mut r = Cursor::new(&mut b);
 
         let m = Message::of(&mut r);
-        assert_eq!(m.files.len(), 1, "One file was not there, buffer was broken");
+        assert_eq!(
+            m.files.len(),
+            1,
+            "One file was not there, buffer was broken"
+        );
         let (name, _buf) = &m.files[0];
-        assert_eq!(name, "hello_world.png", "One file was not there, buffer was broken");
+        assert_eq!(
+            name, "hello_world.png",
+            "One file was not there, buffer was broken"
+        );
     }
 
     #[test]
@@ -301,15 +319,13 @@ mod message_tests {
             let w = Cursor::new(&mut out_buf);
             let mut zip = ZipWriter::new(w);
 
-            let options = FileOptions::default()
-                .compression_method(CompressionMethod::Deflated);
+            let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
 
-            zip.start_file("hello_world.png", options).
-                unwrap_or_else(|_| panic!("processing file '{}' failed.", "hello_world.png"));
+            zip.start_file("hello_world.png", options)
+                .unwrap_or_else(|_| panic!("processing file '{}' failed.", "hello_world.png"));
 
             let mut r = Cursor::new(buf);
-            copy(&mut r, &mut zip)
-                .expect("Failed to copy data to the zip entry.");
+            copy(&mut r, &mut zip).expect("Failed to copy data to the zip entry.");
 
             zip.finish().expect("finish zip failed.");
         }

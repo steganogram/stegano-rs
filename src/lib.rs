@@ -16,11 +16,11 @@ pub mod raw_message;
 
 pub use raw_message::*;
 
+use image::*;
 use std::fs::*;
 use std::io::prelude::*;
 use std::io::*;
 use std::path::Path;
-use image::*;
 
 pub struct SteganoCore {}
 
@@ -73,27 +73,27 @@ impl SteganoEncoder {
         self.carrier = Some(
             image::open(Path::new(input_file))
                 .expect("Carrier image was not readable.")
-                .to_rgba()
+                .to_rgba(),
         );
 
         self
     }
 
     pub fn write_to(&mut self, output_file: &str) -> &mut Self {
-        self.target = Some(output_file.to_string());
+        self.target = Some(output_file.to_owned());
         self
     }
 
     pub fn hide_message(&mut self, msg: &str) -> &mut Self {
-        self.message.text = Some(msg.to_string());
+        self.message
+            .add_file_data("secret-message.txt", msg.as_bytes().to_vec());
 
         self
     }
 
     pub fn hide_file(&mut self, input_file: &str) -> &mut Self {
         {
-            let _f = File::open(input_file)
-                .expect("Data file was not readable.");
+            let _f = File::open(input_file).expect("Data file was not readable.");
         }
         self.message.add_file(&input_file.to_string());
 
@@ -102,11 +102,9 @@ impl SteganoEncoder {
 
     pub fn hide_files(&mut self, input_files: Vec<&str>) -> &mut Self {
         self.message.files = Vec::new();
-        input_files
-            .iter()
-            .for_each(|&f| {
-                self.hide_file(f);
-            });
+        input_files.iter().for_each(|&f| {
+            self.hide_file(f);
+        });
 
         self
     }
@@ -138,7 +136,8 @@ impl Hide for SteganoEncoder {
             }
         }
 
-        self.carrier.as_mut()
+        self.carrier
+            .as_mut()
             .expect("Image was not there for saving.")
             .save(self.target.as_ref().unwrap())
             .expect("Failed to save final image");
@@ -152,8 +151,7 @@ pub struct SteganoDecoder {
     output: Option<String>,
 }
 
-impl Default for SteganoDecoder
-{
+impl Default for SteganoDecoder {
     fn default() -> Self {
         Self {
             output: None,
@@ -162,8 +160,7 @@ impl Default for SteganoDecoder
     }
 }
 
-impl SteganoDecoder
-{
+impl SteganoDecoder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -180,8 +177,7 @@ impl SteganoDecoder
 
     pub fn write_to_file(&mut self, output_file: &str) -> &mut Self {
         {
-            let _f = File::create(output_file.to_string())
-                .expect("Output cannot be created.");
+            let _f = File::create(output_file.to_string()).expect("Output cannot be created.");
         }
         self.output = Some(output_file.to_string());
 
@@ -189,15 +185,13 @@ impl SteganoDecoder
     }
 
     pub fn write_to_folder(&mut self, output_folder: &str) -> &mut Self {
-        match DirBuilder::new()
-            .recursive(true)
-            .create(output_folder) {
-            Ok(_) => {},
+        match DirBuilder::new().recursive(true).create(output_folder) {
+            Ok(_) => {}
             Err(ref e) => {
                 if e.kind() != ErrorKind::AlreadyExists {
                     eprintln!("Cannot create output folder: {}", e);
                 }
-            },
+            }
         }
 
         self.output = Some(output_folder.to_string());
@@ -210,27 +204,27 @@ impl Unveil for SteganoDecoder {
     fn unveil(&mut self) -> &mut Self {
         let mut dec = LSBCodec::new(self.input.as_mut().unwrap());
         let msg = Message::of(&mut dec);
+        let mut files = msg.files;
 
-        (&msg.files)
+        if let Some(text) = msg.text {
+            files.push(("secret-message.txt".to_owned(), text.as_bytes().to_vec()));
+        }
+
+        (&files)
             .iter()
             .map(|(file_name, buf)| {
-                let file = Path::new(file_name)
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap();
+                let file = Path::new(file_name).file_name().unwrap().to_str().unwrap();
 
                 (file, buf)
             })
             .for_each(|(file_name, buf)| {
-                let target_file = Path::new(self.output.as_ref().unwrap())
-                    .join(file_name);
-                let mut target_file = File::create(target_file)
-                    .expect("Cannot create target output file");
+                let target_file = Path::new(self.output.as_ref().unwrap()).join(file_name);
+                let mut target_file =
+                    File::create(target_file).expect("Cannot create target output file");
 
                 let mut c = Cursor::new(buf);
-                std::io::copy(&mut c, &mut target_file).
-                    expect("Failed to write data to final target file.");
+                std::io::copy(&mut c, &mut target_file)
+                    .expect("Failed to write data to final target file.");
             });
 
         self
@@ -241,8 +235,7 @@ pub struct SteganoRawDecoder {
     inner: SteganoDecoder,
 }
 
-impl Default for SteganoRawDecoder
-{
+impl Default for SteganoRawDecoder {
     fn default() -> Self {
         Self {
             inner: SteganoDecoder::new(),
@@ -250,8 +243,7 @@ impl Default for SteganoRawDecoder
     }
 }
 
-impl SteganoRawDecoder
-{
+impl SteganoRawDecoder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -274,8 +266,7 @@ impl Unveil for SteganoRawDecoder {
         let mut dec = LSBCodec::new(self.inner.input.as_mut().unwrap());
         let mut msg = RawMessage::of(&mut dec);
         let target_file = self.inner.output.as_ref().unwrap();
-        let mut target_file = File::create(target_file)
-            .expect("Cannot open output file.");
+        let mut target_file = File::create(target_file).expect("Cannot open output file.");
 
         let mut c = Cursor::new(&mut msg.content);
         std::io::copy(&mut c, &mut target_file)
@@ -284,7 +275,6 @@ impl Unveil for SteganoRawDecoder {
         self
     }
 }
-
 
 #[cfg(test)]
 mod e2e_tests {
@@ -343,7 +333,7 @@ mod e2e_tests {
         assert_eq_file_content(
             &given_decoded_secret,
             "Cargo.toml".as_ref(),
-            "Unveiled data did not match expected"
+            "Unveiled data did not match expected",
         );
 
         Ok(())
@@ -397,7 +387,7 @@ mod e2e_tests {
         assert_eq_file_content(
             &expected_file,
             secret_to_hide.as_ref(),
-            "Unveiled data did not match expected"
+            "Unveiled data did not match expected",
         );
 
         Ok(())
@@ -427,7 +417,7 @@ mod e2e_tests {
         assert_eq_file_content(
             &expected_file,
             secret_to_hide.as_ref(),
-            "Unveiled data did not match expected"
+            "Unveiled data did not match expected",
         );
 
         Ok(())
@@ -446,7 +436,7 @@ mod e2e_tests {
         assert_eq_file_content(
             &decoded_secret,
             "resources/secrets/Blah.txt".as_ref(),
-            "Unveiled data did not match expected"
+            "Unveiled data did not match expected",
         );
 
         Ok(())
@@ -467,13 +457,13 @@ mod e2e_tests {
         assert_eq_file_content(
             &decoded_secret_1,
             "resources/secrets/Blah.txt".as_ref(),
-            "Unveiled data file #1 did not match expected"
+            "Unveiled data file #1 did not match expected",
         );
 
         assert_eq_file_content(
             &decoded_secret_2,
             "resources/secrets/Blah-2.txt".as_ref(),
-            "Unveiled data file #2 did not match expected"
+            "Unveiled data file #2 did not match expected",
         );
 
         Ok(())
@@ -505,7 +495,7 @@ mod e2e_tests {
         assert_eq_file_content(
             decoded_secret.as_ref(),
             secret_to_hide.as_ref(),
-            "Unveiled data file did not match expected"
+            "Unveiled data file did not match expected",
         );
 
         Ok(())
