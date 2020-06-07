@@ -1,7 +1,7 @@
 # Stegano Core Library
 
-[![Build Status](https://travis-ci.org/steganogram/core.stegano.org.svg?branch=master)](https://travis-ci.org/steganogram/core.stegano.org)
-[![codecov](https://codecov.io/gh/steganogram/core.stegano.org/branch/master/graph/badge.svg)](https://codecov.io/gh/steganogram/core.stegano.org)
+[![Build Status](https://travis-ci.org/steganogram/stegano-rs.svg?branch=master)](https://travis-ci.org/steganogram/stegano-rs)
+[![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/master/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
 
 DISCLAIMER: not production ready, core changes can be done at any time.
 
@@ -13,37 +13,9 @@ Rewrite of the core of the [originally stegano.net tool][1]
 
 [Checkout Stegano CLI to see it in Action][3]
 
-## Technical Details
+## Architecture
 
-### Stegano Header (Content Version 4)
-
-| Size in Byte  |     Meaning      | Example Data |
-|---------------|:----------------:|-------------:|
-| 1             | Format Version   | 1, 2, 4      |
-| 4 (BigEndian) | Payload Size (p) | 1634         |
-|-------------------------------------------------|
-| p             | Payload          |              |
-
-### Architecture
-
-Overview about the used components:
-
-LSBCodec(Image):
- - impl Read
- - impl Write
- - PNG LSB
-
-Message()
- - Header
- - Files
- - Text
- - of<LSBReader>
- - into([u8])
-
-RawMessage(LSBReader)
- - all data from Reader
- - of<LSBReader>
- - into([u8])
+![architecture overview](docs/architecture-overview.png)
 
 ## License
 

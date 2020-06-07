@@ -1,45 +1,71 @@
 language: rust
 cache: cargo
-os:
-  - linux
-#  - osx
-rust:
-  - stable
-#  - beta
-#  - nightly
 sudo: true
-before_install:
-  - sudo apt-get update
-addons:
-  apt:
-    packages:
-      - libcurl4-openssl-dev
-      - libelf-dev
-      - libdw-dev
-      - cmake
-      - gcc
-      - binutils-dev
-      - libssl-dev
-before_script:
-  - source $HOME/.cargo/env
-  - |
-      if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then rustup component add clippy; fi
-  - |
-      export PUBLISH_DOCS=$([[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_BRANCH" == "master" ]])
 
-before_cache: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    cargo install cargo-tarpaulin -f
-  fi
+DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
+  before_deploy:
+    - name="stegano-$TRAVIS_TAG-$TARGET"
+    - mkdir $name
+    - cp target/$TARGET/release/stegano $name/
+    - cp README.md LICENSE-MIT LICENSE-APACHE $name/
+    - tar czvf $name.tar.gz $name
+  deploy:
+    provider: releases
+    api_key: $GH_TOKEN
+    file: stegano-$TRAVIS_TAG-$TARGET.tar.gz
+    skip_cleanup: true
+    on:
+      branch: master
+      tags: true
 
-script:
-  - cargo clean
-  - cargo build
-  - cargo test
-  - |
-      if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then ./.ci/build/linting.sh; fi
-after_success: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    cargo tarpaulin --out Xml
-    bash <(curl -s https://codecov.io/bash)
-  fi
+matrix:
+  include:
+
+  # tests pass
+  - rust: stable
+    before_install:
+      - sudo apt-get update
+    addons:
+      apt:
+        packages:
+          - libcurl4-openssl-dev
+          - libelf-dev
+          - libdw-dev
+          - cmake
+          - gcc
+          - binutils-dev
+          - libssl-dev
+    before_cache: cargo install cargo-tarpaulin -f
+    script:
+      - cargo clean
+      - cargo test --all --locked
+      - rustup component add clippy
+      - cargo clippy --all-targets -- -D warnings
+      - rustup component add rustfmt-preview
+      - cargo fmt --all -- --check
+    after_success: |
+      cargo tarpaulin --out Xml
+      bash <(curl -s https://codecov.io/bash)
+    env: RUST_BACKTRACE=1
+
+  # dist linux binary
+  - env: JOB=dist-linux TARGET=x86_64-unknown-linux-musl
+    rust: stable
+    before_script: rustup target add $TARGET
+    script: cargo build --release --target $TARGET --locked
+    addons:
+      apt:
+        packages:
+          - musl-tools
+    <<: *DEPLOY_TO_GITHUB
+
+  # dist OSX binary
+  - env: JOB=dist-osx MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
+    os: osx
+    rust: stable
+    script: cargo build --release --target $TARGET --locked
+    <<: *DEPLOY_TO_GITHUB
+
+notifications:
+  email:
+    on_success: never
