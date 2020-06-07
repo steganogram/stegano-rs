@@ -115,8 +115,8 @@ impl SteganoEncoder {
     pub fn use_carrier_image(&mut self, input_file: &str) -> &mut Self {
         self.carrier = Some(
             image::open(Path::new(input_file))
-                .expect(
-                    format!(
+                .unwrap_or_else(|_| {
+                    panic!(
                         "Carrier image '{}' was not readable in {}.",
                         input_file,
                         std::env::current_dir()
@@ -124,8 +124,7 @@ impl SteganoEncoder {
                             .to_str()
                             .expect("Path could not be unwrapped")
                     )
-                    .as_ref(),
-                )
+                })
                 .to_rgba(),
         );
 
