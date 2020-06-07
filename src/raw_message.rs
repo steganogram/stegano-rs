@@ -1,7 +1,7 @@
 use std::io::Read;
 
 pub struct RawMessage {
-    pub content: Vec<u8>
+    pub content: Vec<u8>,
 }
 
 impl RawMessage {
@@ -15,11 +15,10 @@ impl RawMessage {
 
     fn new() -> Self {
         RawMessage {
-            content: Vec::new()
+            content: Vec::new(),
         }
     }
 }
-
 
 #[cfg(test)]
 mod raw_message_tests {

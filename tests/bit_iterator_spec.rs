@@ -1,5 +1,5 @@
-use speculate::speculate;
 use bitstream_io::{BitReader, LittleEndian};
+use speculate::speculate;
 
 use stegano_core::BitIterator;
 

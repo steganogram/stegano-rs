@@ -1,7 +1,7 @@
-use std::io::{BufWriter, Read, Result, Write, Cursor};
+use std::io::{BufWriter, Cursor, Read, Result, Write};
 
-use bitstream_io::{BitWriter, LittleEndian, BitReader};
-use image::{RgbaImage, Rgba};
+use bitstream_io::{BitReader, BitWriter, LittleEndian};
+use image::{Rgba, RgbaImage};
 
 pub struct LSBCodec<'img> {
     subject: &'img mut RgbaImage,
@@ -49,10 +49,7 @@ impl<'img> Read for LSBCodec<'img> {
         let bytes_to_read = b.len();
         let total_progress = width * height;
         let buf_writer = BufWriter::new(b);
-        let mut bit_buffer = BitWriter::endian(
-            buf_writer,
-            LittleEndian,
-        );
+        let mut bit_buffer = BitWriter::endian(buf_writer, LittleEndian);
 
         let mut progress: u8 = ((self.x * self.y * 100) / total_progress) as u8;
         let mut bits_read = 0;
@@ -85,10 +82,11 @@ impl<'img> Read for LSBCodec<'img> {
             if self.y > 0 {
                 self.y = 0;
             }
-        };
+        }
         self.x = width;
         if !bit_buffer.byte_aligned() {
-            bit_buffer.byte_align()
+            bit_buffer
+                .byte_align()
                 .expect("Failed to align the last byte read from image.");
         }
 
@@ -103,7 +101,13 @@ impl<'img> Write for LSBCodec<'img> {
             let byt = match bit {
                 // TODO here we need some configurability, to prevent 0 writing on demand
                 Err(_) => byte,
-                Ok(byt) => if byt { 1 } else { 0 }
+                Ok(byt) => {
+                    if byt {
+                        1
+                    } else {
+                        0
+                    }
+                }
             };
             (byte & 0xFE) | byt
         }
@@ -111,10 +115,7 @@ impl<'img> Write for LSBCodec<'img> {
         let carrier = &mut self.subject;
         let (width, height) = carrier.dimensions();
         let bytes_to_write = buf.len();
-        let mut bit_iter = BitReader::endian(
-            Cursor::new(buf),
-            LittleEndian,
-        );
+        let mut bit_iter = BitReader::endian(Cursor::new(buf), LittleEndian);
 
         let mut bits_written = 0;
         let mut bytes_written = 0;
@@ -154,7 +155,6 @@ impl<'img> Write for LSBCodec<'img> {
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod decoder_tests {
@@ -234,10 +234,7 @@ mod bit_writer_tests {
 
         {
             let mut buf_writer = BufWriter::new(&mut buf);
-            let mut bit_buffer = BitWriter::endian(
-                &mut buf_writer,
-                LittleEndian,
-            );
+            let mut bit_buffer = BitWriter::endian(&mut buf_writer, LittleEndian);
 
             bit_buffer.write_bit(0 == 1).expect("1 failed");
             bit_buffer.write_bit(0 == 1).expect("2 failed");

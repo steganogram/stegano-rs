@@ -1,3 +1,40 @@
+//! # Stegano Core API
+//!
+//! There are 3 main structures exposed via [`SteganoCore`][core] that is
+//! - [`SteganoEncoder`][enc] for writing data into an image
+//! - [`SteganoDecoder`][dec] for reading data from an image
+//! - [`SteganoRawDecoder`][raw] for reading the plain raw bytes from an image
+//!
+//! # Usage Examples
+//!
+//! ## Hide data inside an image
+//!
+//! ```rust
+//! use stegano_core::{SteganoCore, SteganoEncoder, Hide};
+//!
+//! SteganoCore::encoder()
+//!     .hide_file("Cargo.toml")
+//!     .use_carrier_image("resources/plain/carrier-image.png")
+//!     .write_to("/tmp/image-with-a-file-inside.png")
+//!     .hide();
+//! ```
+//!
+//! ## Unveil data from an image
+//!
+//! ```rust
+//! use stegano_core::{SteganoCore, SteganoDecoder, Unveil};
+//!
+//! SteganoCore::decoder()
+//!     .use_source_image("Cargo.toml")
+//!     .write_to_folder("/tmp/")
+//!     .unveil();
+//! ```
+//!
+//! [core]: ./struct.SteganoCore.html
+//! [enc]: ./struct.SteganoEncoder.html
+//! [dec]: ./struct.SteganoDecoder.html
+//! [raw]: ./struct.SteganoRawDecoder.html
+
 extern crate hex_literal;
 
 pub mod bit_iterator;
