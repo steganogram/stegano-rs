@@ -14,7 +14,7 @@
 //!
 //! SteganoCore::encoder()
 //!     .hide_file("Cargo.toml")
-//!     .use_carrier_image("resources/plain/carrier-image.png")
+//!     .use_carrier_image("../resources/plain/carrier-image.png")
 //!     .write_to("/tmp/image-with-a-file-inside.png")
 //!     .hide();
 //! ```
@@ -22,10 +22,16 @@
 //! ## Unveil data from an image
 //!
 //! ```rust
-//! use stegano_core::{SteganoCore, SteganoDecoder, Unveil};
+//! use stegano_core::{SteganoCore, SteganoEncoder, SteganoDecoder, Hide, Unveil};
+//!
+//! SteganoCore::encoder()
+//!     .hide_file("Cargo.toml")
+//!     .use_carrier_image("../resources/plain/carrier-image.png")
+//!     .write_to("/tmp/image-with-a-file-inside.png")
+//!     .hide();
 //!
 //! SteganoCore::decoder()
-//!     .use_source_image("Cargo.toml")
+//!     .use_source_image("/tmp/image-with-a-file-inside.png")
 //!     .write_to_folder("/tmp/")
 //!     .unveil();
 //! ```
@@ -109,7 +115,17 @@ impl SteganoEncoder {
     pub fn use_carrier_image(&mut self, input_file: &str) -> &mut Self {
         self.carrier = Some(
             image::open(Path::new(input_file))
-                .expect("Carrier image was not readable.")
+                .expect(
+                    format!(
+                        "Carrier image '{}' was not readable in {}.",
+                        input_file,
+                        std::env::current_dir()
+                            .expect("CWD was not set")
+                            .to_str()
+                            .expect("Path could not be unwrapped")
+                    )
+                    .as_ref(),
+                )
                 .to_rgba(),
         );
 
@@ -319,7 +335,7 @@ mod e2e_tests {
     use std::fs;
     use tempdir::TempDir;
 
-    const BASE_IMAGE: &str = "resources/Base.png";
+    const BASE_IMAGE: &str = "../resources/Base.png";
 
     #[test]
     #[should_panic(expected = "Data file was not readable.")]
@@ -334,9 +350,14 @@ mod e2e_tests {
     }
 
     #[test]
-    #[should_panic(expected = "Carrier image was not readable.")]
     fn should_panic_for_invalid_carrier_image_file() {
-        SteganoEncoder::new().use_carrier_image("random_file.png");
+        use cool_asserts::assert_panics;
+        assert_panics!(
+            {
+                SteganoEncoder::new().use_carrier_image("random_file.png");
+            },
+            |msg| { assert!(msg.contains("Carrier image 'random_file.png' was not readable in")) }
+        )
     }
 
     #[test]
@@ -352,7 +373,7 @@ mod e2e_tests {
 
         SteganoEncoder::new()
             .hide_file("Cargo.toml")
-            .use_carrier_image("resources/with_text/hello_world.png")
+            .use_carrier_image("../resources/with_text/hello_world.png")
             .write_to(image_with_secret)
             .hide();
 
@@ -383,7 +404,7 @@ mod e2e_tests {
         let raw_decoded_secret = expected_file.to_str().unwrap();
 
         SteganoRawDecoder::new()
-            .use_source_image("resources/with_text/hello_world.png")
+            .use_source_image("../resources/with_text/hello_world.png")
             .write_to_file(raw_decoded_secret)
             .unveil();
 
@@ -400,7 +421,7 @@ mod e2e_tests {
     #[test]
     fn should_hide_and_unveil_a_binary_file() -> Result<()> {
         let out_dir = TempDir::new("random_1666_byte.bin.png")?;
-        let secret_to_hide = "resources/secrets/random_1666_byte.bin";
+        let secret_to_hide = "../resources/secrets/random_1666_byte.bin";
         let image_with_secret_path = out_dir.path().join("random_1666_byte.bin.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
         let expected_file = out_dir.path().join("random_1666_byte.bin");
@@ -433,7 +454,7 @@ mod e2e_tests {
     #[test]
     fn should_hide_and_unveil_a_zip_file() -> Result<()> {
         let out_dir = TempDir::new("zip_with_2_files.zip.png")?;
-        let secret_to_hide = "resources/secrets/zip_with_2_files.zip";
+        let secret_to_hide = "../resources/secrets/zip_with_2_files.zip";
         let image_with_secret_path = out_dir.path().join("zip_with_2_files.zip.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
         let expected_file = out_dir.path().join("zip_with_2_files.zip");
@@ -466,13 +487,13 @@ mod e2e_tests {
         let decoded_secret = out_dir.path().join("Blah.txt");
 
         SteganoDecoder::new()
-            .use_source_image("resources/with_attachment/Blah.txt.png")
+            .use_source_image("../resources/with_attachment/Blah.txt.png")
             .write_to_folder(out_dir.path().to_str().unwrap())
             .unveil();
 
         assert_eq_file_content(
             &decoded_secret,
-            "resources/secrets/Blah.txt".as_ref(),
+            "../resources/secrets/Blah.txt".as_ref(),
             "Unveiled data did not match expected",
         );
 
@@ -487,19 +508,19 @@ mod e2e_tests {
         let decoded_secret_2 = out_dir.path().join("Blah-2.txt");
 
         SteganoDecoder::new()
-            .use_source_image("resources/with_attachment/Blah.txt__and__Blah-2.txt.png")
+            .use_source_image("../resources/with_attachment/Blah.txt__and__Blah-2.txt.png")
             .write_to_folder(output_folder)
             .unveil();
 
         assert_eq_file_content(
             &decoded_secret_1,
-            "resources/secrets/Blah.txt".as_ref(),
+            "../resources/secrets/Blah.txt".as_ref(),
             "Unveiled data file #1 did not match expected",
         );
 
         assert_eq_file_content(
             &decoded_secret_2,
-            "resources/secrets/Blah-2.txt".as_ref(),
+            "../resources/secrets/Blah-2.txt".as_ref(),
             "Unveiled data file #2 did not match expected",
         );
 
@@ -508,11 +529,11 @@ mod e2e_tests {
 
     #[test]
     fn should_ensure_content_v2_compatibility_with_2_files_writing() -> Result<()> {
-        let out_dir = TempDir::new("secret.png")?;
+        let out_dir = TempDir::new("out-dir")?;
         let output_folder = out_dir.path().to_str().unwrap();
         let image_with_secret_path = out_dir.path().join("Blah.txt.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
-        let secret_to_hide = "resources/secrets/Blah.txt";
+        let secret_to_hide = "../resources/secrets/Blah.txt";
 
         SteganoEncoder::new()
             .force_content_version(ContentVersion::V2)

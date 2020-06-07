@@ -7,7 +7,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         "SteganoCore::LSBCodec for resources/with_text/hello_world.png (decode)",
         |b| {
             b.iter(|| {
-                let mut img = image::open("resources/with_text/hello_world.png")
+                let mut img = image::open("../resources/with_text/hello_world.png")
                     .expect("Input image is not readable.")
                     .to_rgba();
 

@@ -239,7 +239,7 @@ mod message_tests {
 
     #[test]
     fn should_convert_into_vec_of_bytes() {
-        let files = vec!["resources/with_text/hello_world.png".to_string()];
+        let files = vec!["../resources/with_text/hello_world.png".to_string()];
         let m = Message::new_of_files(&files);
 
         assert_eq!(
@@ -259,7 +259,7 @@ mod message_tests {
 
     #[test]
     fn should_convert_from_vec_of_bytes() {
-        let files = vec!["resources/with_text/hello_world.png".to_string()];
+        let files = vec!["../resources/with_text/hello_world.png".to_string()];
         let m = Message::new_of_files(&files);
         let mut b: Vec<u8> = (&m).into();
 
@@ -278,7 +278,7 @@ mod message_tests {
 
     #[test]
     fn should_instantiate_from_read_trait() {
-        let files = vec!["resources/with_text/hello_world.png".to_string()];
+        let files = vec!["../resources/with_text/hello_world.png".to_string()];
         let m = Message::new_of_files(&files);
         let mut b: Vec<u8> = (&m).into();
         let mut r = Cursor::new(&mut b);
@@ -309,7 +309,7 @@ mod message_tests {
 
     #[test]
     fn should_create_zip_that_is_windows_compatible() -> std::io::Result<()> {
-        let mut file = File::open("resources/with_text/hello_world.png")?;
+        let mut file = File::open("../resources/with_text/hello_world.png")?;
         let mut buf = Vec::new();
         file.read_to_end(&mut buf)?;
 

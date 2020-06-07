@@ -164,8 +164,8 @@ mod decoder_tests {
     const E: u8 = b'e';
     const L: u8 = b'l';
     const O: u8 = b'o';
-    const HELLO_WORLD_PNG: &str = "resources/with_text/hello_world.png";
-    const ZIP_PNG: &str = "resources/with_attachment/Blah.txt.png";
+    const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
+    const ZIP_PNG: &str = "../resources/with_attachment/Blah.txt.png";
 
     #[test]
     fn test_read_trait_behaviour_for_read_once() {

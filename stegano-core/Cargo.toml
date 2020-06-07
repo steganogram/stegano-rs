@@ -9,12 +9,12 @@ homepage = "https://www.stegano.org"
 readme = "README.md"
 keywords = ["steganography", "image", "png", "hiding", "unveil"]
 categories = ["encoding", "multimedia::encoding", "multimedia::images"]
-repository = "https://github.com/steganogram/core.stegano.org"
-exclude = ["resources/*", "tests/*", ".gitignore", ".travis.yml"]
+repository = "https://github.com/steganogram/stegano-rs"
+exclude = ["tests/*", ".gitignore", ".travis.yml"]
 
 [badges]
-travis-ci = { repository = "steganogram/core.stegano.org", branch = "master" }
-codecov = { repository = "steganogram/core.stegano.org", branch = "master", service = "github" }
+travis-ci = { repository = "steganogram/stegano-rs", branch = "master" }
+codecov = { repository = "steganogram/stegano-rs", branch = "master", service = "github" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
@@ -33,6 +33,7 @@ byteorder = "1.3.2"
 speculate = "0.1"
 criterion = "0.3.0"
 tempdir = "0.3.7"
+cool_asserts = "1.0.2"
 
 [[bench]]
 name = "byte_reader_benchmark"

@@ -9,18 +9,16 @@ homepage = "https://www.stegano.org"
 readme = "README.md"
 keywords = ["steganography", "image", "hiding", "unveil", "commandline"]
 categories = ["encoding", "multimedia::encoding", "multimedia::images", "command-line-utilities"]
-repository = "https://github.com/steganogram/cli.stegano.org"
+repository = "https://github.com/steganogram/stegano-rs"
 exclude = [".ci/*", ".gitignore", ".travis.yml"]
 
 [badges]
-travis-ci = { repository = "steganogram/cli.stegano.org", branch = "master" }
+travis-ci = { repository = "steganogram/stegano-rs", branch = "master" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-# stegano-core = { path = "../stegano-core" }
-# stegano-core = { git = "https://github.com/steganogram/cli.stegano.org", branch = "master" }
-stegano-core = "0.3.1-beta.3"
-clap = "2.33.0"
+stegano-core = { path = "../stegano-core" }
+clap = "2.33"
 
 [[bin]]
 name = "stegano"
