@@ -17,8 +17,6 @@ travis-ci = { repository = "steganogram/core.stegano.org", branch = "master" }
 codecov = { repository = "steganogram/core.stegano.org", branch = "master", service = "github" }
 maintenance = { status = "actively-developed" }
 
-[workspace]
-
 [dependencies]
 image = "0.22.3"
 bitstream-io = "0.8"
