@@ -7,7 +7,7 @@ DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
   - name="stegano-$TRAVIS_TAG-$TARGET"
   - mkdir $name
   - cp target/$TARGET/release/stegano $name/
-  - cp README.md LICENSE-MIT LICENSE-APACHE $name/
+  - cp README.md LICENSE $name/
   - tar czvf $name.tar.gz $name
   deploy:
     provider: releases
@@ -37,14 +37,17 @@ matrix:
         - gcc
         - binutils-dev
         - libssl-dev
-    before_cache: cargo install cargo-tarpaulin -f
+    before_cache:
+      - rustup component add rustfmt
+      - rustup component add clippy
+      - cargo install cargo-tarpaulin
+      - cargo install-update -a # update outdated cached binaries
     script:
-    - cargo clean
     - cargo test --all --locked
-    - rustup component add clippy
+    - cargo bench
     - cargo clippy --all-targets -- -D warnings
-    - rustup component add rustfmt-preview
     - cargo fmt --all -- --check
+    - cargo doc
     after_success: |
       cargo tarpaulin --out Xml
       bash <(curl -s https://codecov.io/bash)
@@ -63,8 +66,8 @@ matrix:
 
   - stage: deploy-osx-artifact
     env: JOB=dist-osx MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
-    os: osx
     rust: stable
+    os: osx
     script: cargo build --release --target $TARGET --locked
     <<: *DEPLOY_TO_GITHUB
 
@@ -73,12 +76,9 @@ notifications:
     on_success: never
 
 stages:
-  - name: build
-    # require the type to be a PR
-    if: type = pull_request
   - name: deploy-linux-artifact
     # require the type to be push to master
-    if: type = push AND branch = master
+    if: type = push AND branch = master and tag IS present
   - name: deploy-osx-artifact
     # require the type to be push to master
-    if: type = push AND branch = master
+    if: type = push AND branch = master and tag IS present
