@@ -36,5 +36,5 @@ tempdir = "0.3.7"
 cool_asserts = "1.0.2"
 
 [[bench]]
-name = "byte_reader_benchmark"
+name = "decoder_benchmark"
 harness = false

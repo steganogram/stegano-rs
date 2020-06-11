@@ -1,11 +1,11 @@
-use block_modes::{BlockMode, Cbc};
-use block_modes::block_padding::Pkcs7;
 use aes_soft::Aes128;
+use block_modes::block_padding::Pkcs7;
+use block_modes::{BlockMode, Cbc};
 
-use super::{FileOutputDecoder};
+use super::FileOutputDecoder;
 
 pub struct RijndaelFilter<T> {
-    inner: T
+    inner: T,
 }
 //
 //impl<T> Filter<T> for RijndaelFilter<T>
@@ -16,10 +16,11 @@ pub struct RijndaelFilter<T> {
 //    }
 //}
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[macro_use]
+    extern crate hex_literal;
 
     const HELLO_WORLD_CIPHER: [u8; 16] = hex!("1b7a4c403124ae2fb52bedc534d82fa8");
 
