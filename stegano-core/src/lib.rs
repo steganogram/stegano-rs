@@ -41,22 +41,13 @@
 //! [dec]: ./struct.SteganoDecoder.html
 //! [raw]: ./struct.SteganoRawDecoder.html
 
-extern crate hex_literal;
-
 pub mod bit_iterator;
-
 pub use bit_iterator::BitIterator;
-
 pub mod lsb_codec;
-
 pub use lsb_codec::LSBCodec;
-
 pub mod message;
-
 pub use message::*;
-
 pub mod raw_message;
-
 pub use raw_message::*;
 
 use image::*;

@@ -4,69 +4,88 @@ sudo: true
 
 DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
   before_deploy:
-  - name="stegano-$TRAVIS_TAG-$TARGET"
-  - mkdir $name
-  - cp target/$TARGET/release/stegano $name/
-  - cp README.md LICENSE-MIT LICENSE-APACHE $name/
-  - tar czvf $name.tar.gz $name
+    - name="stegano-$TRAVIS_TAG-$TARGET"
+    - mkdir $name
+    - cp target/$TARGET/release/stegano $name/
+    - cp README.md LICENSE $name/
+    - tar czvf $name.tar.gz $name
   deploy:
     provider: releases
     api_key:
       secure: p1isLwccmE3BhkZrUQIHJRrY02HQJM8kJPiBLvjv3EFQrjuvaryT+iyUjxDONha6AbqOJGRswx3npkyZymu5mvx1ynIH+RZ+Y1xCw4Vtob+65iYvrH6gURzMNjtEjQEMx/AuiEwXrZlAQRwf4TT0Nx8eLPDSZlcEnkyXWsfOxWYC0OdcWqtauCj9v9ZZ+TT6l/UXHl9OL9kexOCIslIupFDqY8fYgSRvT0KAJtp0IrPxD5HxBUP4T6WYqLEL9hz2urflH3AwX7JrC4XQgFOUSHE9YBjctZsqbSjqzA+QQGLPMSDBsGxj+rvFj1OxHWsLVzg1ltXxsGWV5xcjFl1qgMIzMX68EwvKnrmkzSqvEKuJWpdNKjChQwKB0JSQwORr3s0DHbbXbEH5n08zeW6sOt5u7zUn9UWynmo8CB47p7uXUgXA1oqHEMaFJESNS2FiDyb3NMsujYEao2qmu1F/xlVjF0OA9dQR5uCtXG+SdfaZ9xwp26fc26Z7J3vNsTFylGcByxYszDIt+pcdrX+kOnu4k1UkOCTfZcQNxIDKTOm+IfOx0cz3/kt6Bs/5qIFEIh8LP16T0vxlv8EzS7gCppA1YIO4ZfdW3KBef0pcOSi8Qo9IU0x6B52Q0uhq7hEB6OowqOsuev0vw4FVf7Ol75bnZl4c+gJlnrs7dz2lGR4=
     file: stegano-$TRAVIS_TAG-$TARGET.tar.gz
     skip_cleanup: true
-    on:
-      repo: steganogram/stegano-rs
-      branch: master
-      tags: true
+    draft: true
+#    on:
+#      branch: master
+#      tags: true
 
 matrix:
   include:
 
-  # tests pass
-  - rust: stable
-    before_install: sudo apt-get update
-    addons:
-      apt:
-        packages:
-        - libcurl4-openssl-dev
-        - libelf-dev
-        - libdw-dev
-        - cmake
-        - gcc
-        - binutils-dev
-        - libssl-dev
-    before_cache: cargo install cargo-tarpaulin -f
-    script:
-    - cargo clean
-    - cargo test --all --locked
-    - rustup component add clippy
-    - cargo clippy --all-targets -- -D warnings
-    - rustup component add rustfmt-preview
-    - cargo fmt --all -- --check
-    after_success: |
-      cargo tarpaulin --out Xml
-      bash <(curl -s https://codecov.io/bash)
-    env: RUST_BACKTRACE=1
+    # tests pass
+    - stage: build
+      rust: stable
+      before_install: sudo apt-get update
+      addons:
+        apt:
+          packages:
+            - libcurl4-openssl-dev
+            - libelf-dev
+            - libdw-dev
+            - cmake
+            - gcc
+            - binutils-dev
+            - libssl-dev
+      install:
+        - rustup component add rustfmt
+        - rustup component add clippy
+        - cargo install cargo-tarpaulin
+      script:
+        - cargo test --all --locked
+        - cargo bench
+        - cargo clippy --all-targets -- -D warnings
+        - cargo fmt --all -- --check
+        - cargo doc
+      after_success: |
+        cargo tarpaulin --out Xml
+        bash <(curl -s https://codecov.io/bash)
+      env: RUST_BACKTRACE=1
 
-  # dist linux binary
-  - env: JOB=dist-linux TARGET=x86_64-unknown-linux-musl
-    rust: stable
-    before_script: rustup target add $TARGET
-    script: cargo build --release --target $TARGET --locked
-    addons:
-      apt:
-        packages:
-          - musl-tools
-    <<: *DEPLOY_TO_GITHUB
+    - stage: deploy-linux-artifact
+      env: JOB=dist-linux TARGET=x86_64-unknown-linux-musl
+      rust: stable
+      before_script: rustup target add $TARGET
+      script: cargo build --release --target $TARGET --locked
+      addons:
+        apt:
+          packages:
+            - musl-tools
+      <<: *DEPLOY_TO_GITHUB
 
-  # dist OSX binary
-  - env: JOB=dist-osx MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
-    os: osx
-    rust: stable
-    script: cargo build --release --target $TARGET --locked
-    <<: *DEPLOY_TO_GITHUB
+    - stage: deploy-osx-artifact
+      env: JOB=dist-osx MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
+      rust: stable
+      os: osx
+      script: cargo build --release --target $TARGET --locked
+      <<: *DEPLOY_TO_GITHUB
+
+    - stage: publish-on-crates
+      after_deploy:
+        - cd stegano-core
+        - cargo publish --token "$CRATES_IO_TOKEN"
 
 notifications:
   email:
     on_success: never
+
+stages:
+  - name: deploy-linux-artifact
+    # require the type to be push to master
+    if: type = push AND branch = master and tag IS present
+  - name: deploy-osx-artifact
+    # require the type to be push to master
+    if: type = push AND branch = master and tag IS present
+  - name: publish-on-crates
+    # require the type to be push to master
+    if: type = push AND branch = master and tag IS present
