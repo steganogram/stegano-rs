@@ -20,11 +20,9 @@ DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
 #      branch: master
 #      tags: true
 
-matrix:
+jobs:
   include:
-
-    # tests pass
-    - stage: build
+    - os: linux
       rust: stable
       before_install: sudo apt-get update
       addons:
@@ -37,21 +35,14 @@ matrix:
             - gcc
             - binutils-dev
             - libssl-dev
-      install:
-        - rustup component add rustfmt
-        - rustup component add clippy
-        - cargo install cargo-tarpaulin
-      script:
-        - cargo test --all --locked
-        - cargo bench
-        - cargo clippy --all-targets -- -D warnings
-        - cargo fmt --all -- --check
-        - cargo doc
       after_success: |
+        cargo install cargo-tarpaulin
         cargo tarpaulin --out Xml
         bash <(curl -s https://codecov.io/bash)
       env: RUST_BACKTRACE=1
-
+    - os: osx
+      rust: stable
+      env: RUST_BACKTRACE=1
     - stage: deploy-linux-artifact
       env: JOB=dist-linux TARGET=x86_64-unknown-linux-musl
       rust: stable
@@ -62,18 +53,26 @@ matrix:
           packages:
             - musl-tools
       <<: *DEPLOY_TO_GITHUB
-
     - stage: deploy-osx-artifact
       env: JOB=dist-osx MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
       rust: stable
       os: osx
       script: cargo build --release --target $TARGET --locked
       <<: *DEPLOY_TO_GITHUB
-
     - stage: publish-on-crates
       after_deploy:
         - cd stegano-core
         - cargo publish --token "$CRATES_IO_TOKEN"
+
+install:
+  - rustup component add rustfmt
+  - rustup component add clippy
+script:
+  - cargo test --all --locked
+  - cargo bench
+  - cargo clippy --all-targets -- -D warnings
+  - cargo fmt --all -- --check
+  - cargo doc
 
 notifications:
   email:
