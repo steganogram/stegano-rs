@@ -70,6 +70,11 @@ matrix:
       script: cargo build --release --target $TARGET --locked
       <<: *DEPLOY_TO_GITHUB
 
+    - stage: publish-on-crates
+      after_deploy:
+        - cd stegano-core
+        - cargo publish --token "$CRATES_IO_TOKEN"
+
 notifications:
   email:
     on_success: never
@@ -79,5 +84,8 @@ stages:
     # require the type to be push to master
     if: type = push AND branch = master and tag IS present
   - name: deploy-osx-artifact
+    # require the type to be push to master
+    if: type = push AND branch = master and tag IS present
+  - name: publish-on-crates
     # require the type to be push to master
     if: type = push AND branch = master and tag IS present
