@@ -41,7 +41,6 @@ matrix:
         - rustup component add rustfmt
         - rustup component add clippy
         - cargo install cargo-tarpaulin
-        - cargo install-update -a # update outdated cached binaries
       script:
         - cargo test --all --locked
         - cargo bench
