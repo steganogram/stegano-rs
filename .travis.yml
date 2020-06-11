@@ -4,11 +4,11 @@ sudo: true
 
 DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
   before_deploy:
-  - name="stegano-$TRAVIS_TAG-$TARGET"
-  - mkdir $name
-  - cp target/$TARGET/release/stegano $name/
-  - cp README.md LICENSE $name/
-  - tar czvf $name.tar.gz $name
+    - name="stegano-$TRAVIS_TAG-$TARGET"
+    - mkdir $name
+    - cp target/$TARGET/release/stegano $name/
+    - cp README.md LICENSE $name/
+    - tar czvf $name.tar.gz $name
   deploy:
     provider: releases
     api_key:
@@ -23,53 +23,53 @@ DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
 matrix:
   include:
 
-  # tests pass
-  - stage: build
-    rust: stable
-    before_install: sudo apt-get update
-    addons:
-      apt:
-        packages:
-        - libcurl4-openssl-dev
-        - libelf-dev
-        - libdw-dev
-        - cmake
-        - gcc
-        - binutils-dev
-        - libssl-dev
-    before_cache:
-      - rustup component add rustfmt
-      - rustup component add clippy
-      - cargo install cargo-tarpaulin
-      - cargo install-update -a # update outdated cached binaries
-    script:
-    - cargo test --all --locked
-    - cargo bench
-    - cargo clippy --all-targets -- -D warnings
-    - cargo fmt --all -- --check
-    - cargo doc
-    after_success: |
-      cargo tarpaulin --out Xml
-      bash <(curl -s https://codecov.io/bash)
-    env: RUST_BACKTRACE=1
+    # tests pass
+    - stage: build
+      rust: stable
+      before_install: sudo apt-get update
+      addons:
+        apt:
+          packages:
+            - libcurl4-openssl-dev
+            - libelf-dev
+            - libdw-dev
+            - cmake
+            - gcc
+            - binutils-dev
+            - libssl-dev
+      install:
+        - rustup component add rustfmt
+        - rustup component add clippy
+        - cargo install cargo-tarpaulin
+        - cargo install-update -a # update outdated cached binaries
+      script:
+        - cargo test --all --locked
+        - cargo bench
+        - cargo clippy --all-targets -- -D warnings
+        - cargo fmt --all -- --check
+        - cargo doc
+      after_success: |
+        cargo tarpaulin --out Xml
+        bash <(curl -s https://codecov.io/bash)
+      env: RUST_BACKTRACE=1
 
-  - stage: deploy-linux-artifact
-    env: JOB=dist-linux TARGET=x86_64-unknown-linux-musl
-    rust: stable
-    before_script: rustup target add $TARGET
-    script: cargo build --release --target $TARGET --locked
-    addons:
-      apt:
-        packages:
-          - musl-tools
-    <<: *DEPLOY_TO_GITHUB
+    - stage: deploy-linux-artifact
+      env: JOB=dist-linux TARGET=x86_64-unknown-linux-musl
+      rust: stable
+      before_script: rustup target add $TARGET
+      script: cargo build --release --target $TARGET --locked
+      addons:
+        apt:
+          packages:
+            - musl-tools
+      <<: *DEPLOY_TO_GITHUB
 
-  - stage: deploy-osx-artifact
-    env: JOB=dist-osx MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
-    rust: stable
-    os: osx
-    script: cargo build --release --target $TARGET --locked
-    <<: *DEPLOY_TO_GITHUB
+    - stage: deploy-osx-artifact
+      env: JOB=dist-osx MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
+      rust: stable
+      os: osx
+      script: cargo build --release --target $TARGET --locked
+      <<: *DEPLOY_TO_GITHUB
 
 notifications:
   email:
