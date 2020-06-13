@@ -8,48 +8,51 @@ on: push
 jobs:
   release:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - name: Get version
+      - name: Prepare Tag as Version
         id: get_version
-        run: echo ::set-output name=version::${GITHUB_REF/refs\/tags\//}
-
+        run: echo ::set-output name=version::${GITHUB_REF##*/}
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
-
-      - name: Setup MUSL on Linux
+      - name: Set TARGET
         if: matrix.os == 'ubuntu-latest'
-        run:
-          rustup target add x86_64-unknown-linux-musl
-          sudo apt-get -qq install musl-tools
-
-      - run: echo ::set-output name=target::"x86_64-unknown-linux-musl"
-        if: matrix.os == 'ubuntu-latest'
-        id: target
-      - run: echo ::set-output name=target::"x86_64-apple-darwin"
-        if: matrix.os == 'macos-latest'
-        id: target
-      - run: echo ::set-output name=target::"x86_64-pc-windows-gnu"
+        run: echo ::set-env name=TARGET::x86_64-unknown-linux-musl
+      - name: Set TARGET
         if: matrix.os == 'windows-latest'
-        id: target
+        run: echo ::set-env name=TARGET::x86_64-pc-windows-gnu
+      - name: Set TARGET
+        if: matrix.os == 'macos-latest'
+        run: echo ::set-env name=TARGET::x86_64-apple-darwin
 
-      - name: Building
-        run: cargo build --release --target ${{ steps.target.outputs.target }} --locked
-      - name: Packaging
+      - name: Prepare Cargo Target
+        if: matrix.os != 'windows-latest'
+        run: rustup target add $TARGET
+      - name: Prepare MUSL tooling
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get -qq install musl-tools
+      - name: Cargo Build
+        if: matrix.os != 'windows-latest'
+        run: cargo build --release --target $TARGET --locked
+      - name: Cargo Build
+        if: matrix.os == 'windows-latest'
+        run: cargo build --release --locked
+      - name: Set Artifact Name
+        run: echo ::set-env name=NAME::stegano-${{ steps.get_version.outputs.version }}-$TARGET
+      - name: Build Package
+        if: matrix.os != 'windows-latest'
         run: |
-          TARGET=${{ steps.target.outputs.target }}
           strip target/$TARGET/release/stegano
-          name="stegano-${{ steps.get_version.outputs.version }}-$TARGET"
-          mkdir $name
-          cp target/$TARGET/release/stegano $name/
-          cp README.md LICENSE $name/
-          tar czvf $name.tar.gz $name
+          mkdir $NAME
+          cp target/$TARGET/release/stegano README.md LICENSE $NAME/
+          tar czvf $NAME.tar.gz $NAME
           mkdir releases
-          cp $name.tar.gz releases/
+          cp $NAME.tar.gz releases/
