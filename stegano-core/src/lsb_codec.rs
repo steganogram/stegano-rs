@@ -1,6 +1,7 @@
-use std::io::{BufWriter, Cursor, Read, Result, Write};
+use std::io::{BufWriter, Cursor, Read, Result, Seek, Write};
 
 use bitstream_io::{BitReader, BitWriter, LittleEndian};
+use hound::{WavReader, WavWriter};
 use image::{Rgba, RgbaImage};
 
 pub struct LSBCodec<'a, A, B> {
@@ -8,6 +9,7 @@ pub struct LSBCodec<'a, A, B> {
     position: B,
 }
 
+#[derive(Default)]
 pub struct ImagePosition {
     x: u32,
     y: u32,
@@ -20,7 +22,7 @@ impl<'a> LSBCodec<'a, RgbaImage, ImagePosition> {
     pub fn new(image: &'a mut RgbaImage) -> Self {
         LSBCodec {
             subject: image,
-            position: ImagePosition { x: 0, y: 0, c: 0 },
+            position: ImagePosition::default(),
         }
     }
 }
@@ -157,6 +159,133 @@ impl<'a> Write for LSBCodec<'a, RgbaImage, ImagePosition> {
 
     fn flush(&mut self) -> Result<()> {
         Ok(())
+    }
+}
+
+#[derive(Default)]
+pub struct AudioPosition {}
+impl AudioPosition {}
+
+impl<'a, T> LSBCodec<'a, WavWriter<T>, AudioPosition>
+where
+    T: Write + Seek,
+{
+    pub fn audio(audio: &'a mut WavWriter<T>) -> Self {
+        LSBCodec {
+            subject: audio,
+            position: AudioPosition::default(),
+        }
+    }
+}
+
+impl<'a, T> Write for LSBCodec<'a, WavWriter<T>, AudioPosition>
+where
+    T: Write + Seek,
+{
+    fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        #[inline]
+        fn bit_wave(byte: i16, bit: Result<bool>) -> i16 {
+            let byt = match bit {
+                Err(_) => byte,
+                Ok(byt) => {
+                    if byt {
+                        1
+                    } else {
+                        0
+                    }
+                }
+            };
+            (byte & (i16::MAX - 1)) | byt
+        }
+
+        let mut bit_iter = BitReader::endian(Cursor::new(buf), LittleEndian);
+        let mut reader = hound::WavReader::open("/tmp/carrier-audio.wav")
+            .expect("carrier audio file was not readable");
+
+        let mut bits_written = 0;
+        for (_i, s) in reader.samples::<i16>().enumerate() {
+            let sample = s.unwrap();
+            let sample = bit_wave(sample, bit_iter.read_bit());
+            self.subject.write_sample(sample).unwrap();
+            bits_written += 1;
+        }
+        Ok(bits_written / 8)
+    }
+
+    fn flush(&mut self) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl<'a, T> LSBCodec<'a, WavReader<T>, AudioPosition>
+where
+    T: Read,
+{
+    pub fn audio_decode(audio: &'a mut WavReader<T>) -> Self {
+        LSBCodec {
+            subject: audio,
+            position: AudioPosition::default(),
+        }
+    }
+}
+
+impl<'a, T> Read for LSBCodec<'a, WavReader<T>, AudioPosition>
+where
+    T: Read,
+{
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let buf_writer = BufWriter::new(buf);
+        let mut bit_buffer = BitWriter::endian(buf_writer, LittleEndian);
+
+        let bit_read = 0;
+        for (_i, s) in self.subject.samples::<i16>().enumerate() {
+            let sample = s.unwrap();
+            let bit = sample & 0x01;
+            bit_buffer.write_bit(bit > 0).expect("Cannot write bit n");
+        }
+
+        if !bit_buffer.byte_aligned() {
+            bit_buffer
+                .byte_align()
+                .expect("Failed to align the last byte read from carrier.");
+        }
+
+        Ok(bit_read / 8)
+    }
+}
+
+#[cfg(test)]
+mod audio_decoder_tests {
+    use super::*;
+    use std::borrow::Borrow;
+    use std::path::Path;
+
+    #[test]
+    fn it_should_write_audio_with_data() {
+        let spec = hound::WavSpec {
+            channels: 2,
+            sample_rate: 44100,
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
+        let path: &Path = "/tmp/carrier-audio-3.wav".as_ref();
+        let mut writer = WavWriter::create(path, spec).expect("Cannot create writer");
+        let mut codec = LSBCodec::audio(&mut writer);
+        let mut buf = "Hello World!".as_bytes();
+        codec.write(&buf[..]);
+    }
+
+    #[test]
+    fn test_read_a_wav_audio() {
+        use hound;
+
+        let mut reader = hound::WavReader::open("/tmp/carrier-audio-3.wav")
+            .expect("carrier audio file was not readable");
+        let mut codec = LSBCodec::audio_decode(&mut reader);
+        let mut buf = vec![0; 13];
+        codec.read_exact(&mut buf).expect("Failed to read 13 bytes");
+        let msg = String::from_utf8(buf).expect("Failed to convert result to string");
+        assert_eq!("\u{1}Hello World!", msg)
     }
 }
 
