@@ -3,25 +3,29 @@ use std::io::{BufWriter, Cursor, Read, Result, Write};
 use bitstream_io::{BitReader, BitWriter, LittleEndian};
 use image::{Rgba, RgbaImage};
 
-pub struct LSBCodec<'img> {
-    subject: &'img mut RgbaImage,
+pub struct LSBCodec<'a, A, B> {
+    subject: &'a mut A,
+    position: B,
+}
+
+pub struct ImagePosition {
     x: u32,
     y: u32,
     c: usize,
 }
 
-impl<'img> LSBCodec<'img> {
-    pub fn new(image: &'img mut RgbaImage) -> Self {
+impl ImagePosition {}
+
+impl<'a> LSBCodec<'a, RgbaImage, ImagePosition> {
+    pub fn new(image: &'a mut RgbaImage) -> Self {
         LSBCodec {
             subject: image,
-            x: 0,
-            y: 0,
-            c: 0,
+            position: ImagePosition { x: 0, y: 0, c: 0 },
         }
     }
 }
 
-impl<'img> Read for LSBCodec<'img> {
+impl<'a> Read for LSBCodec<'a, RgbaImage, ImagePosition> {
     fn read(&mut self, b: &mut [u8]) -> Result<usize> {
         #[inline]
         #[cfg(debug_assertions)]
@@ -51,17 +55,17 @@ impl<'img> Read for LSBCodec<'img> {
         let buf_writer = BufWriter::new(b);
         let mut bit_buffer = BitWriter::endian(buf_writer, LittleEndian);
 
-        let mut progress: u8 = ((self.x * self.y * 100) / total_progress) as u8;
+        let mut progress: u8 = ((self.position.x * self.position.y * 100) / total_progress) as u8;
         let mut bits_read = 0;
         let mut bytes_read = 0;
-        for x in self.x..width {
-            for y in self.y..height {
+        for x in self.position.x..width {
+            for y in self.position.y..height {
                 let image::Rgba(rgba) = source_image.get_pixel(x, y);
-                for (c, color) in rgba.iter().enumerate().take(3).skip(self.c) {
+                for (c, color) in rgba.iter().enumerate().take(3).skip(self.position.c) {
                     if bytes_read >= bytes_to_read {
-                        self.x = x;
-                        self.y = y;
-                        self.c = c;
+                        self.position.x = x;
+                        self.position.y = y;
+                        self.position.c = c;
                         return Ok(bytes_read);
                     }
                     let bit = color & 0x01;
@@ -75,15 +79,15 @@ impl<'img> Read for LSBCodec<'img> {
                         update_progress(total_progress, &mut progress, x, y);
                     }
                 }
-                if self.c > 0 {
-                    self.c = 0;
+                if self.position.c > 0 {
+                    self.position.c = 0;
                 }
             }
-            if self.y > 0 {
-                self.y = 0;
+            if self.position.y > 0 {
+                self.position.y = 0;
             }
         }
-        self.x = width;
+        self.position.x = width;
         if !bit_buffer.byte_aligned() {
             bit_buffer
                 .byte_align()
@@ -94,7 +98,7 @@ impl<'img> Read for LSBCodec<'img> {
     }
 }
 
-impl<'img> Write for LSBCodec<'img> {
+impl<'a> Write for LSBCodec<'a, RgbaImage, ImagePosition> {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         #[inline]
         fn bit_wave(byte: u8, bit: Result<bool>) -> u8 {
@@ -119,14 +123,14 @@ impl<'img> Write for LSBCodec<'img> {
 
         let mut bits_written = 0;
         let mut bytes_written = 0;
-        for x in self.x..width {
-            for y in self.y..height {
+        for x in self.position.x..width {
+            for y in self.position.y..height {
                 let image::Rgba(mut rgba) = carrier.get_pixel(x, y);
-                for c in self.c..3 as usize {
+                for c in self.position.c..3 as usize {
                     if bytes_written >= bytes_to_write {
-                        self.x = x;
-                        self.y = y;
-                        self.c = c;
+                        self.position.x = x;
+                        self.position.y = y;
+                        self.position.c = c;
                         carrier.put_pixel(x, y, Rgba(rgba));
                         return Ok(bytes_written);
                     }
@@ -138,15 +142,15 @@ impl<'img> Write for LSBCodec<'img> {
                     }
                 }
                 carrier.put_pixel(x, y, Rgba(rgba));
-                if self.c > 0 {
-                    self.c = 0;
+                if self.position.c > 0 {
+                    self.position.c = 0;
                 }
             }
-            if self.y > 0 {
-                self.y = 0;
+            if self.position.y > 0 {
+                self.position.y = 0;
             }
         }
-        self.x = width;
+        self.position.x = width;
 
         Ok(bytes_written)
     }
