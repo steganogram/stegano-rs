@@ -1,1 +1,2 @@
-pub mod lsb_codec;
+mod lsb_codec;
+pub use lsb_codec::LSBCodec;

@@ -50,7 +50,7 @@ pub use message::*;
 pub mod raw_message;
 pub use raw_message::*;
 
-mod audio;
+pub mod audio;
 use image::*;
 use std::fs::*;
 use std::io::prelude::*;

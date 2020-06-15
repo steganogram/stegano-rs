@@ -43,23 +43,23 @@ where
     }
 }
 
-pub struct LSBEncoder<'i, 'o, I, O, P> {
+pub struct LSBEncoder<'i, I, O, P> {
     input: &'i mut I,
-    output: &'o mut O,
+    output: &'i mut O,
     position: P,
 }
 
-impl<'i, 'o, I, O> LSBEncoder<'i, 'o, WavReader<I>, WavWriter<O>, AudioPosition>
+impl<'i, I, O> LSBEncoder<'i, WavReader<I>, WavWriter<O>, AudioPosition>
 where
     I: Read,
     O: Write + Seek,
 {
 }
 
-impl<'a, 'c, A, C> Write for LSBEncoder<'a, 'c, WavReader<C>, WavWriter<A>, AudioPosition>
+impl<'i, I, O> Write for LSBEncoder<'i, WavReader<I>, WavWriter<O>, AudioPosition>
 where
-    A: Write + Seek,
-    C: Read,
+    I: Read,
+    O: Write + Seek,
 {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         #[inline]
@@ -97,30 +97,66 @@ where
     }
 }
 
-type LSBAudioDecoder<'i, I> = LSBDecoder<'i, WavReader<I>, AudioPosition>;
-type LSBAudioEncoder<'i, 'o, I, O> = LSBEncoder<'i, 'o, WavReader<I>, WavWriter<O>, AudioPosition>;
-
+/// Factory for decoder and encoder
 pub struct LSBCodec;
 
 impl LSBCodec {
     /// builds a LSB Audio Decoder that implements Read
-    pub fn decoder<I: Read>(input: &mut WavReader<I>) -> LSBAudioDecoder<I> {
-        LSBDecoder {
+    /// Example how to retrieve a decoder:
+    ///
+    /// ```rust
+    /// use std::path::Path;
+    /// use hound::{WavReader, WavWriter};
+    /// use stegano_core::audio::LSBCodec;
+    ///
+    /// let audio_with_secret: &Path = "../resources/secrets/audio-with-secrets.wav".as_ref();
+    /// let mut reader = WavReader::open(audio_with_secret).expect("Cannot create reader");
+    ///
+    /// let mut buf = vec![0; 12];
+    /// LSBCodec::decoder(&mut reader)
+    ///     .read_exact(&mut buf[..])
+    ///     .expect("Cannot read 12 bytes from codec");
+    /// let msg = String::from_utf8(buf).expect("Cannot convert result to string");
+    /// assert_eq!("Hello World!", msg);
+    /// ```
+    pub fn decoder<'i, I: Read>(input: &'i mut WavReader<I>) -> Box<dyn Read + 'i> {
+        Box::new(LSBDecoder {
             input,
             position: AudioPosition::default(),
-        }
+        })
     }
 
     /// builds a LSB Audio Encoder that implements Write
-    pub fn encoder<'i, 'o, I: Read, O: Write + Seek>(
+    /// Example how to retrieve an encoder:
+    ///
+    /// ```rust
+    /// use std::path::Path;
+    /// use tempdir::TempDir;
+    /// use hound::{WavReader, WavWriter};
+    /// use stegano_core::audio::LSBCodec;
+    ///
+    /// let input: &Path = "../resources/plain/carrier-audio.wav".as_ref();
+    /// let out_dir = TempDir::new("audio-temp").expect("Cannot create temp dir");
+    /// let audio_with_secret = out_dir.path().join("audio-with-secret.wav");
+    ///
+    /// let mut reader = WavReader::open(input).expect("Cannot create reader");
+    /// let mut writer = WavWriter::create(audio_with_secret.as_path(), reader.spec())
+    ///     .expect("Cannot create writer");
+    /// let secret_message = "Hello World!".as_bytes();
+    ///
+    /// LSBCodec::encoder(&mut reader, &mut writer)
+    ///     .write_all(&secret_message[..])
+    ///     .expect("Cannot write to codec");
+    /// ```
+    pub fn encoder<'i, I: Read, O: Write + Seek>(
         input: &'i mut WavReader<I>,
-        output: &'o mut WavWriter<O>,
-    ) -> LSBAudioEncoder<'i, 'o, I, O> {
-        LSBEncoder {
+        output: &'i mut WavWriter<O>,
+    ) -> Box<dyn Write + 'i> {
+        Box::new(LSBEncoder {
             input,
             output,
             position: AudioPosition::default(),
-        }
+        })
     }
 }
 
