@@ -106,19 +106,18 @@ impl<'a> Read for LSBCodec<'a, RgbaImage, ImagePosition> {
 impl<'a> Write for LSBCodec<'a, RgbaImage, ImagePosition> {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         #[inline]
-        fn bit_wave(byte: u8, bit: Result<bool>) -> u8 {
-            let byt = match bit {
-                // TODO here we need some configurability, to prevent 0 writing on demand
-                Err(_) => byte,
-                Ok(byt) => {
-                    if byt {
-                        1
-                    } else {
-                        0
+        fn bit_wave(carrier: u8, information: Result<bool>) -> u8 {
+            match information {
+                Err(_) => carrier,
+                Ok(bit) => {
+                    (carrier & 0xFE) | {
+                        match bit {
+                            true => 1,
+                            false => 0,
+                        }
                     }
                 }
-            };
-            (byte & 0xFE) | byt
+            }
         }
 
         let carrier = &mut self.subject;

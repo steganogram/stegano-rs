@@ -6,16 +6,23 @@ use std::io::{BufWriter, Cursor, Read, Result, Seek, Write};
 pub struct AudioPosition {}
 impl AudioPosition {}
 
-pub struct LSBDecoder<'i, I, P> {
+pub struct Decoder<'i, I, P, A> {
     input: &'i mut I,
     position: P,
+    algorithm: A,
 }
 
-impl<'i, I> LSBDecoder<'i, WavReader<I>, AudioPosition> where I: Read {}
-
-impl<'a, A> Read for LSBDecoder<'a, WavReader<A>, AudioPosition>
+impl<'i, I, A> Decoder<'i, WavReader<I>, AudioPosition, A>
 where
-    A: Read,
+    I: Read,
+    A: UnveilAlgorithm<i16>,
+{
+}
+
+impl<'i, I, A> Read for Decoder<'i, WavReader<I>, AudioPosition, A>
+where
+    I: Read,
+    A: UnveilAlgorithm<i16>,
 {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         let bits_to_write = buf.len() * 8;
@@ -28,8 +35,8 @@ where
                 break;
             }
             let sample = s.unwrap();
-            let bit = sample & 0x0001;
-            bit_buffer.write_bit(bit > 0).expect("Cannot write bit n");
+            let bit = self.algorithm.decode(sample);
+            bit_buffer.write_bit(bit).expect("Cannot write bit n");
             bit_read += 1;
         }
 
@@ -43,40 +50,32 @@ where
     }
 }
 
-pub struct LSBEncoder<'i, I, O, P> {
+pub struct Encoder<'i, I, O, P, A> {
     input: &'i mut I,
     output: &'i mut O,
     position: P,
+    algorithm: A,
 }
 
-impl<'i, I, O> LSBEncoder<'i, WavReader<I>, WavWriter<O>, AudioPosition>
+impl<'i, I, O, A> Encoder<'i, WavReader<I>, WavWriter<O>, AudioPosition, A>
 where
     I: Read,
     O: Write + Seek,
+    A: HideAlgorithm<i16>,
 {
 }
 
-impl<'i, I, O> Write for LSBEncoder<'i, WavReader<I>, WavWriter<O>, AudioPosition>
+impl<'i, I, O, A> Write for Encoder<'i, WavReader<I>, WavWriter<O>, AudioPosition, A>
 where
     I: Read,
     O: Write + Seek,
+    A: HideAlgorithm<i16>,
 {
+    /// algorithm for LSB manipulation on audio data
+    /// TODO keep track of position state so that write_all that operates in chunks works
+    ///     add support for sequential writes
+    ///     refactor the essence small strategy pattern that is injected on constructor
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        #[inline]
-        fn bit_wave(byte: i16, bit: Result<bool>) -> i16 {
-            let byt = match bit {
-                Err(_) => byte,
-                Ok(byt) => {
-                    if byt {
-                        1
-                    } else {
-                        0
-                    }
-                }
-            };
-            (byte & (i16::MAX - 1)) | byt
-        }
-
         let bits_to_write = buf.len() * 8;
         let mut bit_iter = BitReader::endian(Cursor::new(buf), LittleEndian);
         let mut bits_written = 0;
@@ -84,8 +83,7 @@ where
             if bits_written == bits_to_write {
                 break;
             }
-            let sample = s.unwrap();
-            let sample = bit_wave(sample, bit_iter.read_bit());
+            let sample = self.algorithm.encode(s.unwrap(), &bit_iter.read_bit());
             self.output.write_sample(sample).unwrap();
             bits_written += 1;
         }
@@ -120,8 +118,9 @@ impl LSBCodec {
     /// assert_eq!("Hello World!", msg);
     /// ```
     pub fn decoder<'i, I: Read>(input: &'i mut WavReader<I>) -> Box<dyn Read + 'i> {
-        Box::new(LSBDecoder {
+        Box::new(Decoder {
             input,
+            algorithm: LSBAlgorithm::default(),
             position: AudioPosition::default(),
         })
     }
@@ -152,11 +151,71 @@ impl LSBCodec {
         input: &'i mut WavReader<I>,
         output: &'i mut WavWriter<O>,
     ) -> Box<dyn Write + 'i> {
-        Box::new(LSBEncoder {
+        Box::new(Encoder {
             input,
             output,
+            algorithm: LSBAlgorithm::default(),
             position: AudioPosition::default(),
         })
+    }
+}
+
+#[derive(Default)]
+struct LSBAlgorithm;
+
+trait HideAlgorithm<T> {
+    #[inline(always)]
+    fn encode(&self, carrier: T, information: &Result<bool>) -> T;
+}
+
+impl HideAlgorithm<i16> for LSBAlgorithm {
+    #[inline(always)]
+    fn encode(&self, carrier: i16, information: &Result<bool>) -> i16 {
+        match information {
+            Err(_) => carrier,
+            Ok(bit) => {
+                (carrier & 0x7FFE) | {
+                    match *bit {
+                        true => 1,
+                        false => 0,
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl HideAlgorithm<u8> for LSBAlgorithm {
+    fn encode(&self, carrier: u8, information: &Result<bool>) -> u8 {
+        match information {
+            Err(_) => carrier,
+            Ok(bit) => {
+                (carrier & (u8::MAX - 1)) | {
+                    if *bit {
+                        1
+                    } else {
+                        0
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub trait UnveilAlgorithm<T> {
+    fn decode(&self, carrier: T) -> bool;
+}
+
+impl UnveilAlgorithm<i16> for LSBAlgorithm {
+    #[inline(always)]
+    fn decode(&self, carrier: i16) -> bool {
+        (carrier & 0x1) > 0
+    }
+}
+
+impl UnveilAlgorithm<u8> for LSBAlgorithm {
+    fn decode(&self, carrier: u8) -> bool {
+        (carrier & 0x1) > 0
     }
 }
 
