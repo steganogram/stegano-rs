@@ -43,6 +43,7 @@ pub fn stegano_audio_benchmark(c: &mut Criterion) {
     let input: &Path = "../resources/plain/carrier-audio.wav".as_ref();
     let out_dir = TempDir::new("audio-temp").expect("Cannot create temp dir");
     let audio_with_secret = out_dir.path().join("audio-with-secret.wav");
+
     let secret_message = "Hello World!".as_bytes();
     c.bench_function("stegano_core::audio::LSBCodec encoding", |b| {
         b.iter(|| {
