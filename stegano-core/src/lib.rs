@@ -54,6 +54,7 @@ pub mod carriers;
 pub mod decoder;
 pub mod encoder;
 pub mod lsb;
+pub mod universal_decoder;
 use image::*;
 use std::fs::*;
 use std::io::prelude::*;
