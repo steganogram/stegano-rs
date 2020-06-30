@@ -1,8 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::io::Read;
-use stegano_core::carriers::image::decoder::{ImagePngSource, PngUnveil};
-use stegano_core::universal_decoder::Decoder;
-use stegano_core::LSBCodec;
+use stegano_core::carriers::image::decoder::ImagePngSource;
+use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
 
 pub fn stegano_image_benchmark(c: &mut Criterion) {
     let mut img = image::open("../resources/with_text/hello_world.png")
@@ -12,7 +11,7 @@ pub fn stegano_image_benchmark(c: &mut Criterion) {
     c.bench_function("SteganoCore Image Decoding", |b| {
         b.iter(|| {
             let mut buf = vec![0; 13];
-            Decoder::new(ImagePngSource::new(&mut img), PngUnveil)
+            Decoder::new(ImagePngSource::new(&mut img), OneBitUnveil)
                 .read_exact(&mut buf)
                 .expect("Failed to read 13 bytes");
             let msg = String::from_utf8(buf).expect("Failed to convert result to string");
@@ -44,7 +43,7 @@ pub fn stegano_audio_benchmark(c: &mut Criterion) {
     let out_dir = TempDir::new("audio-temp").expect("Cannot create temp dir");
     let audio_with_secret = out_dir.path().join("audio-with-secret.wav");
 
-    let secret_message = "Hello World!".as_bytes();
+    let secret_message = b"Hello World!";
     c.bench_function("SteganoCore Audio Encoding", |b| {
         b.iter(|| {
             let mut reader = WavReader::open(input).expect("Cannot create reader");

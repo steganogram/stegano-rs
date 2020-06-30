@@ -1,9 +1,10 @@
-use crate::decoder::Decoder;
+use crate::carriers::audio::decoder::AudioWavSource;
 use crate::encoder::Encoder;
-use crate::lsb::{HideAlgorithm, LSBAlgorithm, Position, UnveilAlgorithm};
-use bitstream_io::{BitReader, BitWriter, LittleEndian};
+use crate::lsb::{HideAlgorithm, LSBAlgorithm, Position};
+use crate::universal_decoder::{Decoder, OneBitUnveil};
+use bitstream_io::{BitReader, LittleEndian};
 use hound::{WavReader, WavWriter};
-use std::io::{BufWriter, Cursor, Read, Result, Seek, Write};
+use std::io::{Cursor, Read, Result, Seek, Write};
 
 #[derive(Default)]
 struct AudioPosition {
@@ -24,53 +25,6 @@ impl Position for AudioPosition {
             0 => {}
             _ => self.current -= 1,
         }
-    }
-}
-
-/// specific decoder for audio files, specific to hound crate exposed API
-impl<'i, I, P, A> Decoder<'i, WavReader<I>, P, A>
-where
-    I: Read,
-    A: UnveilAlgorithm<i16>,
-    P: Position,
-{
-}
-
-impl<'i, I, P, A> Read for Decoder<'i, WavReader<I>, P, A>
-where
-    I: Read,
-    A: UnveilAlgorithm<i16>,
-    P: Position,
-{
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        // 1 bit per sample
-        let samples_to_take = buf.len() << 3;
-        let buf_writer = BufWriter::new(buf);
-        let mut bit_buffer = BitWriter::endian(buf_writer, LittleEndian);
-
-        let mut bit_read = 0;
-        for s in self
-            .input
-            .samples::<i16>()
-            // NOTE:
-            // `.skip(self.position.current)` is not required because the state of the iterator
-            // is persisted at the underlying reader, and what is consumed remains consumed.
-            .take(samples_to_take)
-        {
-            let sample = s.unwrap();
-            let bit = self.algorithm.decode(sample);
-            bit_buffer.write_bit(bit).expect("Cannot write bit n");
-            bit_read += 1;
-            self.position.next();
-        }
-
-        if !bit_buffer.byte_aligned() {
-            bit_buffer
-                .byte_align()
-                .expect("Failed to align the last byte read from carrier.");
-        }
-
-        Ok(bit_read >> 3 as usize)
     }
 }
 
@@ -122,11 +76,11 @@ pub struct LSBCodec;
 
 impl LSBCodec {
     /// builds a LSB Audio Decoder that implements Read
-    /// ## Example how to retrieve a decoder:
     ///
+    /// ## Example how to retrieve a decoder:
     /// ```rust
     /// use std::path::Path;
-    /// use hound::{WavReader, WavWriter};
+    /// use hound::WavReader;
     /// use stegano_core::carriers::audio::LSBCodec;
     ///
     /// let audio_with_secret: &Path = "../resources/secrets/audio-with-secrets.wav".as_ref();
@@ -140,11 +94,7 @@ impl LSBCodec {
     /// assert_eq!("Hello World!", msg);
     /// ```
     pub fn decoder<'i, I: Read>(input: &'i mut WavReader<I>) -> Box<dyn Read + 'i> {
-        Box::new(Decoder::new(
-            input,
-            LSBAlgorithm::default(),
-            AudioPosition::default(),
-        ))
+        Box::new(Decoder::new(AudioWavSource::new(input), OneBitUnveil))
     }
 
     /// builds a LSB Audio Encoder that implements Write
@@ -212,10 +162,10 @@ mod audio_e2e_tests {
             let mut codec = LSBCodec::encoder(&mut reader, &mut writer);
             let half_the_buffer = secret_to_hide.len() / 2;
             codec
-                .write(&secret_to_hide[..half_the_buffer])
+                .write_all(&secret_to_hide[..half_the_buffer])
                 .expect("Cannot write half the buffer to codec");
             codec
-                .write(&secret_to_hide[half_the_buffer..])
+                .write_all(&secret_to_hide[half_the_buffer..])
                 .expect("Cannot write the other half of the buffer to codec");
         }
 

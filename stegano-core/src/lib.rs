@@ -51,7 +51,6 @@ pub mod raw_message;
 pub use raw_message::*;
 
 pub mod carriers;
-pub mod decoder;
 pub mod encoder;
 pub mod lsb;
 pub mod universal_decoder;

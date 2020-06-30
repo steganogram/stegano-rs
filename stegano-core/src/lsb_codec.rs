@@ -109,14 +109,7 @@ impl<'a> Write for LSBCodec<'a, RgbaImage, ImagePosition> {
         fn bit_wave(carrier: u8, information: Result<bool>) -> u8 {
             match information {
                 Err(_) => carrier,
-                Ok(bit) => {
-                    (carrier & 0xFE) | {
-                        match bit {
-                            true => 1,
-                            false => 0,
-                        }
-                    }
-                }
+                Ok(bit) => (carrier & 0xFE) | if bit { 1 } else { 0 },
             }
         }
 

@@ -1,7 +1,5 @@
-use crate::lsb::UnveilAlgorithm;
 use crate::universal_decoder::CarrierItem;
 use image::RgbaImage;
-use std::io::Read;
 
 /// stegano source for image files, based on `RgbaImage` by `image` crate
 ///
@@ -10,17 +8,17 @@ use std::io::Read;
 /// use std::path::Path;
 /// use std::io::Read;
 /// use image::{RgbaImage};
-/// use stegano_core::universal_decoder::Decoder;
-/// use stegano_core::carriers::image::decoder::{ImagePngSource, PngUnveil};
+/// use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
+/// use stegano_core::carriers::image::decoder::ImagePngSource;
 ///
-/// // create a `RgbaImage` from an audio file
+/// // create a `RgbaImage` from a png image file
 /// let mut image = image::open("../resources/with_text/hello_world.png")
 ///     .expect("Cannot open secret image file")
 ///     .to_rgba();
 /// let mut secret = vec![0; 13];
 ///
 /// // create a `Decoder` based on an `ImagePngSource` based on the `RgbaImage`
-/// Decoder::new(ImagePngSource::new(&mut image), PngUnveil)
+/// Decoder::new(ImagePngSource::new(&mut image), OneBitUnveil)
 ///     .read_exact(&mut secret)
 ///     .expect("Cannot read 13 bytes from decoder");
 ///
@@ -53,7 +51,7 @@ impl<'i> ImagePngSource<'i> {
     }
 }
 
-/// iterates over the image and returns single color channels of each pixel
+/// iterates over the image and returns single color channels of each pixel wrapped into a `CarrierItem`
 impl<'i> Iterator for ImagePngSource<'i> {
     type Item = CarrierItem;
 
@@ -74,17 +72,5 @@ impl<'i> Iterator for ImagePngSource<'i> {
             self.x += 1;
         }
         result
-    }
-}
-
-/// wav specific implementation for unveil of data
-pub struct PngUnveil;
-impl UnveilAlgorithm<CarrierItem> for PngUnveil {
-    #[inline(always)]
-    fn decode(&self, carrier: CarrierItem) -> bool {
-        match carrier {
-            CarrierItem::UnsignedByte(b) => (b & 0x1) > 0,
-            CarrierItem::SignedTwoByte(b) => (b & 0x1) > 0,
-        }
     }
 }

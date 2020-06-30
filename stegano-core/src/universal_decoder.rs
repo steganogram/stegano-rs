@@ -1,8 +1,8 @@
-use crate::lsb::{HideAlgorithm, UnveilAlgorithm};
+use crate::lsb::UnveilAlgorithm;
 use bitstream_io::{BitWriter, LittleEndian};
-use hound::{Error, WavReader};
 use std::io::{BufWriter, Read, Result};
 
+/// wrap the low level data types that carries information
 pub enum CarrierItem {
     UnsignedByte(u8),
     SignedTwoByte(i16),
@@ -54,5 +54,17 @@ where
         }
 
         Ok(bit_read >> 3 as usize)
+    }
+}
+
+/// default 1 bit unveil strategy
+pub struct OneBitUnveil;
+impl UnveilAlgorithm<CarrierItem> for OneBitUnveil {
+    #[inline(always)]
+    fn decode(&self, carrier: CarrierItem) -> bool {
+        match carrier {
+            CarrierItem::UnsignedByte(b) => (b & 0x1) > 0,
+            CarrierItem::SignedTwoByte(b) => (b & 0x1) > 0,
+        }
     }
 }

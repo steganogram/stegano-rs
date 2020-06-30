@@ -24,14 +24,7 @@ impl HideAlgorithm<i16> for LSBAlgorithm {
     fn encode(&self, carrier: i16, information: &Result<bool>) -> i16 {
         match information {
             Err(_) => dbg!(carrier),
-            Ok(bit) => {
-                (carrier & 0x7FFE) | {
-                    match *bit {
-                        true => 1,
-                        false => 0,
-                    }
-                }
-            }
+            Ok(bit) => (carrier & 0x7FFE) | if *bit { 1 } else { 0 },
         }
     }
 }
@@ -41,15 +34,7 @@ impl HideAlgorithm<u8> for LSBAlgorithm {
     fn encode(&self, carrier: u8, information: &Result<bool>) -> u8 {
         match information {
             Err(_) => carrier,
-            Ok(bit) => {
-                (carrier & (u8::MAX - 1)) | {
-                    if *bit {
-                        1
-                    } else {
-                        0
-                    }
-                }
-            }
+            Ok(bit) => (carrier & (u8::MAX - 1)) | if *bit { 1 } else { 0 },
         }
     }
 }
