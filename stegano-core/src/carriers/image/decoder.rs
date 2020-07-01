@@ -74,3 +74,43 @@ impl<'i> Iterator for ImagePngSource<'i> {
         result
     }
 }
+
+#[cfg(test)]
+mod decoder_tests {
+    use super::*;
+
+    const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
+
+    #[test]
+    fn it_should_iterate_over_all_colors_of_an_image() {
+        let mut img = image::open(HELLO_WORLD_PNG)
+            .expect("Input image is not readable.")
+            .to_rgba();
+        let (_, height) = img.dimensions();
+        let first_pixel = *img.get_pixel(0, 0);
+        let second_pixel = *img.get_pixel(0, 1);
+        let second_row_first_pixel = *img.get_pixel(1, 0);
+        let mut source = ImagePngSource::new(&mut img);
+        assert_eq!(
+            source.next().unwrap(),
+            CarrierItem::UnsignedByte(first_pixel.0[0]),
+            "pixel(0, 0) color 1 does not match"
+        );
+        source.next();
+        assert_eq!(
+            source.next().unwrap(),
+            CarrierItem::UnsignedByte(first_pixel.0[2]),
+            "pixel(0, 0) color 3 does not match"
+        );
+        assert_eq!(
+            source.next().unwrap(),
+            CarrierItem::UnsignedByte(second_pixel.0[0]),
+            "pixel(0, 1) color 1 does not match"
+        );
+        assert_eq!(
+            source.nth(((height * 3) - 4) as usize).unwrap(),
+            CarrierItem::UnsignedByte(second_row_first_pixel.0[0]),
+            "pixel(1, 0) color 1 does not match"
+        );
+    }
+}
