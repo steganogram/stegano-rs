@@ -1,12 +1,10 @@
-use crate::lsb::UnveilAlgorithm;
+use crate::CarrierItem;
 use bitstream_io::{BitWriter, LittleEndian};
 use std::io::{BufWriter, Read, Result};
 
-/// wrap the low level data types that carries information
-#[derive(Debug, PartialEq)]
-pub enum CarrierItem {
-    UnsignedByte(u8),
-    SignedTwoByte(i16),
+/// generic unveil algorithm
+pub trait UnveilAlgorithm<T> {
+    fn decode(&self, carrier: T) -> bool;
 }
 
 /// generic stegano decoder
