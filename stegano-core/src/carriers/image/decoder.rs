@@ -113,4 +113,23 @@ mod decoder_tests {
             "pixel(1, 0) color 1 does not match"
         );
     }
+
+    #[test]
+    fn it_should_yield_none_after_last_pixel_last_color() {
+        let mut img = image::open(HELLO_WORLD_PNG)
+            .expect("Input image is not readable.")
+            .to_rgba();
+        let (width, height) = img.dimensions();
+        let mut source = ImagePngSource::new(&mut img);
+        assert_ne!(
+            source.nth(((height * width * 3) - 1) as usize),
+            None,
+            "last pixel color 3 should not be None"
+        );
+        assert_eq!(
+            source.nth(((height * width * 3) + 1) as usize),
+            None,
+            "last pixel after color 3 should be none"
+        );
+    }
 }
