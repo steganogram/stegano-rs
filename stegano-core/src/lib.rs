@@ -51,9 +51,10 @@ pub mod raw_message;
 pub use raw_message::*;
 
 pub mod carriers;
-pub mod encoder;
-pub mod lsb;
+// pub mod encoder;
+// pub mod lsb;
 pub mod universal_decoder;
+pub mod universal_encoder;
 use image::*;
 use std::fs::*;
 use std::io::prelude::*;

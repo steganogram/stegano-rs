@@ -34,6 +34,9 @@ speculate = "0.1"
 criterion = "0.3.3"
 tempdir = "0.3.7"
 
+[lib]
+bench = false
+
 [[bench]]
 name = "decoder_benchmark"
 harness = false

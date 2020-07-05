@@ -1,14 +1,8 @@
-use std::io::Result;
+// TODO remove me once
+//  - universal encoder is implemented
+//  - all usages are gone
 
-/// trait for keep track of position on encode and decode
-pub trait Position {
-    /// returns the current position
-    fn current(&self) -> usize;
-    /// moves to the next position
-    fn next(&mut self);
-    /// moves to the previous position
-    fn prev(&mut self);
-}
+use std::io::Result;
 
 /// generic hiding algorithms, used for specific ones like LSB
 pub trait HideAlgorithm<T> {

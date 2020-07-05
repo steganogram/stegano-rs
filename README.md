@@ -1,13 +1,17 @@
 # Stegano CLI
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Build Status](https://travis-ci.org/steganogram/stegano-rs.svg?branch=main)](https://travis-ci.org/steganogram/stegano-rs)
 [![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
+[![LOC](https://tokei.rs/b1/github/steganogram/stegano-rs?category=code)](https://github.com/Aaronepower/tokei)
 
-Implements LSB steganography for PNG image files in rust-lang.
+Implementation of [least significant bit steganography][lsb] for PNG images and WAV audio files in rust-lang.
 
-Aims for compatibility to the [Stegano for windows version][1]
+Aims for compatibility to the [Stegano for windows version regarding image en-/decoding][1]
 
-## What is steganography anyways?
+[lsb]: https://youtu.be/ARDhkujNXrY?t=705
+
+## What is steganography?
 
 In short, the art of hiding information in something (like a book, a image, a audio or even a video). 
 [![speakerdeck](resources/plain/stegano-in-rust.jpeg)][slides]
@@ -120,9 +124,12 @@ stegano unveil-raw \
 
 The file `README.bin` contains all raw data unfiltered decoded by the LSB decoding algorithm. That is for the curious people, and not so much interesting.
 
-## License
+## Contribute
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+To contribute to stegano-rs, please see open an issue on github, please note that at 
+this very time the architecture and the API is still in flux and might change. 
+
+## License
 
 - **[GNU GPL v3 license](https://www.gnu.org/licenses/gpl-3.0)**
 - Copyright 2019 © [Sven Assmann][2].

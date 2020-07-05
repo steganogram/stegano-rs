@@ -34,8 +34,8 @@ where
     A: UnveilAlgorithm<CarrierItem>,
 {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        // 1 bit per sample
-        let items_to_take = buf.len() << 3;
+        // TODO better let the algorithm determine the density of decoding
+        let items_to_take = buf.len() << 3; // 1 bit per carrier item
         let buf_writer = BufWriter::new(buf);
         let mut bit_buffer = BitWriter::endian(buf_writer, LittleEndian);
 

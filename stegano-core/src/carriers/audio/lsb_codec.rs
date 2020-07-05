@@ -1,75 +1,9 @@
 use crate::carriers::audio::decoder::AudioWavSource;
-use crate::encoder::Encoder;
-use crate::lsb::{HideAlgorithm, LSBAlgorithm, Position};
+use crate::carriers::audio::encoder::AudioWavTarget;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
-use bitstream_io::{BitReader, LittleEndian};
+use crate::universal_encoder::{Encoder, OneBitHide};
 use hound::{WavReader, WavWriter};
-use std::io::{Cursor, Read, Result, Seek, Write};
-
-#[derive(Default)]
-struct AudioPosition {
-    current: usize,
-}
-
-impl Position for AudioPosition {
-    fn current(&self) -> usize {
-        self.current
-    }
-
-    fn next(&mut self) {
-        self.current += 1
-    }
-
-    fn prev(&mut self) {
-        match self.current {
-            0 => {}
-            _ => self.current -= 1,
-        }
-    }
-}
-
-/// specific encoder for audio wav files
-impl<'i, I, O, A, P> Encoder<'i, WavReader<I>, WavWriter<O>, A, P>
-where
-    I: Read,
-    O: Write + Seek,
-    A: HideAlgorithm<i16>,
-    P: Position,
-{
-}
-
-impl<'i, I, O, A, P> Write for Encoder<'i, WavReader<I>, WavWriter<O>, A, P>
-where
-    I: Read,
-    O: Write + Seek,
-    A: HideAlgorithm<i16>,
-    P: Position,
-{
-    /// algorithm for LSB manipulation on audio data
-    fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        let samples_to_take = buf.len() << 3; // 1 bit per sample <=> * 8 <=> << 3
-        let mut bit_iter = BitReader::endian(Cursor::new(buf), LittleEndian);
-        let mut bit_written = 0;
-        for s in self
-            .input
-            .samples::<i16>()
-            // NOTE:
-            // `.skip(self.position.current)` is not required because the state of the iterator
-            // is persisted at the underlying reader, and what is consumed remains consumed.
-            .take(samples_to_take)
-        {
-            let sample = self.algorithm.encode(s.unwrap(), &bit_iter.read_bit());
-            self.output.write_sample(sample).unwrap();
-            bit_written += 1;
-            self.position.next();
-        }
-        Ok(bit_written >> 3)
-    }
-
-    fn flush(&mut self) -> Result<()> {
-        Ok(())
-    }
-}
+use std::io::{Read, Seek, Write};
 
 /// Factory for decoder and encoder
 pub struct LSBCodec;
@@ -124,10 +58,9 @@ impl LSBCodec {
         output: &'i mut WavWriter<O>,
     ) -> Box<dyn Write + 'i> {
         Box::new(Encoder::new(
-            input,
-            output,
-            LSBAlgorithm::default(),
-            AudioPosition::default(),
+            AudioWavSource::new(input),
+            AudioWavTarget::new(output),
+            OneBitHide,
         ))
     }
 }
@@ -137,6 +70,7 @@ mod audio_e2e_tests {
     use super::*;
     use std::fs::File;
     use std::io::BufReader;
+    use std::io::Result;
     use std::path::Path;
     use tempdir::TempDir;
 

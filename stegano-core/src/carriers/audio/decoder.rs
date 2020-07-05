@@ -1,4 +1,4 @@
-use crate::universal_decoder::CarrierItem;
+use crate::CarrierItem;
 use hound::WavReader;
 use std::io::Read;
 
@@ -39,7 +39,7 @@ where
     }
 }
 
-/// iteratoes over the audio samples and returns each wrapped into a `CarrierItem`
+/// iterates over the audio samples and returns each wrapped into a `CarrierItem`
 impl<'i, I> Iterator for AudioWavSource<'i, I>
 where
     I: Read,

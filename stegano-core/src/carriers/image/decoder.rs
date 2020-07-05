@@ -1,4 +1,4 @@
-use crate::universal_decoder::CarrierItem;
+use crate::CarrierItem;
 use image::RgbaImage;
 
 /// stegano source for image files, based on `RgbaImage` by `image` crate
