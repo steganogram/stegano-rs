@@ -26,7 +26,7 @@ use image::RgbaImage;
 /// assert_eq!("\u{1}Hello World!", msg);
 /// ```
 pub struct ImagePngSource<'i> {
-    pub input: &'i mut RgbaImage,
+    pub input: &'i RgbaImage,
     max_x: u32,
     max_y: u32,
     max_c: u8,
@@ -37,7 +37,7 @@ pub struct ImagePngSource<'i> {
 
 impl<'i> ImagePngSource<'i> {
     /// constructor for a given `RgbaImage` that lives somewhere
-    pub fn new(input: &'i mut RgbaImage) -> Self {
+    pub fn new(input: &'i RgbaImage) -> Self {
         let (max_x, max_y) = input.dimensions();
         Self {
             input,

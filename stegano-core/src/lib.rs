@@ -43,8 +43,8 @@
 
 pub mod bit_iterator;
 pub use bit_iterator::BitIterator;
-pub mod lsb_codec;
-pub use lsb_codec::LSBCodec;
+// pub mod lsb_codec;
+// pub use lsb_codec::LSBCodec;
 pub mod message;
 pub use message::*;
 pub mod raw_message;
@@ -173,27 +173,28 @@ impl SteganoEncoder {
 
 impl Hide for SteganoEncoder {
     fn hide(&mut self) -> &Self {
-        let (x, y) = (&self.carrier).as_ref().unwrap().dimensions();
-        let mut img = self.carrier.as_mut().unwrap();
-        let mut dec = LSBCodec::new(&mut img);
+        let (width, height) = (&self.carrier).as_ref().unwrap().dimensions();
+        let mut source = self.carrier.as_mut().unwrap();
+        let mut target = image::RgbaImage::new(width, height);
 
-        let buf: Vec<u8> = (&self.message).into();
-        dec.write_all(&buf[..])
-            .expect("Failed to hide data in carrier image.");
+        {
+            let mut dec = carriers::image::LSBCodec::encoder(&mut source, &mut target);
+            let buf: Vec<u8> = (&self.message).into();
+            dec.write_all(&buf[..])
+                .expect("Failed to hide data in carrier image.");
 
-        if self.message.header == ContentVersion::V2 {
-            let mut space_to_fill = ((x * y * 3) / 8) as usize;
-            space_to_fill -= buf.len();
+            if self.message.header == ContentVersion::V2 {
+                let mut space_to_fill = ((width * height * 3) / 8) as usize;
+                space_to_fill -= buf.len();
 
-            for _ in 0..space_to_fill {
-                dec.write_all(&[0])
-                    .expect("Failed to terminate version 2 content.");
+                for _ in 0..space_to_fill {
+                    dec.write_all(&[0])
+                        .expect("Failed to terminate version 2 content.");
+                }
             }
         }
 
-        self.carrier
-            .as_mut()
-            .expect("Image was not there for saving.")
+        target
             .save(self.target.as_ref().unwrap())
             .expect("Failed to save final image");
 
@@ -257,31 +258,32 @@ impl SteganoDecoder {
 
 impl Unveil for SteganoDecoder {
     fn unveil(&mut self) -> &mut Self {
-        let mut dec = LSBCodec::new(self.input.as_mut().unwrap());
-        let msg = Message::of(&mut dec);
-        let mut files = msg.files;
+        {
+            let mut dec = carriers::image::LSBCodec::decoder(self.input.as_ref().unwrap());
+            let msg = Message::of(&mut dec);
+            let mut files = msg.files;
 
-        if let Some(text) = msg.text {
-            files.push(("secret-message.txt".to_owned(), text.as_bytes().to_vec()));
+            if let Some(text) = msg.text {
+                files.push(("secret-message.txt".to_owned(), text.as_bytes().to_vec()));
+            }
+
+            (&files)
+                .iter()
+                .map(|(file_name, buf)| {
+                    let file = Path::new(file_name).file_name().unwrap().to_str().unwrap();
+
+                    (file, buf)
+                })
+                .for_each(|(file_name, buf)| {
+                    let target_file = Path::new(self.output.as_ref().unwrap()).join(file_name);
+                    let mut target_file =
+                        File::create(target_file).expect("Cannot create target output file");
+
+                    let mut c = Cursor::new(buf);
+                    std::io::copy(&mut c, &mut target_file)
+                        .expect("Failed to write data to final target file.");
+                });
         }
-
-        (&files)
-            .iter()
-            .map(|(file_name, buf)| {
-                let file = Path::new(file_name).file_name().unwrap().to_str().unwrap();
-
-                (file, buf)
-            })
-            .for_each(|(file_name, buf)| {
-                let target_file = Path::new(self.output.as_ref().unwrap()).join(file_name);
-                let mut target_file =
-                    File::create(target_file).expect("Cannot create target output file");
-
-                let mut c = Cursor::new(buf);
-                std::io::copy(&mut c, &mut target_file)
-                    .expect("Failed to write data to final target file.");
-            });
-
         self
     }
 }
@@ -318,15 +320,16 @@ impl SteganoRawDecoder {
 
 impl Unveil for SteganoRawDecoder {
     fn unveil(&mut self) -> &mut Self {
-        let mut dec = LSBCodec::new(self.inner.input.as_mut().unwrap());
-        let mut msg = RawMessage::of(&mut dec);
-        let target_file = self.inner.output.as_ref().unwrap();
-        let mut target_file = File::create(target_file).expect("Cannot open output file.");
+        {
+            let mut dec = carriers::image::LSBCodec::decoder(self.inner.input.as_mut().unwrap());
+            let mut msg = RawMessage::of(&mut dec);
+            let target_file = self.inner.output.as_ref().unwrap();
+            let mut target_file = File::create(target_file).expect("Cannot open output file.");
 
-        let mut c = Cursor::new(&mut msg.content);
-        std::io::copy(&mut c, &mut target_file)
-            .expect("Failed to write RawMessage to target file.");
-
+            let mut c = Cursor::new(&mut msg.content);
+            std::io::copy(&mut c, &mut target_file)
+                .expect("Failed to write RawMessage to target file.");
+        }
         self
     }
 }

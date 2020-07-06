@@ -3,6 +3,7 @@ use crate::CarrierItem;
 use image::{Rgba, RgbaImage};
 use std::io::{Error, ErrorKind, Result};
 
+/// Keeps track of the state when writing to a `RgbaImage`
 pub struct ImagePngTarget<'i> {
     pub target: &'i mut RgbaImage,
     max_x: u32,
@@ -36,8 +37,8 @@ impl<'i> WriteCarrierItem for ImagePngTarget<'i> {
             return Err(Error::from(ErrorKind::UnexpectedEof));
         }
         if let CarrierItem::ImageColorChannel(b) = item {
-            let Rgba(mut colors) = self.target.get_pixel_mut(self.x, self.y);
-            colors[self.c as usize] = *b;
+            let pixel = self.target.get_pixel_mut(self.x, self.y);
+            pixel.0[self.c as usize] = *b;
         } else {
             panic!("Unsupported carrier item for images.");
         }
@@ -73,7 +74,9 @@ mod image_encoder_tests {
             .expect("Input image is not readable.")
             .to_rgba();
         let mut target = ImagePngTarget::new(&mut img);
-        target.write_carrier_item(&CarrierItem::AudioSample(i16::MAX));
+        target
+            .write_carrier_item(&CarrierItem::AudioSample(i16::MAX))
+            .expect("this should panic");
     }
 
     #[test]
@@ -82,7 +85,9 @@ mod image_encoder_tests {
             .expect("Input image is not readable.")
             .to_rgba();
         let mut target = ImagePngTarget::new(&mut img);
-        target.write_carrier_item(&CarrierItem::ImageColorChannel(0xAE));
+        target
+            .write_carrier_item(&CarrierItem::ImageColorChannel(0xAE))
+            .expect("this should panic");
     }
 
     #[test]
