@@ -48,7 +48,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(Ok(sample)) = self.input.samples::<i16>().next() {
-            Some(CarrierItem::SignedTwoByte(sample))
+            Some(CarrierItem::AudioSample(sample))
         } else {
             None
         }

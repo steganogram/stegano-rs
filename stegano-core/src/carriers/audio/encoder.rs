@@ -25,10 +25,10 @@ where
 {
     fn write_carrier_item(&mut self, carrier_item: &CarrierItem) -> Result<usize> {
         match carrier_item {
-            CarrierItem::UnsignedByte(_) => {
+            CarrierItem::ImageColorChannel(_) => {
                 Err(std::io::Error::from(std::io::ErrorKind::InvalidData))
             }
-            CarrierItem::SignedTwoByte(b) => match self.target.write_sample(*b) {
+            CarrierItem::AudioSample(b) => match self.target.write_sample(*b) {
                 Ok(_) => Ok(2),
                 // TODO map the error somehow to std::io::ErrorKind
                 Err(_) => Err(std::io::Error::from(std::io::ErrorKind::Other)),

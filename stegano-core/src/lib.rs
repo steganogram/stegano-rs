@@ -64,8 +64,8 @@ use std::path::Path;
 /// wrap the low level data types that carries information
 #[derive(Debug, PartialEq)]
 pub enum CarrierItem {
-    UnsignedByte(u8),
-    SignedTwoByte(i16),
+    ImageColorChannel(u8),
+    AudioSample(i16),
 }
 
 pub struct SteganoCore {}

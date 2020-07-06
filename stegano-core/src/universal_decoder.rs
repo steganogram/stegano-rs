@@ -62,8 +62,8 @@ impl UnveilAlgorithm<CarrierItem> for OneBitUnveil {
     #[inline(always)]
     fn decode(&self, carrier: CarrierItem) -> bool {
         match carrier {
-            CarrierItem::UnsignedByte(b) => (b & 0x1) > 0,
-            CarrierItem::SignedTwoByte(b) => (b & 0x1) > 0,
+            CarrierItem::ImageColorChannel(b) => (b & 0x1) > 0,
+            CarrierItem::AudioSample(b) => (b & 0x1) > 0,
         }
     }
 }

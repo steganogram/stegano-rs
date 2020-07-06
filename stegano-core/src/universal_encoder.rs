@@ -74,11 +74,11 @@ impl HideAlgorithm<CarrierItem> for OneBitHide {
         match information {
             Err(_) => carrier,
             Ok(bit) => match carrier {
-                CarrierItem::UnsignedByte(b) => {
-                    CarrierItem::UnsignedByte((b & (u8::MAX - 1)) | if *bit { 1 } else { 0 })
+                CarrierItem::ImageColorChannel(b) => {
+                    CarrierItem::ImageColorChannel((b & (u8::MAX - 1)) | if *bit { 1 } else { 0 })
                 }
-                CarrierItem::SignedTwoByte(b) => {
-                    CarrierItem::SignedTwoByte((b & (i16::MAX - 1)) | if *bit { 1 } else { 0 })
+                CarrierItem::AudioSample(b) => {
+                    CarrierItem::AudioSample((b & (i16::MAX - 1)) | if *bit { 1 } else { 0 })
                 }
             },
         }

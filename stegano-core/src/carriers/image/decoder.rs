@@ -61,7 +61,7 @@ impl<'i> Iterator for ImagePngSource<'i> {
             return None;
         }
         let pixel = self.input.get_pixel(self.x, self.y);
-        let result = Some(CarrierItem::UnsignedByte(pixel.0[self.c as usize]));
+        let result = Some(CarrierItem::ImageColorChannel(pixel.0[self.c as usize]));
         self.c += 1;
         if self.c == self.max_c {
             self.c = 0;
@@ -93,23 +93,23 @@ mod decoder_tests {
         let mut source = ImagePngSource::new(&mut img);
         assert_eq!(
             source.next().unwrap(),
-            CarrierItem::UnsignedByte(first_pixel.0[0]),
+            CarrierItem::ImageColorChannel(first_pixel.0[0]),
             "pixel(0, 0) color 1 does not match"
         );
         source.next();
         assert_eq!(
             source.next().unwrap(),
-            CarrierItem::UnsignedByte(first_pixel.0[2]),
+            CarrierItem::ImageColorChannel(first_pixel.0[2]),
             "pixel(0, 0) color 3 does not match"
         );
         assert_eq!(
             source.next().unwrap(),
-            CarrierItem::UnsignedByte(second_pixel.0[0]),
+            CarrierItem::ImageColorChannel(second_pixel.0[0]),
             "pixel(0, 1) color 1 does not match"
         );
         assert_eq!(
             source.nth(((height * 3) - 4) as usize).unwrap(),
-            CarrierItem::UnsignedByte(second_row_first_pixel.0[0]),
+            CarrierItem::ImageColorChannel(second_row_first_pixel.0[0]),
             "pixel(1, 0) color 1 does not match"
         );
     }
