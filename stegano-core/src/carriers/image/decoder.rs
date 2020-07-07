@@ -83,14 +83,14 @@ mod decoder_tests {
 
     #[test]
     fn it_should_iterate_over_all_colors_of_an_image() {
-        let mut img = image::open(HELLO_WORLD_PNG)
+        let img = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
             .to_rgba();
         let (_, height) = img.dimensions();
         let first_pixel = *img.get_pixel(0, 0);
         let second_pixel = *img.get_pixel(0, 1);
         let second_row_first_pixel = *img.get_pixel(1, 0);
-        let mut source = ImagePngSource::new(&mut img);
+        let mut source = ImagePngSource::new(&img);
         assert_eq!(
             source.next().unwrap(),
             CarrierItem::ImageColorChannel(first_pixel.0[0]),
@@ -116,11 +116,11 @@ mod decoder_tests {
 
     #[test]
     fn it_should_yield_none_after_last_pixel_last_color() {
-        let mut img = image::open(HELLO_WORLD_PNG)
+        let img = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
             .to_rgba();
         let (width, height) = img.dimensions();
-        let mut source = ImagePngSource::new(&mut img);
+        let mut source = ImagePngSource::new(&img);
         assert_ne!(
             source.nth(((height * width * 3) - 1) as usize),
             None,

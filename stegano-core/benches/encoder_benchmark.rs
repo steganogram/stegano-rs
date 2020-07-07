@@ -1,17 +1,12 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use std::io::{BufWriter, Read};
-use stegano_core::carriers::image::decoder::ImagePngSource;
-use stegano_core::carriers::image::encoder::ImagePngTarget;
 use stegano_core::carriers::image::LSBCodec;
-use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
-use stegano_core::universal_encoder::Encoder;
 
 pub fn stegano_image_benchmark(c: &mut Criterion) {
-    let mut plain_image = image::open("../resources/plain/carrier-image.png")
+    let plain_image = image::open("../resources/plain/carrier-image.png")
         .expect("Input image is not readable.")
         .to_rgba();
     let (width, height) = plain_image.dimensions();
-    let secret_message = "Hello World!".as_bytes();
+    let secret_message = b"Hello World!";
 
     c.bench_function("SteganoCore Image Encoding to memory", |b| {
         b.iter(|| {

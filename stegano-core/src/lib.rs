@@ -43,16 +43,12 @@
 
 pub mod bit_iterator;
 pub use bit_iterator::BitIterator;
-// pub mod lsb_codec;
-// pub use lsb_codec::LSBCodec;
 pub mod message;
 pub use message::*;
 pub mod raw_message;
 pub use raw_message::*;
 
 pub mod carriers;
-// pub mod encoder;
-// pub mod lsb;
 pub mod universal_decoder;
 pub mod universal_encoder;
 use image::*;
@@ -174,11 +170,11 @@ impl SteganoEncoder {
 impl Hide for SteganoEncoder {
     fn hide(&mut self) -> &Self {
         let (width, height) = (&self.carrier).as_ref().unwrap().dimensions();
-        let mut source = self.carrier.as_mut().unwrap();
+        let source = self.carrier.as_mut().unwrap();
         let mut target = image::RgbaImage::new(width, height);
 
         {
-            let mut dec = carriers::image::LSBCodec::encoder(&mut source, &mut target);
+            let mut dec = carriers::image::LSBCodec::encoder(&source, &mut target);
             let buf: Vec<u8> = (&self.message).into();
             dec.write_all(&buf[..])
                 .expect("Failed to hide data in carrier image.");

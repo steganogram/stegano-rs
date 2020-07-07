@@ -1,6 +1,6 @@
 use crate::universal_encoder::WriteCarrierItem;
 use crate::CarrierItem;
-use image::{Rgba, RgbaImage};
+use image::RgbaImage;
 use std::io::{Error, ErrorKind, Result};
 
 /// Keeps track of the state when writing to a `RgbaImage`
