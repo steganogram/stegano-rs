@@ -1,58 +1,72 @@
-# inspired by https://github.com/extrawurst/gitui/blob/main/.github/workflows/cd.yml
-name: CD
+# inspired by https://github.com/extrawurst/gitui/blob/master/.github/workflows/cd.yml
+# references
+#  - https://github.com/marketplace/actions/upload-files-to-a-github-release
+#  - https://github.com/marketplace/actions/upload-a-release-asset
 
-on: push
-#    tags:
-#      - '*'
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+name: Upload Release Asset
 
 jobs:
-  release:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
+  publish:
+    name: Publish for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            binary_crate: stegano-cli
+            artifact_name: stegano.tar.gz
+            asset_name: stegano-$tag-linux-amd64.tar.gz
+          - os: windows-latest
+            binary_crate: stegano-cli
+            artifact_name: stegano.tar.gz
+            asset_name: stegano-$tag-windows-amd64.tar.gz
+          - os: macos-latest
+            binary_crate: stegano-cli
+            artifact_name: stegano.tar.gz
+            asset_name: stegano-$tag-macos-amd64.tar.gz
     steps:
       - uses: actions/checkout@v2
-      - name: Prepare Tag as Version
-        id: get_version
-        run: echo ::set-output name=version::${GITHUB_REF##*/}
+## for local execution needed
+#      - name: Install Build Essentials
+#        if: matrix.os == 'ubuntu-latest'
+#        run: |
+#          apt-get update
+#          apt-get -y -qq install clang
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
-      - name: Set TARGET
-        if: matrix.os == 'ubuntu-latest'
-        run: echo ::set-env name=TARGET::x86_64-unknown-linux-musl
-      - name: Set TARGET
-        if: matrix.os == 'windows-latest'
-        run: echo ::set-env name=TARGET::x86_64-pc-windows-gnu
-      - name: Set TARGET
-        if: matrix.os == 'macos-latest'
-        run: echo ::set-env name=TARGET::x86_64-apple-darwin
-
-      - name: Prepare Cargo Target
-        if: matrix.os != 'windows-latest'
-        run: rustup target add $TARGET
-      - name: Prepare MUSL tooling
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get -qq install musl-tools
-      - name: Cargo Build
-        if: matrix.os != 'windows-latest'
-        run: cargo build --release --target $TARGET --locked
-      - name: Cargo Build
-        if: matrix.os == 'windows-latest'
+      - name: Build
         run: cargo build --release --locked
-      - name: Set Artifact Name
-        run: echo ::set-env name=NAME::stegano-${{ steps.get_version.outputs.version }}-$TARGET
-      - name: Build Package
-        if: matrix.os != 'windows-latest'
+      - name: Package
         run: |
-          strip target/$TARGET/release/stegano
-          mkdir $NAME
-          cp target/$TARGET/release/stegano README.md LICENSE $NAME/
-          tar czvf $NAME.tar.gz $NAME
-          mkdir releases
-          cp $NAME.tar.gz releases/
+          mkdir -p release/bin
+          cp ${{ matrix.binary_crate }}/README.md ${{ matrix.binary_crate }}/LICENSE release/bin
+          cargo install --path ${{ matrix.binary_crate }} --root release
+          tar -C release/bin -cvzf ${{ matrix.artifact_name }} .
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ matrix.artifact_name }}
+          asset_name: ${{ matrix.asset_name }}
+          tag: ${{ github.ref }}
+          overwrite: true
+
+# TODO: refactor that with using target variables defined on the matrix
+#      - name: Prepare Cargo Target
+#        if: matrix.os == 'windows-latest'
+#        run: rustup target add $TARGET
+#      - name: Prepare MUSL tooling
+#        if: matrix.os == 'ubuntu-latest'
+#        run: |
+#          sudo apt-get -qq install musl-tools
+#          rustup target add x86_64-unknown-linux-musl
+#        run: rustup target add x86_64-pc-windows-gnu
