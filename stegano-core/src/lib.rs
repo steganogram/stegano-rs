@@ -340,14 +340,9 @@ mod e2e_tests {
     }
 
     #[test]
+    #[should_panic(expected = "Carrier image 'random_file.png' was not readable in")]
     fn should_panic_for_invalid_carrier_image_file() {
-        use cool_asserts::assert_panics;
-        assert_panics!(
-            {
-                SteganoEncoder::new().use_carrier_image("random_file.png");
-            },
-            |msg| { assert!(msg.contains("Carrier image 'random_file.png' was not readable in")) }
-        )
+        SteganoEncoder::new().use_carrier_image("random_file.png");
     }
 
     #[test]
