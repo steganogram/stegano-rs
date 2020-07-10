@@ -858,10 +858,10 @@ dependencies = [
 
 [[package]]
 name = "stegano-cli"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "clap",
- "stegano-core",
+ "stegano-core 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -879,6 +879,23 @@ dependencies = [
  "image",
  "speculate",
  "tempdir",
+ "zip",
+]
+
+[[package]]
+name = "stegano-core"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e79045fd32d3e6d9963211f0bc65c58550cf76a7b5743666b27125c892db0766"
+dependencies = [
+ "aes-soft",
+ "bitstream-io",
+ "block-modes",
+ "byteorder",
+ "bzip2 0.4.1",
+ "deflate",
+ "hex-literal",
+ "image",
  "zip",
 ]
 
