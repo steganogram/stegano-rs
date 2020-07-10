@@ -866,7 +866,7 @@ dependencies = [
 
 [[package]]
 name = "stegano-core"
-version = "0.3.1-pre.1"
+version = "0.3.2"
 dependencies = [
  "aes-soft",
  "bitstream-io",
