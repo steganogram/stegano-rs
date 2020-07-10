@@ -1,7 +1,7 @@
 # Stegano CLI
 
-[![Build Status](https://travis-ci.org/steganogram/stegano-rs.svg?branch=master)](https://travis-ci.org/steganogram/stegano-rs)
-[![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/master/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
+[![Build Status](https://travis-ci.org/steganogram/stegano-rs.svg?branch=main)](https://travis-ci.org/steganogram/stegano-rs)
+[![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
 
 Implements LSB steganography for PNG image files in rust-lang.
 

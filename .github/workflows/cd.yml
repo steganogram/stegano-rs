@@ -1,4 +1,4 @@
-# inspired by https://github.com/extrawurst/gitui/blob/master/.github/workflows/cd.yml
+# inspired by https://github.com/extrawurst/gitui/blob/main/.github/workflows/cd.yml
 name: CD
 
 on: push

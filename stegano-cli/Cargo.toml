@@ -13,7 +13,7 @@ repository = "https://github.com/steganogram/stegano-rs"
 exclude = [".ci/*", ".gitignore", ".travis.yml"]
 
 [badges]
-travis-ci = { repository = "steganogram/stegano-rs", branch = "master" }
+travis-ci = { repository = "steganogram/stegano-rs", branch = "main" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]

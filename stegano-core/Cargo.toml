@@ -13,8 +13,8 @@ repository = "https://github.com/steganogram/stegano-rs"
 exclude = ["tests/*", ".gitignore", ".travis.yml"]
 
 [badges]
-travis-ci = { repository = "steganogram/stegano-rs", branch = "master" }
-codecov = { repository = "steganogram/stegano-rs", branch = "master", service = "github" }
+travis-ci = { repository = "steganogram/stegano-rs", branch = "main" }
+codecov = { repository = "steganogram/stegano-rs", branch = "main", service = "github" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]

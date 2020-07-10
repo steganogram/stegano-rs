@@ -17,7 +17,7 @@ DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
     skip_cleanup: true
     draft: true
 #    on:
-#      branch: master
+#      branch: main
 #      tags: true
 
 jobs:
@@ -80,11 +80,11 @@ notifications:
 
 stages:
   - name: deploy-linux-artifact
-    # require the type to be push to master
-    if: type = push AND branch = master and tag IS present
+    # require the type to be push to main
+    if: type = push AND branch = main and tag IS present
   - name: deploy-osx-artifact
-    # require the type to be push to master
-    if: type = push AND branch = master and tag IS present
+    # require the type to be push to main
+    if: type = push AND branch = main and tag IS present
   - name: publish-on-crates
-    # require the type to be push to master
-    if: type = push AND branch = master and tag IS present
+    # require the type to be push to main
+    if: type = push AND branch = main and tag IS present
