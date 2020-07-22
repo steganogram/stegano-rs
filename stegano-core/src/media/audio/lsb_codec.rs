@@ -1,5 +1,5 @@
-use crate::carriers::audio::decoder::AudioWavSource;
-use crate::carriers::audio::encoder::AudioWavTarget;
+use crate::media::audio::decoder::AudioWavSource;
+use crate::media::audio::encoder::AudioWavTarget;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
 use crate::universal_encoder::{Encoder, OneBitHide};
 use hound::{WavReader, WavWriter};
@@ -15,7 +15,7 @@ impl LSBCodec {
     /// ```rust
     /// use std::path::Path;
     /// use hound::WavReader;
-    /// use stegano_core::carriers::audio::LSBCodec;
+    /// use stegano_core::media::audio::LSBCodec;
     ///
     /// let audio_with_secret: &Path = "../resources/secrets/audio-with-secrets.wav".as_ref();
     /// let mut reader = WavReader::open(audio_with_secret).expect("Cannot create reader");
@@ -38,7 +38,7 @@ impl LSBCodec {
     /// use std::path::Path;
     /// use tempdir::TempDir;
     /// use hound::{WavReader, WavWriter};
-    /// use stegano_core::carriers::audio::LSBCodec;
+    /// use stegano_core::media::audio::LSBCodec;
     ///
     /// let input: &Path = "../resources/plain/carrier-audio.wav".as_ref();
     /// let out_dir = TempDir::new("audio-temp").expect("Cannot create temp dir");

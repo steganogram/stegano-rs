@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::io::Read;
-use stegano_core::carriers::image::decoder::ImagePngSource;
+use stegano_core::media::image::decoder::ImagePngSource;
 use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
 
 pub fn stegano_image_benchmark(c: &mut Criterion) {
@@ -23,7 +23,7 @@ pub fn stegano_image_benchmark(c: &mut Criterion) {
 pub fn stegano_audio_benchmark(c: &mut Criterion) {
     use hound::WavReader;
     use std::path::Path;
-    use stegano_core::carriers::audio::LSBCodec;
+    use stegano_core::media::audio::LSBCodec;
 
     let audio_with_secret: &Path = "../resources/secrets/audio-with-secrets.wav".as_ref();
     c.bench_function("SteganoCore Audio Decoding", |b| {

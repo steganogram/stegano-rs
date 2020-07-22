@@ -1,4 +1,4 @@
-use crate::CarrierItem;
+use crate::MediaPrimitive;
 use image::RgbaImage;
 
 /// stegano source for image files, based on `RgbaImage` by `image` crate
@@ -9,7 +9,7 @@ use image::RgbaImage;
 /// use std::io::Read;
 /// use image::{RgbaImage};
 /// use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
-/// use stegano_core::carriers::image::decoder::ImagePngSource;
+/// use stegano_core::media::image::decoder::ImagePngSource;
 ///
 /// // create a `RgbaImage` from a png image file
 /// let mut image = image::open("../resources/with_text/hello_world.png")
@@ -30,9 +30,9 @@ pub struct ImagePngSource<'i> {
     max_x: u32,
     max_y: u32,
     max_c: u8,
-    x: u32,
-    y: u32,
-    c: u8,
+    pub x: u32,
+    pub y: u32,
+    pub c: u8,
 }
 
 impl<'i> ImagePngSource<'i> {
@@ -53,7 +53,7 @@ impl<'i> ImagePngSource<'i> {
 
 /// iterates over the image and returns single color channels of each pixel wrapped into a `CarrierItem`
 impl<'i> Iterator for ImagePngSource<'i> {
-    type Item = CarrierItem;
+    type Item = MediaPrimitive;
 
     #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
@@ -61,7 +61,7 @@ impl<'i> Iterator for ImagePngSource<'i> {
             return None;
         }
         let pixel = self.input.get_pixel(self.x, self.y);
-        let result = Some(CarrierItem::ImageColorChannel(pixel.0[self.c as usize]));
+        let result = Some(MediaPrimitive::ImageColorChannel(pixel.0[self.c as usize]));
         self.c += 1;
         if self.c == self.max_c {
             self.c = 0;
@@ -93,23 +93,23 @@ mod decoder_tests {
         let mut source = ImagePngSource::new(&img);
         assert_eq!(
             source.next().unwrap(),
-            CarrierItem::ImageColorChannel(first_pixel.0[0]),
+            MediaPrimitive::ImageColorChannel(first_pixel.0[0]),
             "pixel(0, 0) color 1 does not match"
         );
         source.next();
         assert_eq!(
             source.next().unwrap(),
-            CarrierItem::ImageColorChannel(first_pixel.0[2]),
+            MediaPrimitive::ImageColorChannel(first_pixel.0[2]),
             "pixel(0, 0) color 3 does not match"
         );
         assert_eq!(
             source.next().unwrap(),
-            CarrierItem::ImageColorChannel(second_pixel.0[0]),
+            MediaPrimitive::ImageColorChannel(second_pixel.0[0]),
             "pixel(0, 1) color 1 does not match"
         );
         assert_eq!(
             source.nth(((height * 3) - 4) as usize).unwrap(),
-            CarrierItem::ImageColorChannel(second_row_first_pixel.0[0]),
+            MediaPrimitive::ImageColorChannel(second_row_first_pixel.0[0]),
             "pixel(1, 0) color 1 does not match"
         );
     }

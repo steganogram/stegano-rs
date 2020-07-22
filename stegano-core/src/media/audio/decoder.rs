@@ -1,4 +1,4 @@
-use crate::CarrierItem;
+use crate::MediaPrimitive;
 use hound::WavReader;
 use std::io::Read;
 
@@ -10,7 +10,7 @@ use std::io::Read;
 /// use std::io::Read;
 /// use hound::WavReader;
 /// use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
-/// use stegano_core::carriers::audio::decoder::AudioWavSource;
+/// use stegano_core::media::audio::decoder::AudioWavSource;
 ///
 /// // create a `WavReader` from an audio file
 /// let mut reader = WavReader::open("../resources/secrets/audio-with-secrets.wav")
@@ -44,11 +44,11 @@ impl<'i, I> Iterator for AudioWavSource<'i, I>
 where
     I: Read,
 {
-    type Item = CarrierItem;
+    type Item = MediaPrimitive;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(Ok(sample)) = self.input.samples::<i16>().next() {
-            Some(CarrierItem::AudioSample(sample))
+            Some(MediaPrimitive::AudioSample(sample))
         } else {
             None
         }

@@ -48,7 +48,7 @@ pub use message::*;
 pub mod raw_message;
 pub use raw_message::*;
 
-pub mod carriers;
+pub mod media;
 pub mod universal_decoder;
 pub mod universal_encoder;
 use image::*;
@@ -59,9 +59,17 @@ use std::path::Path;
 
 /// wrap the low level data types that carries information
 #[derive(Debug, PartialEq)]
-pub enum CarrierItem {
+pub enum MediaPrimitive {
     ImageColorChannel(u8),
     AudioSample(i16),
+}
+
+/// mutable primitive for storing stegano data
+#[derive(Debug, PartialEq)]
+pub enum MediaPrimitiveMut<'a> {
+    ImageColorChannel(&'a mut u8),
+    AudioSample(&'a mut i16),
+    None,
 }
 
 pub struct SteganoCore {}
@@ -170,11 +178,10 @@ impl SteganoEncoder {
 impl Hide for SteganoEncoder {
     fn hide(&mut self) -> &Self {
         let (width, height) = (&self.carrier).as_ref().unwrap().dimensions();
-        let source = self.carrier.as_mut().unwrap();
-        let mut target = image::RgbaImage::new(width, height);
+        let mut carrier = self.carrier.as_mut().unwrap();
 
         {
-            let mut dec = carriers::image::LSBCodec::encoder(&source, &mut target);
+            let mut dec = media::image::LSBCodec::encoder(&mut carrier);
             let buf: Vec<u8> = (&self.message).into();
             dec.write_all(&buf[..])
                 .expect("Failed to hide data in carrier image.");
@@ -190,7 +197,7 @@ impl Hide for SteganoEncoder {
             }
         }
 
-        target
+        carrier
             .save(self.target.as_ref().unwrap())
             .expect("Failed to save final image");
 
@@ -255,7 +262,7 @@ impl SteganoDecoder {
 impl Unveil for SteganoDecoder {
     fn unveil(&mut self) -> &mut Self {
         {
-            let mut dec = carriers::image::LSBCodec::decoder(self.input.as_ref().unwrap());
+            let mut dec = media::image::LSBCodec::decoder(self.input.as_ref().unwrap());
             let msg = Message::of(&mut dec);
             let mut files = msg.files;
 
@@ -317,7 +324,7 @@ impl SteganoRawDecoder {
 impl Unveil for SteganoRawDecoder {
     fn unveil(&mut self) -> &mut Self {
         {
-            let mut dec = carriers::image::LSBCodec::decoder(self.inner.input.as_mut().unwrap());
+            let mut dec = media::image::LSBCodec::decoder(self.inner.input.as_mut().unwrap());
             let mut msg = RawMessage::of(&mut dec);
             let target_file = self.inner.output.as_ref().unwrap();
             let mut target_file = File::create(target_file).expect("Cannot open output file.");
@@ -354,6 +361,18 @@ mod e2e_tests {
     #[should_panic(expected = "Carrier image 'random_file.png' was not readable in")]
     fn should_panic_for_invalid_carrier_image_file() {
         SteganoEncoder::new().use_carrier_image("random_file.png");
+    }
+
+    #[test]
+    fn carrier_item_mut_should_allow_to_mutate_colors() {
+        let mut color = 8 as u8;
+        let c = MediaPrimitiveMut::ImageColorChannel(&mut color);
+
+        if let MediaPrimitiveMut::ImageColorChannel(i) = c {
+            *i = 9;
+        }
+
+        assert_eq!(color, 9);
     }
 
     #[test]

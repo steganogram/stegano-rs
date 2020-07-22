@@ -1,7 +1,7 @@
-use crate::carriers::image::decoder::ImagePngSource;
-use crate::carriers::image::encoder::ImagePngTarget;
+use crate::media::image::decoder::ImagePngSource;
+use crate::media::image::encoder::ImagePngMut;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
-use crate::universal_encoder::{Encoder, OneBitHide};
+use crate::universal_encoder::Encoder2;
 use image::RgbaImage;
 use std::io::{Read, Write};
 
@@ -13,7 +13,7 @@ impl LSBCodec {
     ///
     /// ## Example how to retrieve a decoder:
     /// ```rust
-    /// use stegano_core::carriers::image::LSBCodec;
+    /// use stegano_core::media::image::LSBCodec;
     /// use image::RgbaImage;
     ///
     /// let mut image_with_secret = image::open("../resources/secrets/image-with-hello-world.png")
@@ -36,35 +36,30 @@ impl LSBCodec {
     /// ## Example how to retrieve an encoder:
     ///
     /// ```rust
-    /// use stegano_core::carriers::image::LSBCodec;
+    /// use stegano_core::media::image::LSBCodec;
     /// use image::{RgbaImage, open};
     ///
     /// let mut plain_image = open("../resources/plain/carrier-image.png")
     ///     .expect("Cannot open carrier image")
     ///     .to_rgba();
     /// let (width, height) = plain_image.dimensions();
-    /// let mut image_with_secret = RgbaImage::new(width, height);
     /// let secret_message = "Hello World!".as_bytes();
     ///
     /// {
-    ///     LSBCodec::encoder(&plain_image, &mut image_with_secret)
+    ///     LSBCodec::encoder(&mut plain_image)
     ///         .write_all(&secret_message[..])
     ///         .expect("Cannot write to codec");
     /// }
     /// let mut buf = vec![0; secret_message.len()];
-    /// LSBCodec::decoder(&mut image_with_secret)
+    /// LSBCodec::decoder(&mut plain_image.into())
     ///     .read_exact(&mut buf[..])
     ///     .expect("Cannot read 12 bytes from codec");
     ///
     /// let msg = String::from_utf8(buf).expect("Cannot convert result to string");
     /// assert_eq!(msg, "Hello World!");
     /// ```
-    pub fn encoder<'i>(input: &'i RgbaImage, output: &'i mut RgbaImage) -> Box<dyn Write + 'i> {
-        Box::new(Encoder::new(
-            ImagePngSource::new(input),
-            ImagePngTarget::new(output),
-            OneBitHide,
-        ))
+    pub fn encoder<'i>(carrier: &'i mut RgbaImage) -> Box<dyn Write + 'i> {
+        Box::new(Encoder2::new(ImagePngMut::new(carrier)))
     }
 }
 

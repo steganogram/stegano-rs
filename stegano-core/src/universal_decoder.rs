@@ -1,4 +1,4 @@
-use crate::CarrierItem;
+use crate::MediaPrimitive;
 use bitstream_io::{BitWriter, LittleEndian};
 use std::io::{BufWriter, Read, Result};
 
@@ -10,8 +10,8 @@ pub trait UnveilAlgorithm<T> {
 /// generic stegano decoder
 pub struct Decoder<I, A>
 where
-    I: Iterator<Item = CarrierItem>,
-    A: UnveilAlgorithm<CarrierItem>,
+    I: Iterator<Item = MediaPrimitive>,
+    A: UnveilAlgorithm<MediaPrimitive>,
 {
     pub input: I,
     pub algorithm: A,
@@ -20,8 +20,8 @@ where
 /// generic stegano decoder constructor method
 impl<I, A> Decoder<I, A>
 where
-    I: Iterator<Item = CarrierItem>,
-    A: UnveilAlgorithm<CarrierItem>,
+    I: Iterator<Item = MediaPrimitive>,
+    A: UnveilAlgorithm<MediaPrimitive>,
 {
     pub fn new(input: I, algorithm: A) -> Self {
         Decoder { input, algorithm }
@@ -30,8 +30,8 @@ where
 
 impl<I, A> Read for Decoder<I, A>
 where
-    I: Iterator<Item = CarrierItem>,
-    A: UnveilAlgorithm<CarrierItem>,
+    I: Iterator<Item = MediaPrimitive>,
+    A: UnveilAlgorithm<MediaPrimitive>,
 {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         // TODO better let the algorithm determine the density of decoding
@@ -58,12 +58,12 @@ where
 
 /// default 1 bit unveil strategy
 pub struct OneBitUnveil;
-impl UnveilAlgorithm<CarrierItem> for OneBitUnveil {
+impl UnveilAlgorithm<MediaPrimitive> for OneBitUnveil {
     #[inline(always)]
-    fn decode(&self, carrier: CarrierItem) -> bool {
+    fn decode(&self, carrier: MediaPrimitive) -> bool {
         match carrier {
-            CarrierItem::ImageColorChannel(b) => (b & 0x1) > 0,
-            CarrierItem::AudioSample(b) => (b & 0x1) > 0,
+            MediaPrimitive::ImageColorChannel(b) => (b & 0x1) > 0,
+            MediaPrimitive::AudioSample(b) => (b & 0x1) > 0,
         }
     }
 }
