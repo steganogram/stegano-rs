@@ -19,22 +19,17 @@ pub fn stegano_image_benchmark(c: &mut Criterion) {
 }
 
 pub fn stegano_audio_benchmark(c: &mut Criterion) {
-    use hound::{WavReader, WavWriter};
-    use std::path::Path;
+    use hound::WavReader;
     use stegano_core::media::audio::LSBCodec;
-    use tempdir::TempDir;
 
-    let input: &Path = "../resources/plain/carrier-audio.wav".as_ref();
-    let out_dir = TempDir::new("audio-temp").expect("Cannot create temp dir");
-    let audio_with_secret = out_dir.path().join("audio-with-secret.wav");
-
+    let mut reader =
+        WavReader::open("../resources/plain/carrier-audio.wav").expect("Cannot create reader");
+    let mut samples = reader.samples().map(|s| s.unwrap()).collect::<Vec<i16>>();
     let secret_message = b"Hello World!";
-    c.bench_function("SteganoCore Audio Encoding to file", |b| {
+
+    c.bench_function("SteganoCore Audio Encoding to memory", |b| {
         b.iter(|| {
-            let mut reader = WavReader::open(input).expect("Cannot create reader");
-            let mut writer = WavWriter::create(audio_with_secret.as_path(), reader.spec())
-                .expect("Cannot create writer");
-            LSBCodec::encoder(&mut reader, &mut writer)
+            LSBCodec::encoder(&mut samples)
                 .write_all(&secret_message[..])
                 .expect("Cannot write to codec");
         })

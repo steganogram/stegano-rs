@@ -10,11 +10,11 @@
 //! ## Hide data inside an image
 //!
 //! ```rust
-//! use stegano_core::{SteganoCore, SteganoEncoder, Hide};
+//! use stegano_core::{SteganoCore, SteganoEncoder};
 //!
 //! SteganoCore::encoder()
 //!     .hide_file("Cargo.toml")
-//!     .use_carrier_image("../resources/plain/carrier-image.png")
+//!     .use_media("../resources/plain/carrier-image.png")
 //!     .write_to("/tmp/image-with-a-file-inside.png")
 //!     .hide();
 //! ```
@@ -22,18 +22,19 @@
 //! ## Unveil data from an image
 //!
 //! ```rust
-//! use stegano_core::{SteganoCore, SteganoEncoder, SteganoDecoder, Hide, Unveil};
+//! use stegano_core::{SteganoCore, SteganoEncoder};
+//! use stegano_core::commands::unveil;
+//! use std::path::Path;
 //!
 //! SteganoCore::encoder()
 //!     .hide_file("Cargo.toml")
-//!     .use_carrier_image("../resources/plain/carrier-image.png")
+//!     .use_media("../resources/plain/carrier-image.png")
 //!     .write_to("/tmp/image-with-a-file-inside.png")
 //!     .hide();
 //!
-//! SteganoCore::decoder()
-//!     .use_source_image("/tmp/image-with-a-file-inside.png")
-//!     .write_to_folder("/tmp/")
-//!     .unveil();
+//! unveil(
+//!     &Path::new("/tmp/image-with-a-file-inside.png"),
+//!     &Path::new("/tmp/"));
 //! ```
 //!
 //! [core]: ./struct.SteganoCore.html
@@ -48,14 +49,53 @@ pub use message::*;
 pub mod raw_message;
 pub use raw_message::*;
 
+pub mod commands;
 pub mod media;
 pub mod universal_decoder;
 pub mod universal_encoder;
+
+use hound::{WavReader, WavSpec, WavWriter};
 use image::*;
 use std::fs::*;
 use std::io::prelude::*;
 use std::io::*;
 use std::path::Path;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum SteganoError {
+    /// Represents an unsupported carrier media. For example, a Movie file is not supported
+    #[error("Media format is not supported")]
+    UnsupportedMedia,
+
+    /// Represents an invalid carrier audio media. For example, a broken WAV file
+    #[error("Audio media is invalid")]
+    InvalidAudioMedia,
+
+    /// Represents an invalid carrier image media. For example, a broken PNG file
+    #[error("Image media is invalid")]
+    InvalidImageMedia,
+
+    /// Represents an unveil of no secret data. For example when a media did not contain any secrets
+    #[error("No secret data found")]
+    NoSecretData,
+
+    /// Represents a failure to read from input.
+    #[error("Read error")]
+    ReadError { source: std::io::Error },
+
+    /// Represents a failure to write target file.
+    #[error("Write error")]
+    WriteError { source: std::io::Error },
+
+    /// Represents a failure when encoding an audio file.
+    #[error("Audio encoding error")]
+    AudioEncodingError,
+
+    /// Represents all other cases of `std::io::Error`.
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+}
 
 /// wrap the low level data types that carries information
 #[derive(Debug, PartialEq)]
@@ -72,25 +112,24 @@ pub enum MediaPrimitiveMut<'a> {
     None,
 }
 
-pub struct SteganoCore {}
+pub type WavAudio = (WavSpec, Vec<i16>);
+pub type Result<E> = std::result::Result<E, SteganoError>;
 
+/// a media container for steganography
+pub enum Media {
+    Image(RgbaImage),
+    Audio(WavAudio),
+}
+
+pub struct SteganoCore {}
 impl SteganoCore {
     pub fn encoder() -> SteganoEncoder {
         SteganoEncoder::new()
     }
-
-    pub fn decoder() -> SteganoDecoder {
-        SteganoDecoder::new()
-    }
-
-    pub fn raw_decoder() -> SteganoRawDecoder {
-        SteganoRawDecoder::new()
-    }
 }
 
 pub trait Hide {
-    // TODO should return Result<()>
-    fn hide(&mut self) -> &Self;
+    fn hide_message(&mut self, message: &Message) -> Result<&mut Media>;
 }
 
 pub trait Unveil {
@@ -98,9 +137,82 @@ pub trait Unveil {
     fn unveil(&mut self) -> &mut Self;
 }
 
+impl Media {
+    pub fn from_file(f: &Path) -> core::result::Result<Self, SteganoError> {
+        match f.extension().unwrap().to_str() {
+            None => Err(SteganoError::UnsupportedMedia),
+            Some("png") => Ok(Self::Image(
+                image::open(f)
+                    .map_err(|_e| SteganoError::InvalidImageMedia)?
+                    .to_rgba(),
+            )),
+            Some("wav") => {
+                let mut reader =
+                    WavReader::open(f).map_err(|_e| SteganoError::InvalidAudioMedia)?;
+                let spec = reader.spec();
+                let samples: Vec<i16> = reader.samples().map(|s| s.unwrap()).collect();
+
+                Ok(Self::Audio((spec, samples)))
+            }
+            Some(_) => Err(SteganoError::UnsupportedMedia),
+        }
+    }
+}
+
+pub trait Persist {
+    fn save_as(&mut self, _: &Path) -> std::io::Result<()>;
+}
+
+impl Persist for Media {
+    fn save_as(&mut self, file: &Path) -> std::io::Result<()> {
+        match self {
+            Media::Image(i) => i.save(file).map_err(|e| {
+                eprintln!("{}", e);
+                Error::from(ErrorKind::Other)
+            }),
+            Media::Audio((spec, samples)) => {
+                let mut writer = WavWriter::create(file, *spec).expect("Cannot create writer.");
+                samples
+                    .iter()
+                    .for_each(|s| writer.write_sample(*s).expect("Cannot write sample."));
+                writer.finalize().expect("Cannot finalize writer.");
+
+                Ok(())
+            }
+        }
+    }
+}
+
+impl Hide for Media {
+    fn hide_message(&mut self, message: &Message) -> Result<&mut Self> {
+        let buf: Vec<u8> = message.into();
+
+        match self {
+            Media::Image(i) => {
+                let (width, height) = i.dimensions();
+                let _space_to_fill = ((width * height * 3) / 8) as usize;
+                let mut encoder = media::image::LSBCodec::encoder(i);
+
+                encoder
+                    .write_all(&buf[..])
+                    .expect("Failed to hide data in media");
+            }
+            Media::Audio((_spec, samples)) => {
+                let mut encoder = media::audio::LSBCodec::encoder(samples);
+
+                encoder
+                    .write_all(&buf[..])
+                    .expect("Failed to hide data in media");
+            }
+        }
+
+        Ok(self)
+    }
+}
+
 pub struct SteganoEncoder {
     target: Option<String>,
-    carrier: Option<RgbaImage>,
+    carrier: Option<Media>,
     message: Message,
 }
 
@@ -119,21 +231,9 @@ impl SteganoEncoder {
         Self::default()
     }
 
-    pub fn use_carrier_image(&mut self, input_file: &str) -> &mut Self {
-        self.carrier = Some(
-            image::open(Path::new(input_file))
-                .unwrap_or_else(|_| {
-                    panic!(
-                        "Carrier image '{}' was not readable in {}.",
-                        input_file,
-                        std::env::current_dir()
-                            .expect("CWD was not set")
-                            .to_str()
-                            .expect("Path could not be unwrapped")
-                    )
-                })
-                .to_rgba(),
-        );
+    pub fn use_media(&mut self, input_file: &str) -> &mut Self {
+        let path = Path::new(input_file);
+        self.carrier = Some(Media::from_file(path).expect("Invalid media file."));
 
         self
     }
@@ -173,166 +273,28 @@ impl SteganoEncoder {
 
         self
     }
-}
 
-impl Hide for SteganoEncoder {
-    fn hide(&mut self) -> &Self {
-        let (width, height) = (&self.carrier).as_ref().unwrap().dimensions();
-        let mut carrier = self.carrier.as_mut().unwrap();
-
+    pub fn hide(&mut self) -> &Self {
         {
-            let mut dec = media::image::LSBCodec::encoder(&mut carrier);
-            let buf: Vec<u8> = (&self.message).into();
-            dec.write_all(&buf[..])
-                .expect("Failed to hide data in carrier image.");
-
-            if self.message.header == ContentVersion::V2 {
-                let mut space_to_fill = ((width * height * 3) / 8) as usize;
-                space_to_fill -= buf.len();
-
-                for _ in 0..space_to_fill {
-                    dec.write_all(&[0])
-                        .expect("Failed to terminate version 2 content.");
-                }
-            }
+            // TODO this hack needs to be implemented as well :(
+            // if self.message.header == ContentVersion::V2 {
+            //     space_to_fill -= buf.len();
+            //
+            //     for _ in 0..space_to_fill {
+            //         dec.write_all(&[0])
+            //             .expect("Failed to terminate version 2 content.");
+            //     }
+            // }
         }
 
-        carrier
-            .save(self.target.as_ref().unwrap())
-            .expect("Failed to save final image");
-
-        self
-    }
-}
-
-pub struct SteganoDecoder {
-    input: Option<RgbaImage>,
-    output: Option<String>,
-}
-
-impl Default for SteganoDecoder {
-    fn default() -> Self {
-        Self {
-            output: None,
-            input: None,
-        }
-    }
-}
-
-impl SteganoDecoder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
-        let img = image::open(input_file)
-            .expect("Input image is not readable.")
-            .to_rgba();
-
-        self.input = Some(img);
-
-        self
-    }
-
-    pub fn write_to_file(&mut self, output_file: &str) -> &mut Self {
-        {
-            let _f = File::create(output_file.to_string()).expect("Output cannot be created.");
-        }
-        self.output = Some(output_file.to_string());
-
-        self
-    }
-
-    pub fn write_to_folder(&mut self, output_folder: &str) -> &mut Self {
-        match DirBuilder::new().recursive(true).create(output_folder) {
-            Ok(_) => {}
-            Err(ref e) => {
-                if e.kind() != ErrorKind::AlreadyExists {
-                    eprintln!("Cannot create output folder: {}", e);
-                }
-            }
+        if let Some(media) = self.carrier.as_mut() {
+            media
+                .hide_message(&self.message)
+                .expect("Failed to hide message in media")
+                .save_as(Path::new(self.target.as_ref().unwrap()))
+                .expect("Failed to save media");
         }
 
-        self.output = Some(output_folder.to_string());
-
-        self
-    }
-}
-
-impl Unveil for SteganoDecoder {
-    fn unveil(&mut self) -> &mut Self {
-        {
-            let mut dec = media::image::LSBCodec::decoder(self.input.as_ref().unwrap());
-            let msg = Message::of(&mut dec);
-            let mut files = msg.files;
-
-            if let Some(text) = msg.text {
-                files.push(("secret-message.txt".to_owned(), text.as_bytes().to_vec()));
-            }
-
-            (&files)
-                .iter()
-                .map(|(file_name, buf)| {
-                    let file = Path::new(file_name).file_name().unwrap().to_str().unwrap();
-
-                    (file, buf)
-                })
-                .for_each(|(file_name, buf)| {
-                    let target_file = Path::new(self.output.as_ref().unwrap()).join(file_name);
-                    let mut target_file =
-                        File::create(target_file).expect("Cannot create target output file");
-
-                    let mut c = Cursor::new(buf);
-                    std::io::copy(&mut c, &mut target_file)
-                        .expect("Failed to write data to final target file.");
-                });
-        }
-        self
-    }
-}
-
-pub struct SteganoRawDecoder {
-    inner: SteganoDecoder,
-}
-
-impl Default for SteganoRawDecoder {
-    fn default() -> Self {
-        Self {
-            inner: SteganoDecoder::new(),
-        }
-    }
-}
-
-impl SteganoRawDecoder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn use_source_image(&mut self, input_file: &str) -> &mut Self {
-        self.inner.use_source_image(input_file);
-
-        self
-    }
-
-    pub fn write_to_file(&mut self, output_file: &str) -> &mut Self {
-        self.inner.write_to_file(output_file);
-
-        self
-    }
-}
-
-impl Unveil for SteganoRawDecoder {
-    fn unveil(&mut self) -> &mut Self {
-        {
-            let mut dec = media::image::LSBCodec::decoder(self.inner.input.as_mut().unwrap());
-            let mut msg = RawMessage::of(&mut dec);
-            let target_file = self.inner.output.as_ref().unwrap();
-            let mut target_file = File::create(target_file).expect("Cannot open output file.");
-
-            let mut c = Cursor::new(&mut msg.content);
-            std::io::copy(&mut c, &mut target_file)
-                .expect("Failed to write RawMessage to target file.");
-        }
         self
     }
 }
@@ -340,6 +302,7 @@ impl Unveil for SteganoRawDecoder {
 #[cfg(test)]
 mod e2e_tests {
     use super::*;
+    use crate::commands::{unveil, unveil_raw};
     use std::fs;
     use tempdir::TempDir;
 
@@ -360,7 +323,13 @@ mod e2e_tests {
     #[test]
     #[should_panic(expected = "Carrier image 'random_file.png' was not readable in")]
     fn should_panic_for_invalid_carrier_image_file() {
-        SteganoEncoder::new().use_carrier_image("random_file.png");
+        SteganoEncoder::new().use_media("random_file.png");
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid media file.")]
+    fn should_panic_for_invalid_media_file() {
+        SteganoEncoder::new().use_media("Cargo.toml");
     }
 
     #[test]
@@ -381,6 +350,35 @@ mod e2e_tests {
     }
 
     #[test]
+    fn should_hide_and_unveil_one_text_file_in_wav() -> std::result::Result<(), SteganoError> {
+        let out_dir = TempDir::new("wav")?;
+        let secret_media_p = out_dir.path().join("secret.wav");
+        let secret_media_f = secret_media_p.to_str().unwrap();
+
+        SteganoEncoder::new()
+            .hide_file("Cargo.toml")
+            .use_media("../resources/plain/carrier-audio.wav")
+            .write_to(secret_media_f)
+            .hide();
+
+        let l = fs::metadata(secret_media_p.as_path())
+            .expect("Secret media was not written.")
+            .len();
+        assert!(l > 0, "File is not supposed to be empty");
+
+        unveil(secret_media_p.as_path(), out_dir.path())?;
+
+        let given_decoded_secret = out_dir.path().join("Cargo.toml");
+        assert_eq_file_content(
+            &given_decoded_secret,
+            "Cargo.toml".as_ref(),
+            "Unveiled data did not match expected",
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn should_hide_and_unveil_one_text_file() -> Result<()> {
         let out_dir = TempDir::new("hello_world.png")?;
         let image_with_secret_path = out_dir.path().join("secret.png");
@@ -388,7 +386,7 @@ mod e2e_tests {
 
         SteganoEncoder::new()
             .hide_file("Cargo.toml")
-            .use_carrier_image("../resources/with_text/hello_world.png")
+            .use_media("../resources/with_text/hello_world.png")
             .write_to(image_with_secret)
             .hide();
 
@@ -397,10 +395,7 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        SteganoDecoder::new()
-            .use_source_image(image_with_secret)
-            .write_to_folder(out_dir.path().to_str().unwrap())
-            .unveil();
+        unveil(image_with_secret_path.as_path(), out_dir.path())?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
         assert_eq_file_content(
@@ -418,10 +413,10 @@ mod e2e_tests {
         let expected_file = out_dir.path().join("hello_world.bin");
         let raw_decoded_secret = expected_file.to_str().unwrap();
 
-        SteganoRawDecoder::new()
-            .use_source_image("../resources/with_text/hello_world.png")
-            .write_to_file(raw_decoded_secret)
-            .unveil();
+        unveil_raw(
+            &Path::new("../resources/with_text/hello_world.png"),
+            expected_file.as_path(),
+        )?;
 
         let l = fs::metadata(raw_decoded_secret)
             .expect("Output file was not written.")
@@ -443,7 +438,7 @@ mod e2e_tests {
 
         SteganoEncoder::new()
             .hide_file(secret_to_hide)
-            .use_carrier_image(BASE_IMAGE)
+            .use_media(BASE_IMAGE)
             .write_to(image_with_secret)
             .hide();
 
@@ -452,11 +447,7 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        SteganoDecoder::new()
-            .use_source_image(image_with_secret)
-            .write_to_folder(out_dir.path().to_str().unwrap())
-            .unveil();
-
+        unveil(image_with_secret_path.as_path(), out_dir.path())?;
         assert_eq_file_content(
             &expected_file,
             secret_to_hide.as_ref(),
@@ -476,16 +467,13 @@ mod e2e_tests {
 
         SteganoEncoder::new()
             .hide_file(secret_to_hide)
-            .use_carrier_image(BASE_IMAGE)
+            .use_media(BASE_IMAGE)
             .write_to(image_with_secret)
             .hide();
 
         assert_file_not_empty(image_with_secret);
 
-        SteganoDecoder::new()
-            .use_source_image(image_with_secret)
-            .write_to_folder(out_dir.path().to_str().unwrap())
-            .unveil();
+        unveil(image_with_secret_path.as_path(), out_dir.path())?;
 
         assert_eq_file_content(
             &expected_file,
@@ -501,10 +489,10 @@ mod e2e_tests {
         let out_dir = TempDir::new("Blah.txt.png")?;
         let decoded_secret = out_dir.path().join("Blah.txt");
 
-        SteganoDecoder::new()
-            .use_source_image("../resources/with_attachment/Blah.txt.png")
-            .write_to_folder(out_dir.path().to_str().unwrap())
-            .unveil();
+        unveil(
+            &Path::new("../resources/with_attachment/Blah.txt.png"),
+            out_dir.path(),
+        )?;
 
         assert_eq_file_content(
             &decoded_secret,
@@ -518,15 +506,13 @@ mod e2e_tests {
     #[test]
     fn should_ensure_content_v2_compatibility_with_2_files_reading() -> Result<()> {
         let out_dir = TempDir::new("Blah.txt__and__Blah-2.txt.png")?;
-        let output_folder = out_dir.path().to_str().unwrap();
         let decoded_secret_1 = out_dir.path().join("Blah.txt");
         let decoded_secret_2 = out_dir.path().join("Blah-2.txt");
 
-        SteganoDecoder::new()
-            .use_source_image("../resources/with_attachment/Blah.txt__and__Blah-2.txt.png")
-            .write_to_folder(output_folder)
-            .unveil();
-
+        unveil(
+            &Path::new("../resources/with_attachment/Blah.txt__and__Blah-2.txt.png"),
+            out_dir.path(),
+        )?;
         assert_eq_file_content(
             &decoded_secret_1,
             "../resources/secrets/Blah.txt".as_ref(),
@@ -545,24 +531,20 @@ mod e2e_tests {
     #[test]
     fn should_ensure_content_v2_compatibility_with_2_files_writing() -> Result<()> {
         let out_dir = TempDir::new("out-dir")?;
-        let output_folder = out_dir.path().to_str().unwrap();
         let image_with_secret_path = out_dir.path().join("Blah.txt.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
         let secret_to_hide = "../resources/secrets/Blah.txt";
 
         SteganoEncoder::new()
             .force_content_version(ContentVersion::V2)
-            .use_carrier_image(BASE_IMAGE)
+            .use_media(BASE_IMAGE)
             .hide_file(secret_to_hide)
             .write_to(image_with_secret)
             .hide();
 
         assert_file_not_empty(image_with_secret);
 
-        SteganoDecoder::new()
-            .use_source_image(image_with_secret)
-            .write_to_folder(output_folder)
-            .unveil();
+        unveil(image_with_secret_path.as_path(), out_dir.path())?;
 
         let decoded_secret = out_dir.path().join("Blah.txt");
         assert_eq_file_content(

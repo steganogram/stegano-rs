@@ -22,13 +22,12 @@ pub fn stegano_image_benchmark(c: &mut Criterion) {
 
 pub fn stegano_audio_benchmark(c: &mut Criterion) {
     use hound::WavReader;
-    use std::path::Path;
     use stegano_core::media::audio::LSBCodec;
+    let mut reader = WavReader::open("../resources/secrets/audio-with-secrets.wav")
+        .expect("Cannot create reader");
 
-    let audio_with_secret: &Path = "../resources/secrets/audio-with-secrets.wav".as_ref();
     c.bench_function("SteganoCore Audio Decoding", |b| {
         b.iter(|| {
-            let mut reader = WavReader::open(audio_with_secret).expect("Cannot create reader");
             let mut buf = vec![0; 12];
             LSBCodec::decoder(&mut reader)
                 .read_exact(&mut buf[..])

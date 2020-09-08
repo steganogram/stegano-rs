@@ -37,6 +37,7 @@ pub struct Message {
     pub text: Option<String>,
 }
 
+// TODO implement Result returning
 impl Message {
     pub fn of(dec: &mut dyn Read) -> Self {
         let version = dec.read_u8().expect("Failed to read version header");
