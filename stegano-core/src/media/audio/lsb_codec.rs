@@ -38,7 +38,7 @@ impl LSBCodec {
     /// ```
     pub fn decoder<'i, I: Read>(input: &'i mut WavReader<I>) -> Box<dyn Read + 'i> {
         Box::new(Decoder::new(
-            AudioWavIter::new(input.samples::<i16>().into_iter().map(|s| s.unwrap())),
+            AudioWavIter::new(input.samples::<i16>().map(|s| s.unwrap())),
             OneBitUnveil,
         ))
     }
@@ -75,60 +75,22 @@ impl LSBCodec {
 mod tests {
     use super::*;
     use crate::Result;
-    use crate::SteganoError;
     use hound::WavWriter;
-    use std::fs::File;
-    use std::io::BufReader;
-    use std::path::Path;
     use tempdir::TempDir;
 
     const SOME_WAV: &str = "../resources/plain/carrier-audio.wav";
-    const BIG_SECRET: &str = "../LICENSE";
-
-    /// conclusions for audio:
-    /// - media con contain a Vec<i16> that is owned
-    /// - encoder can receive a &mut Vec<16>
-    /// - MediaPrimitive can contain a &mut i16 and is then same as a color channel
-    /// - Media can implement the save method only when it knows the WavSpec via WavWriter
-    #[test]
-    fn toy_around_with_vec_as_audio_buffer() -> Result<()> {
-        let input: &Path = SOME_WAV.as_ref();
-        let mut reader = WavReader::open(input).expect("Cannot open wav file");
-        let buf: Vec<i16> = reader.samples::<i16>().map(|s| s.unwrap()).collect();
-
-        let out_dir = TempDir::new("audio-temp")?;
-        let audio_with_secret = out_dir.path().join("audio-with-secret.wav");
-        let out_file = audio_with_secret.as_path();
-
-        let mut writer =
-            WavWriter::create(out_file, reader.spec()).expect("Cannot create wav file");
-        buf.iter()
-            .for_each(|s| writer.write_sample(*s).expect("Cannot write sample"));
-        writer
-            .finalize()
-            .map_err(|_e| SteganoError::AudioEncodingError)?;
-
-        assert_ne!(out_file.metadata().unwrap().len(), 0);
-
-        Ok(())
-    }
+    const SECRET: &str = "../README.md";
 
     #[test]
     fn it_should_encode_and_decode_in_chunks_by_using_read_to_end() -> Result<()> {
-        let original_message = std::fs::read_to_string(BIG_SECRET)?;
-        let mut secret_to_hide = Vec::new();
-        let file = File::open(BIG_SECRET)?;
-        let mut buf_reader = BufReader::new(file);
-        buf_reader.read_to_end(&mut secret_to_hide)?;
-        secret_to_hide.shrink_to_fit();
-
-        let input: &Path = SOME_WAV.as_ref();
         let out_dir = TempDir::new("audio-temp")?;
-        let audio_with_secret = out_dir.path().join("audio-with-secret.wav");
-        let (mut samples, spec) = read_samples(input);
-        let samples_copy = samples.clone();
+        let audio_with_secret_p = out_dir.path().join("audio-with-secret.wav");
+        let audio_with_secret = audio_with_secret_p.as_path();
+
+        let secret_to_hide_origin = std::fs::read(SECRET)?;
+        let secret_to_hide = secret_to_hide_origin.clone();
+        let (mut samples, spec) = read_samples(SOME_WAV.as_ref());
         {
-            // Block is important so that writer is dropped, so that it persists the file
             let mut codec = LSBCodec::encoder(&mut samples);
             let half_the_buffer = secret_to_hide.len() / 2;
             codec
@@ -140,15 +102,15 @@ mod tests {
         }
         {
             let mut writer =
-                WavWriter::create(audio_with_secret.as_path(), spec).expect("Cannot create writer");
-            samples_copy
+                WavWriter::create(audio_with_secret, spec).expect("Cannot create writer");
+            samples
                 .iter()
                 .for_each(|s| writer.write_sample(*s).unwrap());
             writer.finalize().expect("Cannot finalize");
         }
 
-        let mut reader = WavReader::open(audio_with_secret.as_path())
-            .expect("carrier audio file was not readable");
+        let mut reader =
+            WavReader::open(audio_with_secret).expect("carrier audio file was not readable");
         let mut codec = LSBCodec::decoder(&mut reader);
         let mut unveiled_secret = Vec::new();
         let total_read = codec
@@ -158,21 +120,12 @@ mod tests {
             total_read > secret_to_hide.len(),
             "Total read should be way more than the original secret"
         );
-        let unveiled_secret = &unveiled_secret[..secret_to_hide.len() - 1];
-        // println!("{:?}", unveiled_secret);
-        // let unveiled_message = std::str::from_utf8(unveiled_secret).unwrap();
-        // assert_eq!(unveiled_message, original_message);
+        let unveiled_secret = unveiled_secret[..secret_to_hide.len()].to_vec();
+        assert_eq!(
+            String::from_utf8(secret_to_hide_origin),
+            String::from_utf8(unveiled_secret)
+        );
 
-        let unveiled_secret_file_path = out_dir.path().join("LICENSE");
-        let mut unveiled_secret_file = File::create(unveiled_secret_file_path.as_path())
-            .expect("Cannot create the file for the unveiled data.");
-        unveiled_secret_file.write_all(&unveiled_secret[..])?;
-        // assert_eq!(
-        //     unveiled_secret_file.metadata().unwrap().len() as usize,
-        //     secret_to_hide.len()
-        // );
-
-        std::fs::copy(unveiled_secret_file_path.as_path(), "/tmp/foo")?;
         Ok(())
     }
 }

@@ -1,3 +1,39 @@
+## commit 5f1a7f20765a7abbb64e18c2b7eedfbf30eb418d
+```sh
+Running target/release/deps/decoder_benchmark-9e4572eff811da8d
+SteganoCore Image Decoding
+                        time:   [629.97 ns 636.77 ns 645.08 ns]
+                        change: [-14.878% -13.636% -12.362%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 9 outliers among 100 measurements (9.00%)
+  3 (3.00%) high mild
+  6 (6.00%) high severe
+
+SteganoCore Audio Decoding
+                        time:   [2.5929 us 2.5952 us 2.5977 us]
+                        change: [-72.051% -71.865% -71.692%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 10 outliers among 100 measurements (10.00%)
+  4 (4.00%) high mild
+  6 (6.00%) high severe
+
+     Running target/release/deps/encoder_benchmark-9ec9f54bb533cdc3
+SteganoCore Image Encoding to memory
+                        time:   [607.06 us 612.78 us 619.02 us]
+                        change: [-11.419% -8.6893% -5.9210%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 14 outliers among 100 measurements (14.00%)
+  10 (10.00%) high mild
+  4 (4.00%) high severe
+
+SteganoCore Audio Encoding to memory
+                        time:   [214.06 ns 214.62 ns 215.25 ns]
+                        change: [+143.57% +145.20% +146.88%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) high mild
+  7 (7.00%) high severe
+```
 
 ## commit 56e23162c08de48d773c292ed136c259b4e898a0
 
@@ -86,3 +122,4 @@ Found 5 outliers among 100 measurements (5.00%)
   3 (3.00%) high mild
   2 (2.00%) high severe
 ```
+

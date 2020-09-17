@@ -1,4 +1,4 @@
-use crate::{MediaPrimitive, MediaPrimitiveMut};
+use crate::{HideBit, MediaPrimitive, MediaPrimitiveMut};
 use bitstream_io::{BitReader, LittleEndian};
 use std::io::{Cursor, Result, Write};
 
@@ -41,10 +41,19 @@ where
         let mut bit_written = 0;
         for s in self.carrier.by_ref().take(items_to_take) {
             // let item: CarrierItem = self.algorithm.encode(s, &bit_iter.read_bit());
-            if let MediaPrimitiveMut::ImageColorChannel(c) = s {
-                let bit = bit_iter.read_bit().unwrap();
-                *c = (*c & (u8::MAX - 1)) | if bit { 1 } else { 0 };
-            }
+            s.hide_bit(bit_iter.read_bit().unwrap()).unwrap();
+            // match s {
+            //     MediaPrimitiveMut::ImageColorChannel(c) => {
+            //         let bit = bit_iter.read_bit().unwrap();
+            //         *c = (*c & (u8::MAX - 1)) | if bit { 1 } else { 0 };
+            //     }
+            //     MediaPrimitiveMut::AudioSample(s) => {
+            //         let bit = bit_iter.read_bit().unwrap();
+            //         *s = (*s & (i16::MAX - 1)) | if bit { 1 } else { 0 };
+            //     }
+            //     MediaPrimitiveMut::None => {}
+            // }
+            // TODO the audio primitive impl is missing
             bit_written += 1;
         }
 

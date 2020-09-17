@@ -45,7 +45,7 @@ where
     type Item = MediaPrimitive;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.samples.next().map(|s| MediaPrimitive::AudioSample(s))
+        self.samples.next().map(MediaPrimitive::AudioSample)
     }
 }
 

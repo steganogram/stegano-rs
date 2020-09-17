@@ -10,8 +10,8 @@ pub fn unveil(secret_media: &Path, destination: &Path) -> Result<(), SteganoErro
     let media = Media::from_file(secret_media)?;
 
     let files = match media {
-        Media::Image(mut image) => {
-            let mut decoder = LSBCodec::decoder(&mut image);
+        Media::Image(image) => {
+            let mut decoder = LSBCodec::decoder(&image);
             let msg = Message::of(&mut decoder);
             let mut files = msg.files;
 
@@ -62,8 +62,8 @@ pub fn unveil_raw(secret_media: &Path, destination_file: &Path) -> Result<(), St
     let media = Media::from_file(secret_media)?;
 
     match media {
-        Media::Image(mut image) => {
-            let mut decoder = LSBCodec::decoder(&mut image);
+        Media::Image(image) => {
+            let mut decoder = LSBCodec::decoder(&image);
             let msg = RawMessage::of(&mut decoder);
             let mut destination_file = File::create(destination_file)
                 .map_err(|source| SteganoError::WriteError { source })?;

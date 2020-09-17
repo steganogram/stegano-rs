@@ -105,7 +105,7 @@ fn main() -> Result<()> {
         ("hide", Some(m)) => {
             let mut s = SteganoCore::encoder();
 
-            s.use_media(m.value_of("media").unwrap())
+            s.use_media(m.value_of("media").unwrap())?
                 .write_to(m.value_of("write_to_file").unwrap());
 
             match m.value_of("message") {
