@@ -42,6 +42,14 @@ to verify if the installation went thru, you can run `which stegano` that should
 $HOME/.cargo/bin/stegano
 ```
 
+### AUR
+
+`stegano` can be installed from available [AUR packages](https://aur.archlinux.org/packages/?O=0&SeB=b&K=stegano&outdated=&SB=n&SO=a&PP=50&do_Search=Go) using an [AUR helper](https://wiki.archlinux.org/index.php/AUR_helpers). For example,
+
+```
+yay -S stegano
+```
+
 ## Usage
 
 ```sh
