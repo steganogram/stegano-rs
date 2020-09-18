@@ -1,23 +1,25 @@
-use clap::{crate_version, App, AppSettings, Arg, SubCommand};
+use clap::{crate_authors, crate_description, crate_version, App, AppSettings, Arg, SubCommand};
 
+use std::path::Path;
+use stegano_core::commands::{unveil, unveil_raw};
 use stegano_core::*;
 
-fn main() -> std::io::Result<()> {
+fn main() -> Result<()> {
     let matches = App::new("Stegano CLI")
         .version(crate_version!())
-        .author("Sven Assmann <sven.assmann.it@gmail.com>")
-        .about("Hiding secrets with steganography in PNG images.")
+        .author(crate_authors!())
+        .about(crate_description!())
         .setting(AppSettings::ArgRequiredElseHelp)
         .subcommand(SubCommand::with_name("hide")
-            .about("Hides data in PNG images")
+            .about("Hides data in PNG images and WAV audio files")
             .arg(
-                Arg::with_name("carrier_image")
+                Arg::with_name("media")
                     .short("i")
                     .long("in")
-                    .value_name("image source file")
+                    .value_name("media file")
                     .takes_value(true)
                     .required(true)
-                    .help("Source image to hide data in (wont't manipulate this)"),
+                    .help("Media file such as PNG image or WAV audio file, used readonly."),
             )
             .arg(
                 Arg::with_name("write_to_file")
@@ -56,7 +58,8 @@ fn main() -> std::io::Result<()> {
                     .required(false)
                     .help("Experimental: enforce content version 2 encoding (for backwards compatibility)"),
             )
-        ).subcommand(SubCommand::with_name("unveil")
+        )
+        .subcommand(SubCommand::with_name("unveil")
         .about("Unveils data from PNG images")
         .arg(
             Arg::with_name("input_image")
@@ -102,7 +105,7 @@ fn main() -> std::io::Result<()> {
         ("hide", Some(m)) => {
             let mut s = SteganoCore::encoder();
 
-            s.use_carrier_image(m.value_of("carrier_image").unwrap())
+            s.use_media(m.value_of("media").unwrap())?
                 .write_to(m.value_of("write_to_file").unwrap());
 
             match m.value_of("message") {
@@ -126,16 +129,16 @@ fn main() -> std::io::Result<()> {
             s.hide();
         }
         ("unveil", Some(m)) => {
-            SteganoCore::decoder()
-                .use_source_image(m.value_of("input_image").unwrap())
-                .write_to_folder(m.value_of("output_folder").unwrap())
-                .unveil();
+            unveil(
+                &Path::new(m.value_of("input_image").unwrap()),
+                &Path::new(m.value_of("output_folder").unwrap()),
+            )?;
         }
         ("unveil-raw", Some(m)) => {
-            SteganoCore::raw_decoder()
-                .use_source_image(m.value_of("input_image").unwrap())
-                .write_to_file(m.value_of("output_file").unwrap())
-                .unveil();
+            unveil_raw(
+                &Path::new(m.value_of("input_image").unwrap()),
+                &Path::new(m.value_of("output_folder").unwrap()),
+            )?;
         }
         _ => {}
     }
