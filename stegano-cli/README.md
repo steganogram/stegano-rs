@@ -54,7 +54,7 @@ $HOME/.cargo/bin/stegano
 
 ```sh
 ❯ stegano --help
-Stegano CLI 0.4.0-beta1
+Stegano CLI 0.4.0
 Sven Assmann <sven.assmann.it@gmail.com>
 Hiding secret data with steganography in PNG images and WAV audio files
 
