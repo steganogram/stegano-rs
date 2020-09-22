@@ -94,6 +94,10 @@ pub enum SteganoError {
     #[error("Image encoding error")]
     ImageEncodingError,
 
+    /// Represents a failure when creating an audio file.
+    #[error("Audio creation error")]
+    AudioCreationError,
+
     /// Represents all other cases of `std::io::Error`.
     #[error(transparent)]
     IOError(#[from] std::io::Error),
@@ -193,11 +197,20 @@ impl Persist for Media {
         match self {
             Media::Image(i) => i.save(file).map_err(|_e| SteganoError::ImageEncodingError),
             Media::Audio((spec, samples)) => {
-                let mut writer = WavWriter::create(file, *spec).expect("Cannot create writer.");
-                samples
+                let mut writer =
+                    WavWriter::create(file, *spec).map_err(|_| SteganoError::AudioCreationError)?;
+                if let Some(error) = samples
                     .iter()
-                    .for_each(|s| writer.write_sample(*s).expect("Cannot write sample."));
-                writer.finalize().expect("Cannot finalize writer.");
+                    .map(|s| {
+                        writer
+                            .write_sample(*s)
+                            .map_err(|_| SteganoError::AudioEncodingError)
+                    })
+                    .filter_map(Result::err)
+                    .next()
+                {
+                    return Err(error);
+                }
 
                 Ok(())
             }
