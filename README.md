@@ -46,14 +46,14 @@ $HOME/.cargo/bin/stegano
 
 `stegano` can be installed from available [AUR packages](https://aur.archlinux.org/packages/?O=0&SeB=b&K=stegano&outdated=&SB=n&SO=a&PP=50&do_Search=Go) using an [AUR helper](https://wiki.archlinux.org/index.php/AUR_helpers). For example,
 
-```
-yay -S stegano
+```sh
+❯ yay -S stegano
 ```
 
 ## Usage
 
 ```sh
-❯ stegano --help                                                                                                                                                                                                       10203  00:00:39 
+❯ stegano --help
 Stegano CLI 0.4.0-beta1
 Sven Assmann <sven.assmann.it@gmail.com>
 Hiding secret data with steganography in PNG images and WAV audio files
@@ -77,7 +77,7 @@ SUBCOMMANDS:
 ### hide
 
 ```sh
-❯ stegano hide --help                                                                                                                                                                                                  10204  00:00:44 
+❯ stegano hide --help
 stegano-hide
 Hides data in PNG images and WAV audio files
 
@@ -151,7 +151,7 @@ Now let's assume we want to hide just a little text message in `secret-text.png`
 ### unveil
 
 ```sh
-❯ stegano unveil --help                                                                                                                                                                                                10213  00:07:31 
+❯ stegano unveil --help
 stegano-unveil
 Unveils data from PNG images
 
@@ -174,7 +174,7 @@ Let's unveil the `README.md` that we've hidden (just above) in `README.png`
 ```sh
 ❯ stegano unveil --in README.png --out ./
 
-❯ file README.md                                                                                                                                                                                                       10215  00:10:50 
+❯ file README.md
 README.md: UTF-8 Unicode text
 ```
 
@@ -194,7 +194,7 @@ This is a super secret message
 ### unveil-raw
 
 ```sh
-❯ stegano unveil-raw --help                                                                                                                                                                                            10216  00:10:58 
+❯ stegano unveil-raw --help
 stegano-unveil-raw
 Unveils raw data in PNG images
 
