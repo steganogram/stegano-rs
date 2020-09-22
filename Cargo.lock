@@ -836,15 +836,15 @@ dependencies = [
 
 [[package]]
 name = "stegano-cli"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "clap",
- "stegano-core 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "stegano-core 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "stegano-core"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "aes-soft",
  "bitstream-io",
@@ -864,9 +864,9 @@ dependencies = [
 
 [[package]]
 name = "stegano-core"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c715d38d600d959bd1d7dd4b81ab34c7afc884d39f8e9f27aa755e68c2f72ca"
+checksum = "6ed3ad11635c833d3023e29942f4935225e905d656e753747a28c6a1900ae532"
 dependencies = [
  "aes-soft",
  "bitstream-io",
