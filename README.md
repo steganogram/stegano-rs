@@ -223,8 +223,10 @@ That is for the curious people, and not so much interesting for regular usage.
 
 ## Contribute
 
-To contribute to stegano-rs, please see open an issue on github and note that at 
-this very time the architecture and the API is still in flux and might change. 
+To contribute to stegano-rs you can either checkout existing issues [labeled with `good first issue`][4] or [open a new issue][5]
+ and describe your problem.
+  
+Also every PR is welcome, just as a note of caution: at this very time the architecture and the API are still in flux and might change, so in any case I recommend opening an issue first to discuss a code contribution. 
 
 ## License
 
@@ -234,3 +236,5 @@ this very time the architecture and the API is still in flux and might change.
 [1]: https://www.stegano.org/pages/downloads-en.html
 [2]: https://www.d34dl0ck.me
 [3]: https://en.wikipedia.org/wiki/Steganography
+[4]: https://github.com/steganogram/stegano-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22
+[5]: https://github.com/steganogram/stegano-rs/issues/new/choose
