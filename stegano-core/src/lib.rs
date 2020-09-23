@@ -15,7 +15,7 @@
 //! SteganoCore::encoder()
 //!     .hide_file("Cargo.toml")
 //!     .use_media("../resources/plain/carrier-image.png").unwrap()
-//!     .write_to("/tmp/image-with-a-file-inside.png")
+//!     .write_to("image-with-a-file-inside.png")
 //!     .hide();
 //! ```
 //!
@@ -29,12 +29,12 @@
 //! SteganoCore::encoder()
 //!     .hide_file("Cargo.toml")
 //!     .use_media("../resources/plain/carrier-image.png").unwrap()
-//!     .write_to("/tmp/image-with-a-file-inside.png")
+//!     .write_to("image-with-a-file-inside.png")
 //!     .hide();
 //!
 //! unveil(
-//!     &Path::new("/tmp/image-with-a-file-inside.png"),
-//!     &Path::new("/tmp/"));
+//!     &Path::new("image-with-a-file-inside.png"),
+//!     &Path::new("./"));
 //! ```
 //!
 //! [core]: ./struct.SteganoCore.html
@@ -411,7 +411,6 @@ mod e2e_tests {
         assert!(l > 0, "File is not supposed to be empty");
 
         unveil(secret_media_p.as_path(), out_dir.path())?;
-        fs::copy(secret_media_p.as_path(), "/tmp/secret.wav")?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
         assert_eq_file_content(

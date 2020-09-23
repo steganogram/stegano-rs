@@ -234,7 +234,7 @@ impl Into<Vec<u8>> for &Message {
 #[cfg(test)]
 mod message_tests {
     use super::*;
-    use std::io::{copy, Write};
+    use std::io::copy;
     use zip::write::FileOptions;
     use zip::{CompressionMethod, ZipWriter};
 
@@ -316,22 +316,19 @@ mod message_tests {
 
         let mut out_buf = Vec::new();
 
-        {
-            let w = Cursor::new(&mut out_buf);
-            let mut zip = ZipWriter::new(w);
+        let w = Cursor::new(&mut out_buf);
+        let mut zip = ZipWriter::new(w);
 
-            let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+        let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
 
-            zip.start_file("hello_world.png", options)
-                .unwrap_or_else(|_| panic!("processing file '{}' failed.", "hello_world.png"));
+        zip.start_file("hello_world.png", options)
+            .unwrap_or_else(|_| panic!("processing file '{}' failed.", "hello_world.png"));
 
-            let mut r = Cursor::new(buf);
-            copy(&mut r, &mut zip).expect("Failed to copy data to the zip entry.");
+        let mut r = Cursor::new(buf);
+        copy(&mut r, &mut zip).expect("Failed to copy data to the zip entry.");
 
-            zip.finish().expect("finish zip failed.");
-        }
+        zip.finish().expect("finish zip failed.");
 
-        let mut out = File::create("/tmp/test-zip.zip")?;
-        out.write_all(&out_buf)
+        Ok(())
     }
 }
