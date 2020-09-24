@@ -1,15 +1,28 @@
-# Stegano CLI
+# Stegano
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Build Status](https://travis-ci.org/steganogram/stegano-rs.svg?branch=main)](https://travis-ci.org/steganogram/stegano-rs)
+[![Build Status](https://github.com/steganogram/stegano-rs/workflows/Build/badge.svg)](https://github.com/steganogram/stegano-rs/actions?query=branch%3Amain+workflow%3ABuild+)
 [![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
 [![LOC](https://tokei.rs/b1/github/steganogram/stegano-rs?category=code)](https://github.com/Aaronepower/tokei)
 
-Implementation of [least significant bit steganography][lsb] for PNG images and WAV audio files in rust-lang.
+A cross-platform command line tool for steganography focused on performance and simplicity.
 
-Aims for compatibility to the [Stegano for windows version regarding image en-/decoding][1]
+## Features
+
+- Simple and easy-to-use command line tool
+- Cross-platform support (Windows, macOS and Linux)
+- Support Media formats like:
+  - PNG Images
+  - WAV Audio
+- Hides one or many files in a carrier media
+- Hides one-liner text messages in a carrier media
+- Based on [least significant bit steganography][lsb]
+- Backwards compatible to [stegano for windows for image en-/decoding][stegano/win]
+- Memory safe by design
+- Written in [rust](https://www.rust-lang.org/)
 
 [lsb]: https://youtu.be/ARDhkujNXrY?t=705
+[stegano/win]: https://www.stegano.org/pages/downloads-en.html
 
 ## What is steganography?
 
@@ -233,7 +246,6 @@ Also every PR is welcome, just as a note of caution: at this very time the archi
 - **[GNU GPL v3 license](https://www.gnu.org/licenses/gpl-3.0)**
 - Copyright 2019 - 2020 © [Sven Assmann][2].
 
-[1]: https://www.stegano.org/pages/downloads-en.html
 [2]: https://www.d34dl0ck.me
 [3]: https://en.wikipedia.org/wiki/Steganography
 [4]: https://github.com/steganogram/stegano-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22
