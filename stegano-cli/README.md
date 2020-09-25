@@ -7,6 +7,10 @@
 
 A cross-platform command line tool for steganography focused on performance and simplicity.
 
+# Demo
+
+![demo](./docs/demo.gif)
+
 ## Features
 
 - Simple and easy-to-use command line tool
@@ -32,10 +36,6 @@ You can find more information [on my slides][slides] or checkout [my talk on the
 
 [slides]: https://speakerdeck.com/sassman/steganography-in-rust
 [meetup]: https://youtu.be/ARDhkujNXrY?t=366
-
-## Watch it in action
-
-[![asciicast](https://asciinema.org/a/gNNTVcj6EZm3ZTaihZYoC7rfC.svg)](https://asciinema.org/a/gNNTVcj6EZm3ZTaihZYoC7rfC)
 
 ## Install
 
