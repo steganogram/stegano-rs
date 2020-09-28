@@ -17,9 +17,10 @@ travis-ci = { repository = "steganogram/stegano-rs", branch = "main" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-#stegano-core = { path = "../stegano-core" }
-stegano-core = "0.4.1"
+stegano-core = { path = "../stegano-core" }
+#stegano-core = "0.4.1"
 clap = "2.33"
+anyhow = "1.0"
 
 [[bin]]
 name = "stegano"

@@ -1,10 +1,11 @@
 use clap::{crate_authors, crate_description, crate_version, App, AppSettings, Arg, SubCommand};
 
+use anyhow::Context;
 use std::path::Path;
 use stegano_core::commands::{unveil, unveil_raw};
 use stegano_core::*;
 
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
     let matches = App::new("Stegano CLI")
         .version(crate_version!())
         .author(crate_authors!())
@@ -126,22 +127,31 @@ fn main() -> Result<()> {
                 s.force_content_version(ContentVersion::V2);
             }
 
-            s.hide();
+            match s.hide() {
+                Ok(_) => Ok(()),
+                Err(SteganoError::ExceedsCarrierCapacity) => {
+                    Err(SteganoError::ExceedsCarrierCapacity).with_context(|| {
+                        format!(
+                            "{}\n{}\n{}",
+                            "Hide failed. Carrier media capacity exceeded, check this options:",
+                            "  - try a bigger carrier media",
+                            "  - try a smaller data files",
+                        )
+                    })
+                }
+                Err(e) => Err(e).with_context(|| format!("Hide failed.")),
+            }
         }
-        ("unveil", Some(m)) => {
-            unveil(
-                &Path::new(m.value_of("input_image").unwrap()),
-                &Path::new(m.value_of("output_folder").unwrap()),
-            )?;
-        }
-        ("unveil-raw", Some(m)) => {
-            unveil_raw(
-                &Path::new(m.value_of("input_image").unwrap()),
-                &Path::new(m.value_of("output_folder").unwrap()),
-            )?;
-        }
-        _ => {}
+        ("unveil", Some(m)) => unveil(
+            &Path::new(m.value_of("input_image").unwrap()),
+            &Path::new(m.value_of("output_folder").unwrap()),
+        )
+        .with_context(|| "Unveil failed."),
+        ("unveil-raw", Some(m)) => unveil_raw(
+            &Path::new(m.value_of("input_image").unwrap()),
+            &Path::new(m.value_of("output_folder").unwrap()),
+        )
+        .with_context(|| "Raw Unveil failed."),
+        _ => Ok(()),
     }
-
-    Ok(())
 }

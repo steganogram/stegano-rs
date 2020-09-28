@@ -33,6 +33,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b602bfe940d21c130f3895acd65221e8a61270debe89d628b9cb4e3ccb8569b"
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -838,8 +844,9 @@ dependencies = [
 name = "stegano-cli"
 version = "0.4.1"
 dependencies = [
+ "anyhow",
  "clap",
- "stegano-core 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "stegano-core",
 ]
 
 [[package]]
@@ -858,25 +865,6 @@ dependencies = [
  "image",
  "speculate",
  "tempdir",
- "thiserror",
- "zip",
-]
-
-[[package]]
-name = "stegano-core"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ed3ad11635c833d3023e29942f4935225e905d656e753747a28c6a1900ae532"
-dependencies = [
- "aes-soft",
- "bitstream-io",
- "block-modes",
- "byteorder",
- "bzip2 0.4.1",
- "deflate",
- "hex-literal",
- "hound",
- "image",
  "thiserror",
  "zip",
 ]

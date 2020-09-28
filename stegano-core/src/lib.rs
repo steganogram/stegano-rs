@@ -16,7 +16,8 @@
 //!     .hide_file("Cargo.toml")
 //!     .use_media("../resources/plain/carrier-image.png").unwrap()
 //!     .write_to("image-with-a-file-inside.png")
-//!     .hide();
+//!     .hide()
+//!     .expect("should not fail");
 //! ```
 //!
 //! ## Unveil data from an image
@@ -30,7 +31,8 @@
 //!     .hide_file("Cargo.toml")
 //!     .use_media("../resources/plain/carrier-image.png").unwrap()
 //!     .write_to("image-with-a-file-inside.png")
-//!     .hide();
+//!     .hide()
+//!     .expect("should not fail");
 //!
 //! unveil(
 //!     &Path::new("image-with-a-file-inside.png"),
@@ -74,6 +76,10 @@ pub enum SteganoError {
     #[error("Image media is invalid")]
     InvalidImageMedia,
 
+    /// Represents a failure when there was no carrier media provided
+    #[error("No carrier media provided")]
+    NoCarrierMedia,
+
     /// Represents an unveil of no secret data. For example when a media did not contain any secrets
     #[error("No secret data found")]
     NoSecretData,
@@ -97,6 +103,10 @@ pub enum SteganoError {
     /// Represents a failure when creating an audio file.
     #[error("Audio creation error")]
     AudioCreationError,
+
+    /// Represents a failure when the carrier media is too small for the payload
+    #[error("Exceeds carriers capacity")]
+    ExceedsCarrierCapacity,
 
     /// Represents all other cases of `std::io::Error`.
     #[error(transparent)]
@@ -199,7 +209,7 @@ impl Persist for Media {
             Media::Audio((spec, samples)) => {
                 let mut writer =
                     WavWriter::create(file, *spec).map_err(|_| SteganoError::AudioCreationError)?;
-                if let Some(error) = samples
+                match samples
                     .iter()
                     .map(|s| {
                         writer
@@ -209,10 +219,9 @@ impl Persist for Media {
                     .filter_map(Result::err)
                     .next()
                 {
-                    return Err(error);
+                    Some(error) => Err(error),
+                    None => Ok(()),
                 }
-
-                Ok(())
             }
         }
     }
@@ -228,20 +237,24 @@ impl Hide for Media {
                 let _space_to_fill = ((width * height * 3) / 8) as usize;
                 let mut encoder = media::image::LSBCodec::encoder(i);
 
-                encoder
-                    .write_all(buf.as_ref())
-                    .map_err(|_e| SteganoError::ImageEncodingError)?
+                match encoder.write_all(buf.as_ref()) {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err(SteganoError::ImageEncodingError),
+                }
             }
             Media::Audio((_spec, samples)) => {
                 let mut encoder = media::audio::LSBCodec::encoder(samples);
 
-                encoder
-                    .write_all(buf.as_ref())
-                    .map_err(|_e| SteganoError::AudioEncodingError)?
+                match encoder.write_all(buf.as_ref()) {
+                    Ok(_) => Ok(()),
+                    Err(ref e) if e.kind() == std::io::ErrorKind::WriteZero => {
+                        Err(SteganoError::ExceedsCarrierCapacity)
+                    }
+                    Err(e) => Err(SteganoError::IOError(e)),
+                }
             }
         }
-
-        Ok(self)
+        .map(|_| self)
     }
 }
 
@@ -309,7 +322,7 @@ impl SteganoEncoder {
         self
     }
 
-    pub fn hide(&mut self) -> &Self {
+    pub fn hide(&mut self) -> Result<()> {
         {
             // TODO this hack needs to be implemented as well :(
             // if self.message.header == ContentVersion::V2 {
@@ -322,15 +335,13 @@ impl SteganoEncoder {
             // }
         }
 
-        if let Some(media) = self.carrier.as_mut() {
-            media
-                .hide_message(&self.message)
-                .expect("Failed to hide message in media")
-                .save_as(Path::new(self.target.as_ref().unwrap()))
-                .expect("Failed to save media");
+        match self.carrier.as_mut() {
+            // TODO figure out
+            Some(media) => media
+                .hide_message(&self.message)?
+                .save_as(Path::new(self.target.as_ref().unwrap())),
+            None => Err(SteganoError::NoCarrierMedia),
         }
-
-        self
     }
 }
 
@@ -377,6 +388,26 @@ mod e2e_tests {
     }
 
     #[test]
+    fn should_error_for_too_big_files() -> Result<()> {
+        let out_dir = TempDir::new("wav")?;
+        let secret_media_p = out_dir.path().join("secret.wav");
+        let secret_media_f = secret_media_p.to_str().unwrap();
+
+        match SteganoEncoder::new()
+            .hide_file("../resources/plain/carrier-audio.wav")
+            .use_media("../resources/plain/carrier-audio.wav")?
+            .write_to(secret_media_f)
+            .hide()
+        {
+            Err(SteganoError::ExceedsCarrierCapacity) => Ok(()),
+            e => {
+                println!("{:?}", e);
+                panic!("Not expected to happen")
+            }
+        }
+    }
+
+    #[test]
     fn carrier_item_mut_should_allow_to_mutate_colors() {
         let mut color = 8 as u8;
         let c = MediaPrimitiveMut::ImageColorChannel(&mut color);
@@ -403,7 +434,7 @@ mod e2e_tests {
             .hide_file("Cargo.toml")
             .use_media("../resources/plain/carrier-audio.wav")?
             .write_to(secret_media_f)
-            .hide();
+            .hide()?;
 
         let l = fs::metadata(secret_media_p.as_path())
             .expect("Secret media was not written.")
@@ -432,7 +463,7 @@ mod e2e_tests {
             .hide_file("Cargo.toml")
             .use_media("../resources/with_text/hello_world.png")?
             .write_to(image_with_secret)
-            .hide();
+            .hide()?;
 
         let l = fs::metadata(image_with_secret)
             .expect("Output image was not written.")
@@ -484,7 +515,7 @@ mod e2e_tests {
             .hide_file(secret_to_hide)
             .use_media(BASE_IMAGE)?
             .write_to(image_with_secret)
-            .hide();
+            .hide()?;
 
         let l = fs::metadata(image_with_secret)
             .expect("Output image was not written.")
@@ -513,7 +544,7 @@ mod e2e_tests {
             .hide_file(secret_to_hide)
             .use_media(BASE_IMAGE)?
             .write_to(image_with_secret)
-            .hide();
+            .hide()?;
 
         assert_file_not_empty(image_with_secret);
 
@@ -584,7 +615,7 @@ mod e2e_tests {
             .use_media(BASE_IMAGE)?
             .hide_file(secret_to_hide)
             .write_to(image_with_secret)
-            .hide();
+            .hide()?;
 
         assert_file_not_empty(image_with_secret);
 
