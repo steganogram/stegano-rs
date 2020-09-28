@@ -842,7 +842,7 @@ dependencies = [
 
 [[package]]
 name = "stegano-cli"
-version = "0.4.1"
+version = "0.4.2-beta.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -851,7 +851,7 @@ dependencies = [
 
 [[package]]
 name = "stegano-core"
-version = "0.4.1"
+version = "0.4.2-beta.1"
 dependencies = [
  "aes-soft",
  "bitstream-io",
