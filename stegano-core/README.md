@@ -1,7 +1,7 @@
 # Stegano Core Library
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Build Status](https://travis-ci.org/steganogram/stegano-rs.svg?branch=main)](https://travis-ci.org/steganogram/stegano-rs)
+[![Build Status](https://github.com/steganogram/stegano-rs/workflows/Build/badge.svg)](https://github.com/steganogram/stegano-rs/actions?query=branch%3Amain+workflow%3ABuild+)
 [![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
 [![LOC](https://tokei.rs/b1/github/steganogram/stegano-rs?category=code)](https://github.com/Aaronepower/tokei)
 
