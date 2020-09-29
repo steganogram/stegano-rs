@@ -62,7 +62,12 @@ impl<'a, P: Pixel + 'a> Iterator for ColorIter<'a, P> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.colors.next().or_else(|| {
-            self.colors = self.pixel.next().unwrap().channels_mut().iter_mut();
+            match self.pixel.next() {
+                None => {}
+                Some(c) => {
+                    self.colors = c.channels_mut().iter_mut();
+                }
+            }
             self.colors.next()
         })
     }

@@ -229,29 +229,23 @@ impl Persist for Media {
 
 impl Hide for Media {
     fn hide_message(&mut self, message: &Message) -> Result<&mut Self> {
-        let buf: Vec<u8> = message.into();
+        {
+            let buf: Vec<u8> = message.into();
 
-        match self {
-            Media::Image(i) => {
-                let (width, height) = i.dimensions();
-                let _space_to_fill = ((width * height * 3) / 8) as usize;
-                let mut encoder = media::image::LSBCodec::encoder(i);
-
-                match encoder.write_all(buf.as_ref()) {
-                    Ok(_) => Ok(()),
-                    Err(_) => Err(SteganoError::ImageEncodingError),
+            let mut encoder = match self {
+                Media::Image(i) => {
+                    let (width, height) = i.dimensions();
+                    let _space_to_fill = ((width * height * 3) / 8) as usize;
+                    media::image::LSBCodec::encoder(i)
                 }
-            }
-            Media::Audio((_spec, samples)) => {
-                let mut encoder = media::audio::LSBCodec::encoder(samples);
-
-                match encoder.write_all(buf.as_ref()) {
-                    Ok(_) => Ok(()),
-                    Err(ref e) if e.kind() == std::io::ErrorKind::WriteZero => {
-                        Err(SteganoError::ExceedsCarrierCapacity)
-                    }
-                    Err(e) => Err(SteganoError::IOError(e)),
+                Media::Audio((_spec, samples)) => media::audio::LSBCodec::encoder(samples),
+            };
+            match encoder.write_all(buf.as_ref()) {
+                Ok(_) => Ok(()),
+                Err(ref e) if e.kind() == std::io::ErrorKind::WriteZero => {
+                    Err(SteganoError::ExceedsCarrierCapacity)
                 }
+                Err(e) => Err(SteganoError::IOError(e)),
             }
         }
         .map(|_| self)
@@ -388,7 +382,7 @@ mod e2e_tests {
     }
 
     #[test]
-    fn should_error_for_too_big_files() -> Result<()> {
+    fn should_error_for_too_big_files_on_audio() -> Result<()> {
         let out_dir = TempDir::new("wav")?;
         let secret_media_p = out_dir.path().join("secret.wav");
         let secret_media_f = secret_media_p.to_str().unwrap();
@@ -396,6 +390,26 @@ mod e2e_tests {
         match SteganoEncoder::new()
             .hide_file("../resources/plain/carrier-audio.wav")
             .use_media("../resources/plain/carrier-audio.wav")?
+            .write_to(secret_media_f)
+            .hide()
+        {
+            Err(SteganoError::ExceedsCarrierCapacity) => Ok(()),
+            e => {
+                println!("{:?}", e);
+                panic!("Not expected to happen")
+            }
+        }
+    }
+
+    #[test]
+    fn should_error_for_too_big_files_on_images() -> Result<()> {
+        let out_dir = TempDir::new("png")?;
+        let secret_media_p = out_dir.path().join("secret.png");
+        let secret_media_f = secret_media_p.to_str().unwrap();
+
+        match SteganoEncoder::new()
+            .hide_file("../resources/plain/carrier-image.png")
+            .use_media("../resources/plain/carrier-image.png")?
             .write_to(secret_media_f)
             .hide()
         {
