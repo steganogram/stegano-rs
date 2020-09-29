@@ -234,6 +234,21 @@ Let's unveil the raw data of the `README.md` that we've hidden just above in `RE
 The file `README.bin` contains all raw binary data unfiltered decoded by the LSB decoding algorithm. 
 That is for the curious people, and not so much interesting for regular usage.
 
+## Error FAQ
+
+**Q:** When I hide a file, I get the following error:
+```sh
+❯ stegano hide -i resources/plain/carrier-image.png -d resources/plain/carrier-audio.wav -o secret.png
+Error: Hide failed. Carrier media capacity exceeded, check this options:
+  - try a bigger carrier media
+  - try a smaller data files
+
+Caused by:
+    Exceeds carriers capacity
+
+```
+**A:** Most likely the data you trying to hide are too big for the given carrier.
+
 ## Contribute
 
 To contribute to stegano-rs you can either checkout existing issues [labeled with `good first issue`][4] or [open a new issue][5]
