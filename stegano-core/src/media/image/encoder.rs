@@ -48,7 +48,7 @@ impl<'a> ImagePngMut<'a> {
 impl<'i> Iterator for ImagePngMut<'i> {
     type Item = MediaPrimitiveMut<'i>;
 
-    fn next(self: &'_ mut Self) -> Option<Self::Item> {
+    fn next(&'_ mut self) -> Option<Self::Item> {
         let is_alpha = (self.i + 1) % 4 == 0;
         if is_alpha {
             self.pixel.next();
