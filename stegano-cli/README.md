@@ -10,7 +10,7 @@ A cross-platform command line tool for steganography focused on performance and 
 
 # Demo
 
-![demo](./docs/demo.gif)
+![demo](https://raw.githubusercontent.com/steganogram/stegano-rs/main/stegano-cli/docs/demo.gif)
 
 ## Features
 
