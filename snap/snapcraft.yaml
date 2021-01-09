@@ -1,5 +1,5 @@
 name: stegano
-base: core20 
+base: core18
 adopt-info: stegano
 summary: Image and Audio Steganography
 description: |
@@ -9,9 +9,10 @@ grade: stable
 confinement: strict
 
 parts:
-  stegano-cli:
+  stegano:
     plugin: rust
     source: .
+    source-subdir: stegano-cli
     override-pull: |
       snapcraftctl pull
       snapcraftctl set-version "$(git describe --tags)"
@@ -20,7 +21,7 @@ parts:
       cd $SNAPCRAFT_PART_INSTALL/usr/bin
 
 apps:
-  stegano-cli:
+  stegano:
     command: bin/stegano
     plugs:
       - home
