@@ -19,9 +19,13 @@ on:
       - "**.md"
 
 jobs:
-  checks:
-    name: pre / code quality
-    runs-on: ubuntu-latest
+  check:
+    name: check
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [ 'ubuntu-latest']
+    runs-on: ${{ matrix.version }}
     steps:
       - uses: actions/checkout@v2
       - name: setup | rust
@@ -39,25 +43,47 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: build | format
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-      - name: build | lint
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-targets --all-features -- -D warnings
+      - run: cargo check
 
-  tests:
-    name: tests
+  lint:
+    name: lint
+    needs: check
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [nightly, stable]
-    runs-on: ${{ matrix.os }}
+        version: [ 'ubuntu-latest']
+        cargo-cmd:
+          - fmt --all -- --check
+          - clippy --all-targets --all-features -- -D warnings
+    runs-on: ${{ matrix.version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup | rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+          profile: minimal
+          components: clippy, rustfmt
+      - name: setup | cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo ${{ matrix['cargo-cmd'] }}
+
+  tests:
+    name: test
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [ 'macos-latest', 'ubuntu-latest', 'windows-latest']
+        rust: [ nightly, stable ]
+    runs-on: ${{ matrix.version }}
     continue-on-error: ${{ matrix.rust == 'nightly' }}
     steps:
       - uses: actions/checkout@v2
@@ -75,72 +101,12 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: build | check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --all
-      - name: build | tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features --all --locked -- -Z unstable-options
-
-  benchmarks:
-    name: post / performance
-    needs: tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: setup | rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          profile: minimal
-      - name: setup | cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: build | bench
-        uses: actions-rs/cargo@v1
-        with:
-          command: bench
-
-  coverage:
-    name: post / coverage
-    needs: [tests, checks]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: setup | rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          profile: minimal
-      - name: setup | cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: build | coverage
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          args: --out Xml
-      - name: push | codecov.io
-        uses: codecov/codecov-action@v1
+      - name: cargo test
+        run: cargo test --all --locked -- -Z unstable-options
 
   audit:
-    name: post / audit
-    needs: tests
+    name: security audit
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -158,7 +124,7 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: build | audit
+      - name: audit
         uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
