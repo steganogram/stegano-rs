@@ -1,6 +1,4 @@
 [workspace]
-version = "0.4.3"
-
 members = [
     "stegano-core",
     "stegano-cli",
