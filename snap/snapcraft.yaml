@@ -9,9 +9,9 @@ grade: stable
 confinement: strict
 
 parts:
-  stegano:
+  stegano-cli:
     plugin: rust
-    source: stegano-cli
+    source: .
     override-pull: |
       snapcraftctl pull
       snapcraftctl set-version "$(git describe --tags)"
@@ -20,7 +20,7 @@ parts:
       cd $SNAPCRAFT_PART_INSTALL/usr/bin
 
 apps:
-  stegano:
+  stegano-cli:
     command: bin/stegano
     plugs:
       - home
