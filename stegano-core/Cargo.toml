@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["steganography", "image", "png", "hiding", "unveil"]
 categories = ["encoding", "multimedia::encoding", "multimedia::images"]
 repository = "https://github.com/steganogram/stegano-rs"
-include = ["src/**/*", "LICENSE", "README.md", "../CHANGELOG.md"]
+include = ["src/**/*", "benches/**/*", "LICENSE", "README.md", "../CHANGELOG.md"]
 
 [badges]
 travis-ci = { repository = "steganogram/stegano-rs", branch = "main" }
