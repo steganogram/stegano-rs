@@ -18,7 +18,7 @@ impl LSBCodec {
     ///
     /// let mut image_with_secret = image::open("../resources/secrets/image-with-hello-world.png")
     ///     .expect("Cannot open secret image")
-    ///     .to_rgba();
+    ///     .to_rgba8();
     ///
     /// let mut buf = vec![0; 13];
     /// LSBCodec::decoder(&mut image_with_secret)
@@ -41,7 +41,7 @@ impl LSBCodec {
     ///
     /// let mut plain_image = open("../resources/plain/carrier-image.png")
     ///     .expect("Cannot open carrier image")
-    ///     .to_rgba();
+    ///     .to_rgba8();
     /// let (width, height) = plain_image.dimensions();
     /// let secret_message = "Hello World!".as_bytes();
     ///

@@ -14,7 +14,7 @@ use image::RgbaImage;
 /// // create a `RgbaImage` from a png image file
 /// let mut image = image::open("../resources/with_text/hello_world.png")
 ///     .expect("Cannot open secret image file")
-///     .to_rgba();
+///     .to_rgba8();
 /// let mut secret = vec![0; 13];
 ///
 /// // create a `Decoder` based on an `ImagePngSource` based on the `RgbaImage`
@@ -85,7 +85,7 @@ mod decoder_tests {
     fn it_should_iterate_over_all_colors_of_an_image() {
         let img = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
-            .to_rgba();
+            .to_rgba8();
         let (_, height) = img.dimensions();
         let first_pixel = *img.get_pixel(0, 0);
         let second_pixel = *img.get_pixel(0, 1);
@@ -118,7 +118,7 @@ mod decoder_tests {
     fn it_should_yield_none_after_last_pixel_last_color() {
         let img = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
-            .to_rgba();
+            .to_rgba8();
         let (width, height) = img.dimensions();
         let mut source = ImagePngSource::new(&img);
         assert_ne!(

@@ -170,7 +170,7 @@ impl Media {
                 "png" => Ok(Self::Image(
                     image::open(f)
                         .map_err(|_e| SteganoError::InvalidImageMedia)?
-                        .to_rgba(),
+                        .to_rgba8(),
                 )),
                 "wav" => {
                     let mut reader =
@@ -340,7 +340,7 @@ mod e2e_tests {
     use crate::commands::{unveil, unveil_raw};
     use std::fs;
     use std::io::Read;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     const BASE_IMAGE: &str = "../resources/Base.png";
 
@@ -395,7 +395,7 @@ mod e2e_tests {
 
     #[test]
     fn should_hide_and_unveil_one_text_file_in_wav() -> Result<()> {
-        let out_dir = TempDir::new("wav")?;
+        let out_dir = TempDir::new()?;
         let secret_media_p = out_dir.path().join("secret.wav");
         let secret_media_f = secret_media_p.to_str().unwrap();
 
@@ -424,7 +424,7 @@ mod e2e_tests {
 
     #[test]
     fn should_hide_and_unveil_one_text_file() -> Result<()> {
-        let out_dir = TempDir::new("hello_world.png")?;
+        let out_dir = TempDir::new()?;
         let image_with_secret_path = out_dir.path().join("secret.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
 
@@ -453,7 +453,7 @@ mod e2e_tests {
 
     #[test]
     fn should_raw_unveil_a_message() -> Result<()> {
-        let out_dir = TempDir::new("hello_world.png")?;
+        let out_dir = TempDir::new()?;
         let expected_file = out_dir.path().join("hello_world.bin");
         let raw_decoded_secret = expected_file.to_str().unwrap();
 
@@ -474,7 +474,7 @@ mod e2e_tests {
 
     #[test]
     fn should_hide_and_unveil_a_binary_file() -> Result<()> {
-        let out_dir = TempDir::new("random_1666_byte.bin.png")?;
+        let out_dir = TempDir::new()?;
         let secret_to_hide = "../resources/secrets/random_1666_byte.bin";
         let image_with_secret_path = out_dir.path().join("random_1666_byte.bin.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
@@ -503,7 +503,7 @@ mod e2e_tests {
 
     #[test]
     fn should_hide_and_unveil_a_zip_file() -> Result<()> {
-        let out_dir = TempDir::new("zip_with_2_files.zip.png")?;
+        let out_dir = TempDir::new()?;
         let secret_to_hide = "../resources/secrets/zip_with_2_files.zip";
         let image_with_secret_path = out_dir.path().join("zip_with_2_files.zip.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
@@ -530,7 +530,7 @@ mod e2e_tests {
 
     #[test]
     fn should_ensure_content_v2_compatibility() -> Result<()> {
-        let out_dir = TempDir::new("Blah.txt.png")?;
+        let out_dir = TempDir::new()?;
         let decoded_secret = out_dir.path().join("Blah.txt");
 
         unveil(
@@ -549,7 +549,7 @@ mod e2e_tests {
 
     #[test]
     fn should_ensure_content_v2_compatibility_with_2_files_reading() -> Result<()> {
-        let out_dir = TempDir::new("Blah.txt__and__Blah-2.txt.png")?;
+        let out_dir = TempDir::new()?;
         let decoded_secret_1 = out_dir.path().join("Blah.txt");
         let decoded_secret_2 = out_dir.path().join("Blah-2.txt");
 
@@ -574,7 +574,7 @@ mod e2e_tests {
 
     #[test]
     fn should_ensure_content_v2_compatibility_with_2_files_writing() -> Result<()> {
-        let out_dir = TempDir::new("out-dir")?;
+        let out_dir = TempDir::new()?;
         let image_with_secret_path = out_dir.path().join("Blah.txt.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
         let secret_to_hide = "../resources/secrets/Blah.txt";

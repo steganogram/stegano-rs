@@ -79,10 +79,10 @@ mod tests {
     fn transpose_mut() {
         let mut img = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
-            .to_rgba();
+            .to_rgba8();
         let mut img_ref = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
-            .to_rgba();
+            .to_rgba8();
         let (width, height) = img.dimensions();
         let mut t = TransposeMut::from_rows_mut(img.rows_mut(), height);
 
@@ -109,10 +109,10 @@ mod tests {
     fn iter_color() {
         let mut img = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
-            .to_rgba();
+            .to_rgba8();
         let mut img_ref = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
-            .to_rgba();
+            .to_rgba8();
         let (width, height) = img.dimensions();
         let mut c_iter =
             ColorIter::from_transpose(TransposeMut::from_rows_mut(img.rows_mut(), height));

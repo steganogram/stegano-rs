@@ -17,10 +17,10 @@ use crate::MediaPrimitiveMut;
 /// // create a `RgbaImage` from a png image file
 /// let image_original = image::open("../resources/plain/carrier-image.png")
 ///     .expect("Cannot open carrier image")
-///     .to_rgba();
+///     .to_rgba8();
 /// let mut image = image::open("../resources/plain/carrier-image.png")
 ///     .expect("Cannot open carrier image")
-///     .to_rgba();
+///     .to_rgba8();
 /// let secret_message = "Hello World!".as_bytes();
 /// {
 ///     let mut encoder = Encoder2::new(ImagePngMut::new(&mut image).into_iter());
@@ -69,10 +69,10 @@ mod decoder_tests {
     fn it_should_iterate_columns_first_and_only_3_color_channels() {
         let img_ro = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
-            .to_rgba();
+            .to_rgba8();
         let mut img = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
-            .to_rgba();
+            .to_rgba8();
         let (width, height) = img.dimensions();
         let mut carrier = ImagePngMut::new(&mut img);
 
@@ -99,7 +99,7 @@ mod decoder_tests {
     fn it_should_be_possible_to_mutate_colors() {
         let mut img = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
-            .to_rgba();
+            .to_rgba8();
         let first_pixel = *img.get_pixel(0, 0);
         {
             let mut carrier = ImagePngMut::new(&mut img);
