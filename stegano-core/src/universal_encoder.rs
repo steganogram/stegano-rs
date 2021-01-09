@@ -1,6 +1,7 @@
-use crate::{HideBit, MediaPrimitive, MediaPrimitiveMut};
-use bitstream_io::{BitReader, LittleEndian};
+use bitstream_io::{BitRead, BitReader, LittleEndian};
 use std::io::{Cursor, Result, Write};
+
+use crate::{HideBit, MediaPrimitive, MediaPrimitiveMut};
 
 /// abstracting write back of a carrier item
 pub trait WriteCarrierItem {

@@ -1,6 +1,7 @@
-use crate::MediaPrimitive;
-use bitstream_io::{BitWriter, LittleEndian};
+use bitstream_io::{BitWrite, BitWriter, LittleEndian};
 use std::io::{BufWriter, Read, Result};
+
+use crate::MediaPrimitive;
 
 /// generic unveil algorithm
 pub trait UnveilAlgorithm<T> {

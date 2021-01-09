@@ -1,9 +1,11 @@
+use std::io::{Read, Write};
+use std::path::Path;
+
+use hound::{WavReader, WavSpec};
+
 use crate::media::audio::wav_iter::{AudioWavIter, AudioWavIterMut};
 use crate::universal_decoder::{Decoder, OneBitUnveil};
 use crate::universal_encoder::Encoder2;
-use hound::{WavReader, WavSpec};
-use std::io::{Read, Write};
-use std::path::Path;
 
 /// convenient wrapper for `WavReader::open`
 pub fn read_samples(file: &Path) -> (Vec<i16>, WavSpec) {
@@ -48,13 +50,13 @@ impl LSBCodec {
     ///
     /// ```rust
     /// use std::path::Path;
-    /// use tempdir::TempDir;
+    /// use tempfile::TempDir;
     /// use hound::{WavReader, WavWriter};
     /// use stegano_core::media::audio::LSBCodec;
     /// use stegano_core::media::audio::read_samples;
     ///
     /// let input: &Path = "../resources/plain/carrier-audio.wav".as_ref();
-    /// let out_dir = TempDir::new("audio-temp").expect("Cannot create temp dir");
+    /// let out_dir = TempDir::new().expect("Cannot create temp dir");
     /// let audio_with_secret = out_dir.path().join("audio-with-secret.wav");
     ///
     /// let (mut samples, spec) = read_samples(input);
@@ -73,17 +75,20 @@ impl LSBCodec {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::Result;
     use hound::WavWriter;
-    use tempdir::TempDir;
+
+    use tempfile::TempDir;
+
+    use crate::Result;
+
+    use super::*;
 
     const SOME_WAV: &str = "../resources/plain/carrier-audio.wav";
     const SECRET: &str = "../README.md";
 
     #[test]
     fn it_should_encode_and_decode_in_chunks_by_using_read_to_end() -> Result<()> {
-        let out_dir = TempDir::new("audio-temp")?;
+        let out_dir = TempDir::new()?;
         let audio_with_secret_p = out_dir.path().join("audio-with-secret.wav");
         let audio_with_secret = audio_with_secret_p.as_path();
 

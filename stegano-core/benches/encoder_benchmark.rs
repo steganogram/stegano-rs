@@ -4,7 +4,7 @@ use stegano_core::media::image::LSBCodec;
 pub fn stegano_image_benchmark(c: &mut Criterion) {
     let plain_image = image::open("../resources/plain/carrier-image.png")
         .expect("Input image is not readable.")
-        .to_rgba();
+        .to_rgba8();
     let (width, height) = plain_image.dimensions();
     let secret_message = b"Hello World!";
 

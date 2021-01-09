@@ -1,4 +1,4 @@
-use bitstream_io::{BitReader, LittleEndian};
+use bitstream_io::{BitRead, BitReader, LittleEndian};
 use speculate::speculate;
 
 use stegano_core::BitIterator;
