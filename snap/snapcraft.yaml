@@ -1,0 +1,26 @@
+name: stegano
+base: core20 
+adopt-info: stegano
+summary: Image and Audio Steganography
+description: |
+  A cross-platform command line tool for steganography, focused on performance and simplicity.
+
+grade: stable
+confinement: strict
+
+parts:
+  stegano:
+    plugin: rust
+    source: stegano-cli
+    override-pull: |
+      snapcraftctl pull
+      snapcraftctl set-version "$(git describe --tags)"
+    override-build: |
+      snapcraftctl build
+      cd $SNAPCRAFT_PART_INSTALL/usr/bin
+
+apps:
+  stegano:
+    command: bin/stegano
+    plugs:
+      - home

@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
 [![LOC](https://tokei.rs/b1/github/steganogram/stegano-rs?category=code)](https://github.com/Aaronepower/tokei)
 
-A cross-platform command line tool for steganography focused on performance and simplicity.
+A cross-platform command line tool for steganography, focused on performance and simplicity.
 
 ## Demo
 
