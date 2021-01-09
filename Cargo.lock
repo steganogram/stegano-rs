@@ -850,7 +850,11 @@ dependencies = [
 
 [[package]]
 name = "stegano-cli"
+<<<<<<< HEAD
 version = "0.4.1"
+=======
+version = "0.4.3"
+>>>>>>> 2565f98... chore(release): re-align patch versions to have a fresh release
 dependencies = [
  "clap",
  "stegano-core",
@@ -858,7 +862,11 @@ dependencies = [
 
 [[package]]
 name = "stegano-core"
+<<<<<<< HEAD
 version = "0.4.1"
+=======
+version = "0.4.3"
+>>>>>>> 2565f98... chore(release): re-align patch versions to have a fresh release
 dependencies = [
  "aes-soft",
  "bitstream-io",
