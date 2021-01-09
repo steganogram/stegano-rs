@@ -245,7 +245,7 @@ Also every PR is welcome, just as a note of caution: at this very time the archi
 ## License
 
 - **[GNU GPL v3 license](https://www.gnu.org/licenses/gpl-3.0)**
-- Copyright 2019 - 2020 © [Sven Assmann][2].
+- Copyright 2019 - 2021 © [Sven Assmann][2].
 
 [2]: https://www.d34dl0ck.me
 [3]: https://en.wikipedia.org/wiki/Steganography
