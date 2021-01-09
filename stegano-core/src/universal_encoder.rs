@@ -38,7 +38,7 @@ where
         // TODO better let the algorithm determine the density of encoding
         let items_to_take = buf.len() << 3; // 1 bit per sample <=> * 8 <=> << 3
         let mut bit_iter = BitReader::endian(Cursor::new(buf), LittleEndian);
-        let mut bit_written = 0;
+        let mut bit_written: usize = 0;
         for s in self.carrier.by_ref().take(items_to_take) {
             // let item: CarrierItem = self.algorithm.encode(s, &bit_iter.read_bit());
             s.hide_bit(bit_iter.read_bit().unwrap()).unwrap();
@@ -57,7 +57,7 @@ where
             bit_written += 1;
         }
 
-        Ok(bit_written >> 3 as usize)
+        Ok(bit_written >> 3)
     }
 
     fn flush(&mut self) -> Result<()> {
@@ -110,7 +110,7 @@ where
             bit_written += 1;
         }
 
-        Ok(bit_written >> 3 as usize)
+        Ok(bit_written >> 3)
     }
 
     fn flush(&mut self) -> Result<()> {

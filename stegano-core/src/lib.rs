@@ -225,7 +225,7 @@ impl Hide for Media {
         match self {
             Media::Image(i) => {
                 let (width, height) = i.dimensions();
-                let _space_to_fill = ((width * height * 3) / 8) as usize;
+                let _space_to_fill = (width * height * 3) / 8;
                 let mut encoder = media::image::LSBCodec::encoder(i);
 
                 encoder
@@ -378,7 +378,7 @@ mod e2e_tests {
 
     #[test]
     fn carrier_item_mut_should_allow_to_mutate_colors() {
-        let mut color = 8 as u8;
+        let mut color: u8 = 8;
         let c = MediaPrimitiveMut::ImageColorChannel(&mut color);
 
         if let MediaPrimitiveMut::ImageColorChannel(i) = c {

@@ -39,7 +39,7 @@ where
         let buf_writer = BufWriter::new(buf);
         let mut bit_buffer = BitWriter::endian(buf_writer, LittleEndian);
 
-        let mut bit_read = 0;
+        let mut bit_read: usize = 0;
         for carrier in self.input.by_ref().take(items_to_take) {
             let bit = self.algorithm.decode(carrier);
             bit_buffer.write_bit(bit).expect("Cannot write bit n");
@@ -52,7 +52,7 @@ where
                 .expect("Failed to align the last byte read from carrier.");
         }
 
-        Ok(bit_read >> 3 as usize)
+        Ok(bit_read >> 3)
     }
 }
 
