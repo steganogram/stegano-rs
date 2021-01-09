@@ -40,6 +40,20 @@ You can find more information [on my slides][slides] or checkout [my talk on the
 
 ## Install
 
+### On Linux as snap
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/stegano)
+
+- installation [for Linux Mint](https://snapcraft.io/install/stegano/mint)
+- installation [for Arch Linux](https://snapcraft.io/install/stegano/arch)
+
+*TL;DR:*
+```sh
+sudo snap install stegano
+```
+
+### With cargo
+
 To install the stegano cli, you just need to run
 
 ```sh

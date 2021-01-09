@@ -16,9 +16,6 @@ parts:
     override-pull: |
       snapcraftctl pull
       snapcraftctl set-version "$(git describe --tags)"
-#    override-build: |
-#      snapcraftctl build
-#      cd $SNAPCRAFT_PART_INSTALL/usr/bin
 
 apps:
   stegano:
