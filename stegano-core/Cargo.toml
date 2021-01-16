@@ -33,7 +33,7 @@ thiserror = "1.0.23"
 [dev-dependencies]
 speculate = "0.1.2"
 criterion = "0.3.3"
-tempfile = "3.1.0"
+tempfile = "3.2.0"
 
 [lib]
 bench = false
