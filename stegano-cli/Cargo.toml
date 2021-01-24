@@ -24,3 +24,21 @@ clap = "2.33"
 [[bin]]
 name = "stegano"
 path = "src/main.rs"
+
+[package.metadata.deb]
+section = "security"
+extended-description = """## Features
+
+- Simple and easy-to-use command line tool
+- Cross-platform support (Windows, macOS and Linux)
+- Support Media formats like:
+  - PNG Images
+  - WAV Audio
+- Hides one or many files in a carrier media
+- Hides one-liner text messages in a carrier media
+- Based on [least significant bit steganography][lsb]
+- Backwards compatible to [stegano for windows for image en-/decoding][stegano/win]
+- Memory safe by design
+- Written in [rust](https://www.rust-lang.org/)
+
+"""
