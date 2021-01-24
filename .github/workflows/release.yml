@@ -126,8 +126,8 @@ jobs:
           toolchain: stable
           default: true
           profile: minimal
-          components: deb
       - uses: Swatinem/rust-cache@v1
+      - run: cargo install cargo-deb
       - run: cargo deb -p stegano-cli
       - name: Get version from tag
         id: tag_name

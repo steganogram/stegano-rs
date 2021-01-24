@@ -21,11 +21,11 @@ jobs:
           toolchain: stable
           default: true
           profile: minimal
-      - run: cargo install cargo-deb
       - uses: Swatinem/rust-cache@v1
+      - run: cargo install cargo-deb
       - name: Get version from tag
         id: tag_name
-        run: echo ::set-output name=current_version::$(git describe --tags --abbrev=0)
+        run: echo ::set-output name=current_version::0.4.5
         shell: bash
       - name: Get Changelog Entry
         id: changelog_reader
@@ -47,8 +47,8 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ steps.changelog_reader.outputs.version }}
           body: ${{ steps.changelog_reader.outputs.changes }}
-          prerelease: ${{ steps.changelog_reader.outputs.status == 'prereleased' }}
-          draft: ${{ steps.changelog_reader.outputs.status == 'unreleased' }}
+          prerelease: true
+          draft: true
       - name: Upload Release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
