@@ -128,7 +128,6 @@ jobs:
           profile: minimal
       - uses: Swatinem/rust-cache@v1
       - run: cargo install cargo-deb
-      - run: cargo deb -p stegano-cli
       - name: Get version from tag
         id: tag_name
         run: echo ::set-output name=current_version::${GITHUB_REF#refs/tags/v}
@@ -141,6 +140,7 @@ jobs:
           validation_depth: 10
           version: ${{ steps.tag_name.outputs.current_version }}
           path: ./CHANGELOG.md
+      - run: cargo deb -p stegano-cli
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
