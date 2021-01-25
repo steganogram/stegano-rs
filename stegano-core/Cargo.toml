@@ -32,7 +32,7 @@ thiserror = "1.0.23"
 
 [dev-dependencies]
 speculate = "0.1.2"
-criterion = "0.3.3"
+criterion = "0.3.4"
 tempfile = "3.2.0"
 
 [lib]
