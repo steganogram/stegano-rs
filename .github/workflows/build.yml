@@ -81,6 +81,38 @@ jobs:
       - name: cargo test
         run: cargo test --all --locked -- -Z unstable-options
 
+  coverage:
+    name: coverage report
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [ 'ubuntu-latest']
+    runs-on: ${{ matrix.version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup | rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+          profile: minimal
+      - uses: Swatinem/rust-cache@v1
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: '0.15.0'
+          args: '-- --test-threads 1'
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
+
   audit:
     name: security audit
     needs: check
