@@ -18,7 +18,7 @@ codecov = { repository = "steganogram/stegano-rs", branch = "main", service = "g
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-image = "0.23.12"
+image = "0.23.13"
 bitstream-io = "1.0.0"
 block-modes = "0.7.0"
 aes-soft = "0.6.4"
