@@ -28,7 +28,7 @@ bzip2 = "0.4.1"
 deflate = "0.9.0"
 byteorder = "1.4.2"
 hound = "3.4.0"
-thiserror = "1.0.23"
+thiserror = "1.0.24"
 
 [dev-dependencies]
 speculate = "0.1.2"
