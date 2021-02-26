@@ -118,9 +118,9 @@ dependencies = [
 
 [[package]]
 name = "bzip2"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "275d84fe348b838dc49477d39770682839b3e73e21a3eadc07b12924f1a9fcbe"
+checksum = "abf8012c8a15d5df745fcf258d93e6149dcf102882c8d8702d9cff778eab43a8"
 dependencies = [
  "bzip2-sys",
  "libc",
@@ -900,7 +900,7 @@ dependencies = [
  "bitstream-io",
  "block-modes",
  "byteorder",
- "bzip2 0.4.1",
+ "bzip2 0.4.2",
  "criterion",
  "deflate 0.9.0",
  "hex-literal",
