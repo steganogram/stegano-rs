@@ -112,6 +112,11 @@ jobs:
       - uses: Swatinem/rust-cache@v1
       - uses: katyo/publish-crates@v1
         with:
+          args: --manifest-path stegano-core/Cargo.toml
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - uses: katyo/publish-crates@v1
+        with:
+          args: --manifest-path stegano-cli/Cargo.toml
           registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   release:
