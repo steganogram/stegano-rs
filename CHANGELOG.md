@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.7] - 2021-03-14
+### 🛠️ Maintenance
+- [build(deps): bump byteorder from 1.4.2 to 1.4.3](https://github.com/steganogram/stegano-rs/pull/26)
+
 ## [0.4.6] - 2021-03-05
 ### 🛠️ Maintenance
 - [build(deps): bump image from 0.23.13 to 0.23.14](https://github.com/steganogram/stegano-rs/pull/24)
@@ -103,7 +107,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Typos in cli output and descriptions
 
-[Unreleased]: https://github.com/steganogram/stegano-rs/compare/v0.4.6...HEAD
+[Unreleased]: https://github.com/steganogram/stegano-rs/compare/v0.4.7...HEAD
+[0.4.7]: https://github.com/steganogram/stegano-rs/compare/v0.4.7...v0.4.6
 [0.4.6]: https://github.com/steganogram/stegano-rs/compare/v0.4.6...v0.4.5
 [0.4.5]: https://github.com/steganogram/stegano-rs/compare/v0.4.5...v0.4.1
 [0.4.1]: https://github.com/steganogram/stegano-rs/compare/v0.4.0...v0.4.1
