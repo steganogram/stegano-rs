@@ -1,5 +1,5 @@
 use crate::media::audio::wav_iter::AudioWavIter;
-use crate::media::image::LSBCodec;
+use crate::media::image::LsbCodec;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
 use crate::{Media, Message, RawMessage, SteganoError};
 use std::fs::File;
@@ -11,7 +11,7 @@ pub fn unveil(secret_media: &Path, destination: &Path) -> Result<(), SteganoErro
 
     let files = match media {
         Media::Image(image) => {
-            let mut decoder = LSBCodec::decoder(&image);
+            let mut decoder = LsbCodec::decoder(&image);
             let msg = Message::of(&mut decoder);
             let mut files = msg.files;
 
@@ -63,7 +63,7 @@ pub fn unveil_raw(secret_media: &Path, destination_file: &Path) -> Result<(), St
 
     match media {
         Media::Image(image) => {
-            let mut decoder = LSBCodec::decoder(&image);
+            let mut decoder = LsbCodec::decoder(&image);
             let msg = RawMessage::of(&mut decoder);
             let mut destination_file = File::create(destination_file)
                 .map_err(|source| SteganoError::WriteError { source })?;

@@ -17,22 +17,22 @@ pub fn read_samples(file: &Path) -> (Vec<i16>, WavSpec) {
 }
 
 /// Factory for decoder and encoder
-pub struct LSBCodec;
+pub struct LsbCodec;
 
-impl LSBCodec {
+impl LsbCodec {
     /// builds a LSB Audio Decoder that implements Read
     ///
     /// ## Example how to retrieve a decoder:
     /// ```rust
     /// use std::path::Path;
     /// use hound::WavReader;
-    /// use stegano_core::media::audio::LSBCodec;
+    /// use stegano_core::media::audio::LsbCodec;
     ///
     /// let audio_with_secret: &Path = "../resources/secrets/audio-with-secrets.wav".as_ref();
     /// let mut reader = WavReader::open(audio_with_secret).expect("Cannot create reader");
     ///
     /// let mut buf = vec![0; 12];
-    /// LSBCodec::decoder(&mut reader)
+    /// LsbCodec::decoder(&mut reader)
     ///     .read_exact(&mut buf[..])
     ///     .expect("Cannot read 12 bytes from codec");
     /// let msg = String::from_utf8(buf).expect("Cannot convert result to string");
@@ -52,7 +52,7 @@ impl LSBCodec {
     /// use std::path::Path;
     /// use tempfile::TempDir;
     /// use hound::{WavReader, WavWriter};
-    /// use stegano_core::media::audio::LSBCodec;
+    /// use stegano_core::media::audio::LsbCodec;
     /// use stegano_core::media::audio::read_samples;
     ///
     /// let input: &Path = "../resources/plain/carrier-audio.wav".as_ref();
@@ -64,7 +64,7 @@ impl LSBCodec {
     ///     .expect("Cannot create writer");
     /// let secret_message = "Hello World!".as_bytes();
     ///
-    /// LSBCodec::encoder(&mut samples)
+    /// LsbCodec::encoder(&mut samples)
     ///     .write_all(&secret_message[..])
     ///     .expect("Cannot write to codec");
     /// ```
@@ -96,7 +96,7 @@ mod tests {
         let secret_to_hide = secret_to_hide_origin.clone();
         let (mut samples, spec) = read_samples(SOME_WAV.as_ref());
         {
-            let mut codec = LSBCodec::encoder(&mut samples);
+            let mut codec = LsbCodec::encoder(&mut samples);
             let half_the_buffer = secret_to_hide.len() / 2;
             codec
                 .write_all(&secret_to_hide[..half_the_buffer])
@@ -116,7 +116,7 @@ mod tests {
 
         let mut reader =
             WavReader::open(audio_with_secret).expect("carrier audio file was not readable");
-        let mut codec = LSBCodec::decoder(&mut reader);
+        let mut codec = LsbCodec::decoder(&mut reader);
         let mut unveiled_secret = Vec::new();
         let total_read = codec
             .read_to_end(&mut unveiled_secret)

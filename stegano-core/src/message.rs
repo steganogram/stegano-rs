@@ -184,10 +184,9 @@ impl From<&mut Vec<u8>> for Message {
     }
 }
 
-impl Into<Vec<u8>> for &Message {
-    fn into(self) -> Vec<u8> {
-        let mut v = Vec::new();
-        v.push(self.header.to_u8());
+impl From<&Message> for Vec<u8> {
+    fn from(m: &Message) -> Vec<u8> {
+        let mut v = vec![m.header.to_u8()];
 
         {
             let mut buf = Vec::new();
@@ -199,7 +198,7 @@ impl Into<Vec<u8>> for &Message {
                 let options = zip::write::FileOptions::default()
                     .compression_method(zip::CompressionMethod::Deflated);
 
-                (&self.files)
+                (&m.files)
                     .iter()
                     .map(|(name, buf)| (name, buf))
                     .for_each(|(name, buf)| {
@@ -214,14 +213,14 @@ impl Into<Vec<u8>> for &Message {
                 zip.finish().expect("finish zip failed.");
             }
 
-            if self.header == ContentVersion::V4 {
+            if m.header == ContentVersion::V4 {
                 v.write_u32::<BigEndian>(buf.len() as u32)
                     .expect("Failed to write the inner message size.");
             }
 
             v.append(&mut buf);
 
-            if self.header == ContentVersion::V2 {
+            if m.header == ContentVersion::V2 {
                 v.write_u16::<BigEndian>(0xffff)
                     .expect("Failed to write content format 2 termination.");
             }

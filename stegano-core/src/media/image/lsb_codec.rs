@@ -6,14 +6,14 @@ use image::RgbaImage;
 use std::io::{Read, Write};
 
 /// Factory for decoder and encoder
-pub struct LSBCodec;
+pub struct LsbCodec;
 
-impl LSBCodec {
+impl LsbCodec {
     /// builds a LSB Image Decoder that implements Read
     ///
     /// ## Example how to retrieve a decoder:
     /// ```rust
-    /// use stegano_core::media::image::LSBCodec;
+    /// use stegano_core::media::image::LsbCodec;
     /// use image::RgbaImage;
     ///
     /// let mut image_with_secret = image::open("../resources/secrets/image-with-hello-world.png")
@@ -21,7 +21,7 @@ impl LSBCodec {
     ///     .to_rgba8();
     ///
     /// let mut buf = vec![0; 13];
-    /// LSBCodec::decoder(&mut image_with_secret)
+    /// LsbCodec::decoder(&mut image_with_secret)
     ///     .read_exact(&mut buf[..])
     ///     .expect("Cannot read 13 bytes from codec");
     ///
@@ -36,7 +36,7 @@ impl LSBCodec {
     /// ## Example how to retrieve an encoder:
     ///
     /// ```rust
-    /// use stegano_core::media::image::LSBCodec;
+    /// use stegano_core::media::image::LsbCodec;
     /// use image::{RgbaImage, open};
     ///
     /// let mut plain_image = open("../resources/plain/carrier-image.png")
@@ -46,12 +46,12 @@ impl LSBCodec {
     /// let secret_message = "Hello World!".as_bytes();
     ///
     /// {
-    ///     LSBCodec::encoder(&mut plain_image)
+    ///     LsbCodec::encoder(&mut plain_image)
     ///         .write_all(&secret_message[..])
     ///         .expect("Cannot write to codec");
     /// }
     /// let mut buf = vec![0; secret_message.len()];
-    /// LSBCodec::decoder(&mut plain_image.into())
+    /// LsbCodec::decoder(&mut plain_image.into())
     ///     .read_exact(&mut buf[..])
     ///     .expect("Cannot read 12 bytes from codec");
     ///

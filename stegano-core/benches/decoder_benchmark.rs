@@ -22,7 +22,7 @@ pub fn stegano_image_benchmark(c: &mut Criterion) {
 
 pub fn stegano_audio_benchmark(c: &mut Criterion) {
     use hound::WavReader;
-    use stegano_core::media::audio::LSBCodec;
+    use stegano_core::media::audio::LsbCodec;
     let mut reader = WavReader::open("../resources/secrets/audio-with-secrets.wav")
         .expect("Cannot create reader");
 
@@ -30,7 +30,7 @@ pub fn stegano_audio_benchmark(c: &mut Criterion) {
         b.iter(|| {
             reader.seek(0).expect("Cannot seek to 0");
             let mut buf = vec![0; 12];
-            LSBCodec::decoder(&mut reader)
+            LsbCodec::decoder(&mut reader)
                 .read_exact(&mut buf)
                 .expect("Cannot read 12 bytes from decoder");
             let msg = String::from_utf8(buf).expect("Cannot convert result to string");

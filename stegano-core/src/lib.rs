@@ -100,7 +100,7 @@ pub enum SteganoError {
 
     /// Represents all other cases of `std::io::Error`.
     #[error(transparent)]
-    IOError(#[from] std::io::Error),
+    IoError(#[from] std::io::Error),
 }
 
 /// wrap the low level data types that carries information
@@ -226,14 +226,14 @@ impl Hide for Media {
             Media::Image(i) => {
                 let (width, height) = i.dimensions();
                 let _space_to_fill = (width * height * 3) / 8;
-                let mut encoder = media::image::LSBCodec::encoder(i);
+                let mut encoder = media::image::LsbCodec::encoder(i);
 
                 encoder
                     .write_all(buf.as_ref())
                     .map_err(|_e| SteganoError::ImageEncodingError)?
             }
             Media::Audio((_spec, samples)) => {
-                let mut encoder = media::audio::LSBCodec::encoder(samples);
+                let mut encoder = media::audio::LsbCodec::encoder(samples);
 
                 encoder
                     .write_all(buf.as_ref())
