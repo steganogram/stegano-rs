@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.8] - 2021-05-01
+### 🛠️ Maintenance
+- [build(deps): bump block-modes from 0.7.0 to 0.8.1](https://github.com/steganogram/stegano-rs/pull/32)
+- [Upgrade to GitHub-native Dependabot](https://github.com/steganogram/stegano-rs/pull/30)
+- [build(deps): bump zip from 0.5.11 to 0.5.12](https://github.com/steganogram/stegano-rs/pull/29)
+- [build(deps): bump deflate from 0.9.0 to 0.9.1](https://github.com/steganogram/stegano-rs/pull/28)
+- [release(v0.4.7): add date+version+changes to the changelog](https://github.com/steganogram/stegano-rs/pull/27)
+- [build(deps): bump byteorder from 1.4.2 to 1.4.3](https://github.com/steganogram/stegano-rs/pull/26)
+
+### Contributors
+- [dependabot-preview[bot]](https://github.com/apps/dependabot-preview)
+- [sassman](https://github.com/sassman)
+
 ## [0.4.7] - 2021-03-14
 ### 🛠️ Maintenance
 - [build(deps): bump byteorder from 1.4.2 to 1.4.3](https://github.com/steganogram/stegano-rs/pull/26)
