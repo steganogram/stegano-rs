@@ -45,10 +45,7 @@ where
                     Err(_) => None,
                 };
             }
-            return match self.byte {
-                None => None,
-                Some(b) => Some((b >> bit) & 1),
-            };
+            return self.byte.map(|b| (b >> bit) & 1);
         }
     }
 }
