@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+# [0.4.9] - 2021-05-07
+### 🛠️ Maintenance
+- [chore(deps): strip unused deps](https://github.com/steganogram/stegano-rs/pull/35)
+
+### Contributors
+- [sassman](https://github.com/sassman)
 
 ## [0.4.8] - 2021-05-01
 ### 🛠️ Maintenance
@@ -120,7 +126,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Typos in cli output and descriptions
 
-[Unreleased]: https://github.com/steganogram/stegano-rs/compare/v0.4.7...HEAD
+[Unreleased]: https://github.com/steganogram/stegano-rs/compare/v0.4.9...HEAD
+[0.4.9]: https://github.com/steganogram/stegano-rs/compare/v0.4.9...v0.4.8
+[0.4.8]: https://github.com/steganogram/stegano-rs/compare/v0.4.8...v0.4.7
 [0.4.7]: https://github.com/steganogram/stegano-rs/compare/v0.4.7...v0.4.6
 [0.4.6]: https://github.com/steganogram/stegano-rs/compare/v0.4.6...v0.4.5
 [0.4.5]: https://github.com/steganogram/stegano-rs/compare/v0.4.5...v0.4.1
