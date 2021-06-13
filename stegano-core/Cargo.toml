@@ -21,7 +21,7 @@ maintenance = { status = "actively-developed" }
 image = "0.23.14"
 bitstream-io = "1.0.0"
 zip = "0.5.13"
-bzip2 = "0.4.2"
+bzip2 = "0.4.3"
 deflate = "0.9.1"
 byteorder = "1.4.3"
 hound = "3.4.0"
