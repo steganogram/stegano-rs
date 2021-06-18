@@ -19,7 +19,7 @@ maintenance = { status = "actively-developed" }
 
 [dependencies]
 image = "0.23.14"
-bitstream-io = "1.0.0"
+bitstream-io = "1.1.0"
 zip = "0.5.13"
 bzip2 = "0.4.3"
 deflate = "0.9.1"
