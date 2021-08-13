@@ -130,14 +130,14 @@ fn main() -> Result<()> {
         }
         ("unveil", Some(m)) => {
             unveil(
-                &Path::new(m.value_of("input_image").unwrap()),
-                &Path::new(m.value_of("output_folder").unwrap()),
+                Path::new(m.value_of("input_image").unwrap()),
+                Path::new(m.value_of("output_folder").unwrap()),
             )?;
         }
         ("unveil-raw", Some(m)) => {
             unveil_raw(
-                &Path::new(m.value_of("input_image").unwrap()),
-                &Path::new(m.value_of("output_folder").unwrap()),
+                Path::new(m.value_of("input_image").unwrap()),
+                Path::new(m.value_of("output_folder").unwrap()),
             )?;
         }
         _ => {}
