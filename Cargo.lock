@@ -46,9 +46,9 @@ checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
 name = "bitstream-io"
-version = "1.1.0"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f5a101093baaea4d3684747b026ffae31b70666110bd1d46cfb28cb22be8bcc"
+checksum = "521f9cfb75191e53bc98586398c3104a2b10812475930f09eeccb5144fc3e68b"
 
 [[package]]
 name = "bstr"
