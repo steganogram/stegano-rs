@@ -458,7 +458,7 @@ mod e2e_tests {
         let raw_decoded_secret = expected_file.to_str().unwrap();
 
         unveil_raw(
-            &Path::new("../resources/with_text/hello_world.png"),
+            Path::new("../resources/with_text/hello_world.png"),
             expected_file.as_path(),
         )?;
 
@@ -534,7 +534,7 @@ mod e2e_tests {
         let decoded_secret = out_dir.path().join("Blah.txt");
 
         unveil(
-            &Path::new("../resources/with_attachment/Blah.txt.png"),
+            Path::new("../resources/with_attachment/Blah.txt.png"),
             out_dir.path(),
         )?;
 
@@ -554,7 +554,7 @@ mod e2e_tests {
         let decoded_secret_2 = out_dir.path().join("Blah-2.txt");
 
         unveil(
-            &Path::new("../resources/with_attachment/Blah.txt__and__Blah-2.txt.png"),
+            Path::new("../resources/with_attachment/Blah.txt__and__Blah-2.txt.png"),
             out_dir.path(),
         )?;
         assert_eq_file_content(
