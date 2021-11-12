@@ -273,9 +273,9 @@ dependencies = [
 
 [[package]]
 name = "deflate"
-version = "0.9.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f95bf05dffba6e6cce8dfbb30def788154949ccd9aed761b472119c21e01c70"
+checksum = "c86f7e25f518f4b81808a2cf1c50996a61f5c2eb394b2393bd87f2a4780a432f"
 dependencies = [
  "adler32",
 ]
@@ -816,7 +816,7 @@ dependencies = [
  "byteorder",
  "bzip2",
  "criterion",
- "deflate 0.9.1",
+ "deflate 1.0.0",
  "hound",
  "image",
  "speculate",
