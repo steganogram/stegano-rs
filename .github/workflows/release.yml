@@ -146,7 +146,6 @@ jobs:
           validation_depth: 10
           version: ${{ steps.tag_name.outputs.current_version }}
           path: ./CHANGELOG.md
-      - run: cargo deb -p stegano-cli
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -160,14 +159,3 @@ jobs:
           body: ${{ steps.changelog_reader.outputs.changes }}
           prerelease: ${{ steps.changelog_reader.outputs.status == 'prereleased' }}
           draft: ${{ steps.changelog_reader.outputs.status == 'unreleased' }}
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/debian/stegano-cli_${{ steps.tag_name.outputs.current_version }}_amd64.deb
-          asset_name: stegano_${{ steps.tag_name.outputs.current_version }}_amd64.deb
-          asset_content_type: application/vnd.debian.binary-package
