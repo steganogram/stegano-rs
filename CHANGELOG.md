@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.4.10] - 2021-11-15
+### 🛠️ Maintenance
+- [chore(deps): bump versions](7f4aba395002a2c5beaba3ba8b58548e4f7c9723)
+
+### Contributors
+- [sassman](https://github.com/sassman)
+
 ## [0.4.9] - 2021-05-07
 ### 🛠️ Maintenance
 - [chore(deps): strip unused deps](https://github.com/steganogram/stegano-rs/pull/35)
