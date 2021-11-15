@@ -1,7 +1,7 @@
 [package]
 name = "stegano-core"
 description = "Steganography core library for stegano-cli. Supports hiding data in PNG images via LSB Encoding."
-version = "0.4.9"
+version = "0.4.10"
 authors = ["Sven Assmann <sven.assmann.it@gmail.com>"]
 edition = "2018"
 license = "GPL-3.0-only"
@@ -15,22 +15,22 @@ include = ["src/**/*", "benches/**/*", "LICENSE", "README.md", "../CHANGELOG.md"
 [badges]
 travis-ci = { repository = "steganogram/stegano-rs", branch = "main" }
 codecov = { repository = "steganogram/stegano-rs", branch = "main", service = "github" }
-maintenance = { status = "actively-developed" }
+maintenance = { status = "passively-maintained" }
 
 [dependencies]
-image = "0.23.14"
-bitstream-io = "1.2.0"
-zip = "0.5.13"
-bzip2 = "0.4.3"
-deflate = "0.9.1"
-byteorder = "1.4.3"
-hound = "3.4.0"
-thiserror = "1.0.26"
+image = "0.23"
+bitstream-io = "1.0"
+zip = "0.5"
+bzip2 = "0.4"
+deflate = "1.0"
+byteorder = "1.4"
+hound = "3.4"
+thiserror = "1.0"
 
 [dev-dependencies]
-speculate = "0.1.2"
-criterion = "0.3.5"
-tempfile = "3.2.0"
+speculate = "0.1"
+criterion = "0.3"
+tempfile = "3.2"
 
 [lib]
 bench = false
