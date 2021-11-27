@@ -5,6 +5,34 @@ use crate::universal_encoder::Encoder;
 use image::RgbaImage;
 use std::io::{Read, Write};
 
+#[derive(Debug)]
+pub struct CodecOptions {
+    /// would move the by step n each iteration,
+    /// Note: the alpha channel is count as regular channel
+    pub color_channel_step_increment: usize,
+    /// if true no alpha channel would be used for encoding
+    pub skip_alpha_channel: bool,
+}
+
+impl Default for CodecOptions {
+    fn default() -> Self {
+        Self {
+            color_channel_step_increment: 1,
+            skip_alpha_channel: true,
+        }
+    }
+}
+
+impl CodecOptions {
+    pub fn get_color_channel_step_increment(&self) -> usize {
+        self.color_channel_step_increment
+    }
+
+    pub fn get_skip_alpha_channel(&self) -> bool {
+        self.skip_alpha_channel
+    }
+}
+
 /// Factory for decoder and encoder
 pub struct LsbCodec;
 

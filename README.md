@@ -249,6 +249,10 @@ Let's unveil the raw data of the `README.md` that we've hidden just above in `RE
 The file `README.bin` contains all raw binary data unfiltered decoded by the LSB decoding algorithm. 
 That is for the curious people, and not so much interesting for regular usage.
 
+## stegano on the web
+
+- [announcement on reddit](https://www.reddit.com/r/rust/comments/fbavos/command_line_steganography_for_png_images_written/)
+
 ## Contribute
 
 To contribute to stegano-rs you can either checkout existing issues [labeled with `good first issue`][4] or [open a new issue][5]
