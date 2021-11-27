@@ -62,9 +62,3 @@ impl LsbCodec {
         Box::new(Encoder2::new(ImagePngMut::new(carrier)))
     }
 }
-
-#[cfg(test)]
-mod audio_e2e_tests {
-    // use super::*;
-    // TODO implement them
-}
