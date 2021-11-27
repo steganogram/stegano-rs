@@ -3,3 +3,6 @@ members = [
     "stegano-core",
     "stegano-cli",
 ]
+
+[profile.release]
+lto = "fat"

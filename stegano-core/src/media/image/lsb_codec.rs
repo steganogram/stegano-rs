@@ -1,7 +1,7 @@
 use crate::media::image::decoder::ImagePngSource;
 use crate::media::image::encoder::ImagePngMut;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
-use crate::universal_encoder::Encoder2;
+use crate::universal_encoder::Encoder;
 use image::RgbaImage;
 use std::io::{Read, Write};
 
@@ -59,12 +59,6 @@ impl LsbCodec {
     /// assert_eq!(msg, "Hello World!");
     /// ```
     pub fn encoder<'i>(carrier: &'i mut RgbaImage) -> Box<dyn Write + 'i> {
-        Box::new(Encoder2::new(ImagePngMut::new(carrier)))
+        Box::new(Encoder::new(ImagePngMut::new(carrier)))
     }
-}
-
-#[cfg(test)]
-mod audio_e2e_tests {
-    // use super::*;
-    // TODO implement them
 }
