@@ -12,7 +12,7 @@ use crate::MediaPrimitiveMut;
 /// use image::{RgbaImage};
 /// use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
 /// use stegano_core::media::image::encoder::ImagePngMut;
-/// use stegano_core::universal_encoder::Encoder2;
+/// use stegano_core::universal_encoder::Encoder;
 ///
 /// // create a `RgbaImage` from a png image file
 /// let image_original = image::open("../resources/plain/carrier-image.png")
@@ -23,7 +23,7 @@ use crate::MediaPrimitiveMut;
 ///     .to_rgba8();
 /// let secret_message = "Hello World!".as_bytes();
 /// {
-///     let mut encoder = Encoder2::new(ImagePngMut::new(&mut image).into_iter());
+///     let mut encoder = Encoder::new(ImagePngMut::new(&mut image).into_iter());
 ///     encoder.write_all(secret_message)
 ///         .expect("Cannot write secret message");
 /// }

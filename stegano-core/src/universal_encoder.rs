@@ -16,23 +16,23 @@ pub trait HideAlgorithm<T> {
 }
 
 /// generic stegano encoder
-pub struct Encoder2<'c, C>
+pub struct Encoder<'c, C>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
 {
     pub carrier: C,
 }
 
-impl<'c, C> Encoder2<'c, C>
+impl<'c, C> Encoder<'c, C>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
 {
     pub fn new(carrier: C) -> Self {
-        Encoder2 { carrier }
+        Encoder { carrier }
     }
 }
 
-impl<'c, C> Write for Encoder2<'c, C>
+impl<'c, C> Write for Encoder<'c, C>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
 {
