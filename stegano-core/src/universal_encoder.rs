@@ -71,3 +71,30 @@ impl HideAlgorithm<MediaPrimitive> for OneBitHide {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_encode_one_bit() {
+        let encoder = OneBitHide;
+
+        assert_eq!(
+            encoder.encode(MediaPrimitive::ImageColorChannel(0b00001110), &Ok(true)),
+            MediaPrimitive::ImageColorChannel(0b00001111)
+        );
+        assert_eq!(
+            encoder.encode(MediaPrimitive::ImageColorChannel(0b00001110), &Ok(false)),
+            MediaPrimitive::ImageColorChannel(0b00001110)
+        );
+        assert_eq!(
+            encoder.encode(MediaPrimitive::AudioSample(0b00001110), &Ok(true)),
+            MediaPrimitive::AudioSample(0b00001111)
+        );
+        assert_eq!(
+            encoder.encode(MediaPrimitive::AudioSample(0b00001110), &Ok(false)),
+            MediaPrimitive::AudioSample(0b00001110)
+        );
+    }
+}
