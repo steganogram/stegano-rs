@@ -77,6 +77,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn should_not_harm_on_error() {
+        let encoder = OneBitHide;
+        assert_eq!(
+            encoder.encode(
+                MediaPrimitive::ImageColorChannel(0b00001110),
+                &Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe))
+            ),
+            MediaPrimitive::ImageColorChannel(0b00001110)
+        );
+    }
+
+    #[test]
     fn should_encode_one_bit() {
         let encoder = OneBitHide;
 
