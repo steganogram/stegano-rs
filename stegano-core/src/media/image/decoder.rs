@@ -11,7 +11,7 @@ use image::{Rgba, RgbaImage};
 /// use std::io::Read;
 /// use image::{RgbaImage};
 /// use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
-/// use stegano_core::media::image::decoder::ImagePngSource;
+/// use stegano_core::media::image::decoder::ImageRgbaColor;
 ///
 /// // create a `RgbaImage` from a png image file
 /// let mut image = image::open("../resources/with_text/hello_world.png")
@@ -20,21 +20,21 @@ use image::{Rgba, RgbaImage};
 /// let mut secret = vec![0; 13];
 ///
 /// // create a `Decoder` based on an `ImagePngSource` based on the `RgbaImage`
-/// Decoder::new(ImagePngSource::new(&mut image), OneBitUnveil)
+/// Decoder::new(ImageRgbaColor::new(&mut image), OneBitUnveil)
 ///     .read_exact(&mut secret)
 ///     .expect("Cannot read 13 bytes from decoder");
 ///
 /// let msg = String::from_utf8(secret).expect("Cannot convert result to string");
 /// assert_eq!("\u{1}Hello World!", msg);
 /// ```
-pub struct ImagePngSource<'i> {
+pub struct ImageRgbaColor<'i> {
     i: usize,
     steps: usize,
     skip_alpha: bool,
     pixel: ColorIter<'i, Rgba<u8>>,
 }
 
-impl<'i> ImagePngSource<'i> {
+impl<'i> ImageRgbaColor<'i> {
     /// constructor for a given `RgbaImage` that lives somewhere
     pub fn new(input: &'i RgbaImage) -> Self {
         Self::new_with_options(input, &CodecOptions::default())
@@ -52,7 +52,7 @@ impl<'i> ImagePngSource<'i> {
 }
 
 /// iterates over the image and returns single color channels of each pixel wrapped into a `CarrierItem`
-impl<'i> Iterator for ImagePngSource<'i> {
+impl<'i> Iterator for ImageRgbaColor<'i> {
     type Item = MediaPrimitive;
 
     #[inline(always)]
@@ -92,7 +92,7 @@ mod decoder_tests {
         let first_pixel = *img.get_pixel(0, 0);
         let second_pixel = *img.get_pixel(0, 1);
         let second_row_first_pixel = *img.get_pixel(1, 0);
-        let mut source = ImagePngSource::new(&img);
+        let mut source = ImageRgbaColor::new(&img);
         assert_eq!(
             source.next().unwrap(),
             MediaPrimitive::ImageColorChannel(first_pixel.0[0]),
@@ -122,7 +122,7 @@ mod decoder_tests {
             .expect("Input image is not readable.")
             .to_rgba8();
         let (width, height) = img.dimensions();
-        let mut source = ImagePngSource::new(&img);
+        let mut source = ImageRgbaColor::new(&img);
         assert_ne!(
             source.nth(((height * width * 3) - 1) as usize),
             None,

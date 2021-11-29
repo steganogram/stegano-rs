@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::io::Read;
-use stegano_core::media::image::decoder::ImagePngSource;
+use stegano_core::media::image::decoder::ImageRgbaColor;
 use stegano_core::media::image::LsbCodec;
 use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
 
@@ -12,7 +12,7 @@ pub fn stegano_image_benchmark(c: &mut Criterion) {
 
         b.iter(|| {
             let mut buf = vec![0; 13];
-            Decoder::new(ImagePngSource::new(&img), OneBitUnveil)
+            Decoder::new(ImageRgbaColor::new(&img), OneBitUnveil)
                 .read_exact(&mut buf)
                 .expect("Failed to read 13 bytes");
             let msg = String::from_utf8(buf).expect("Failed to convert result to string");

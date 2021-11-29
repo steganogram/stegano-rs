@@ -12,7 +12,7 @@ use crate::MediaPrimitiveMut;
 /// use std::io::{Read, Write};
 /// use image::{RgbaImage};
 /// use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
-/// use stegano_core::media::image::encoder::ImagePngMut;
+/// use stegano_core::media::image::encoder::ImageRgbaColorMut;
 /// use stegano_core::universal_encoder::Encoder;
 ///
 /// // create a `RgbaImage` from a png image file
@@ -24,20 +24,20 @@ use crate::MediaPrimitiveMut;
 ///     .to_rgba8();
 /// let secret_message = "Hello World!".as_bytes();
 /// {
-///     let mut encoder = Encoder::new(ImagePngMut::new(&mut image).into_iter());
+///     let mut encoder = Encoder::new(ImageRgbaColorMut::new(&mut image).into_iter());
 ///     encoder.write_all(secret_message)
 ///         .expect("Cannot write secret message");
 /// }
 /// assert_ne!(image_original.get_pixel(0, 0), image.get_pixel(0, 0));
 /// ```
-pub struct ImagePngMut<'a> {
+pub struct ImageRgbaColorMut<'a> {
     i: usize,
     steps: usize,
     skip_alpha: bool,
     pixel: ColorIterMut<'a, Rgba<u8>>,
 }
 
-impl<'a> ImagePngMut<'a> {
+impl<'a> ImageRgbaColorMut<'a> {
     /// constructor for a given `RgbaImage` that lives somewhere
     pub fn new(input: &'a mut RgbaImage) -> Self {
         Self::new_with_options(input, &CodecOptions::default())
@@ -54,7 +54,7 @@ impl<'a> ImagePngMut<'a> {
     }
 }
 
-impl<'i> Iterator for ImagePngMut<'i> {
+impl<'i> Iterator for ImageRgbaColorMut<'i> {
     type Item = MediaPrimitiveMut<'i>;
 
     fn next(&'_ mut self) -> Option<Self::Item> {
@@ -92,7 +92,7 @@ mod decoder_tests {
     fn it_should_step_in_increments_smaller_than_one_pixel() {
         let img_ro = prepare_small_image();
         let mut img = img_ro.clone();
-        let mut carrier = ImagePngMut::new_with_options(
+        let mut carrier = ImageRgbaColorMut::new_with_options(
             &mut img,
             &CodecOptions {
                 skip_alpha_channel: true,
@@ -119,7 +119,7 @@ mod decoder_tests {
     fn it_should_step_in_increments_bigger_than_one_pixel() {
         let img_ro = prepare_small_image();
         let mut img = img_ro.clone();
-        let mut carrier = ImagePngMut::new_with_options(
+        let mut carrier = ImageRgbaColorMut::new_with_options(
             &mut img,
             &CodecOptions {
                 skip_alpha_channel: true,
@@ -151,7 +151,7 @@ mod decoder_tests {
             .expect("Input image is not readable.")
             .to_rgba8();
         let (width, height) = img.dimensions();
-        let mut carrier = ImagePngMut::new(&mut img);
+        let mut carrier = ImageRgbaColorMut::new(&mut img);
 
         for x in 0..width {
             for y in 0..height {
@@ -179,7 +179,7 @@ mod decoder_tests {
             .to_rgba8();
         let first_pixel = *img.get_pixel(0, 0);
         {
-            let mut carrier = ImagePngMut::new(&mut img);
+            let mut carrier = ImageRgbaColorMut::new(&mut img);
             if let MediaPrimitiveMut::ImageColorChannel(color) = carrier.next().unwrap() {
                 *color += 0x2;
             }

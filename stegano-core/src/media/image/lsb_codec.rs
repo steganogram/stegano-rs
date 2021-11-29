@@ -1,5 +1,5 @@
-use crate::media::image::decoder::ImagePngSource;
-use crate::media::image::encoder::ImagePngMut;
+use crate::media::image::decoder::ImageRgbaColor;
+use crate::media::image::encoder::ImageRgbaColorMut;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
 use crate::universal_encoder::Encoder;
 use image::RgbaImage;
@@ -57,7 +57,7 @@ impl LsbCodec {
     /// assert_eq!(msg, "\u{1}Hello World!");
     /// ```
     pub fn decoder<'i>(input: &'i RgbaImage) -> Box<dyn Read + 'i> {
-        Box::new(Decoder::new(ImagePngSource::new(input), OneBitUnveil))
+        Box::new(Decoder::new(ImageRgbaColor::new(input), OneBitUnveil))
     }
 
     /// builds a LSB Image Encoder that implements Write
@@ -87,6 +87,6 @@ impl LsbCodec {
     /// assert_eq!(msg, "Hello World!");
     /// ```
     pub fn encoder<'i>(carrier: &'i mut RgbaImage) -> Box<dyn Write + 'i> {
-        Box::new(Encoder::new(ImagePngMut::new(carrier)))
+        Box::new(Encoder::new(ImageRgbaColorMut::new(carrier)))
     }
 }
