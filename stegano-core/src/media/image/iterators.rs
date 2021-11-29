@@ -1,6 +1,6 @@
-use image::buffer::{PixelsMut, RowsMut};
+use image::buffer::{Pixels, PixelsMut, Rows, RowsMut};
 use image::Pixel;
-use std::slice::IterMut;
+use std::slice::{Iter, IterMut};
 
 /// Allows transposed mutable access to pixel, like column based
 pub(crate) struct TransposeMut<'a, P: Pixel + 'a> {
@@ -42,12 +42,51 @@ impl<'a, P: Pixel + 'a> Iterator for TransposeMut<'a, P> {
     }
 }
 
-pub(crate) struct ColorIter<'a, P: Pixel + 'a> {
+pub(crate) struct Transpose<'a, P: Pixel + 'a> {
+    i: usize,
+    height: u32,
+    rows: Rows<'a, P>,
+    rows_buffer: Vec<Pixels<'a, P>>,
+}
+
+impl<'a, P: Pixel + 'a> Transpose<'a, P> {
+    /// utilizes Rows to give column based readonly access to pixel
+    pub fn from_rows(rows: Rows<'a, P>, height: u32) -> Self {
+        Self {
+            i: 0,
+            height,
+            rows,
+            rows_buffer: Vec::with_capacity(height as usize),
+        }
+    }
+}
+
+impl<'a, P: Pixel + 'a> Iterator for Transpose<'a, P> {
+    type Item = &'a P;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let row_idx = ((self.i as u32) % self.height) as usize;
+        self.i += 1;
+        match self.rows_buffer.get_mut(row_idx) {
+            None => match self.rows.next() {
+                Some(mut row) => {
+                    let p = row.next();
+                    self.rows_buffer.push(row);
+                    p
+                }
+                _ => None,
+            },
+            Some(row) => row.next(),
+        }
+    }
+}
+
+pub(crate) struct ColorIterMut<'a, P: Pixel + 'a> {
     pixel: TransposeMut<'a, P>,
     colors: IterMut<'a, P::Subpixel>,
 }
 
-impl<'a, P: Pixel + 'a> ColorIter<'a, P> {
+impl<'a, P: Pixel + 'a> ColorIterMut<'a, P> {
     pub fn from_transpose(mut t: TransposeMut<'a, P>) -> Self {
         let i = t.next().unwrap().channels_mut().iter_mut();
         Self {
@@ -57,12 +96,42 @@ impl<'a, P: Pixel + 'a> ColorIter<'a, P> {
     }
 }
 
-impl<'a, P: Pixel + 'a> Iterator for ColorIter<'a, P> {
+impl<'a, P: Pixel + 'a> Iterator for ColorIterMut<'a, P> {
     type Item = &'a mut P::Subpixel;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.colors.next().or_else(|| {
-            self.colors = self.pixel.next().unwrap().channels_mut().iter_mut();
+            if let Some(iter) = self.pixel.next() {
+                self.colors = iter.channels_mut().iter_mut();
+            }
+            self.colors.next()
+        })
+    }
+}
+
+pub(crate) struct ColorIter<'a, P: Pixel + 'a> {
+    pixel: Transpose<'a, P>,
+    colors: Iter<'a, P::Subpixel>,
+}
+
+impl<'a, P: Pixel + 'a> ColorIter<'a, P> {
+    pub fn from_transpose(mut t: Transpose<'a, P>) -> Self {
+        let i = t.next().unwrap().channels().iter();
+        Self {
+            pixel: t,
+            colors: i,
+        }
+    }
+}
+
+impl<'a, P: Pixel + 'a> Iterator for ColorIter<'a, P> {
+    type Item = &'a P::Subpixel;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.colors.next().or_else(|| {
+            if let Some(iter) = self.pixel.next() {
+                self.colors = iter.channels().iter();
+            }
             self.colors.next()
         })
     }
@@ -71,9 +140,16 @@ impl<'a, P: Pixel + 'a> Iterator for ColorIter<'a, P> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use image::Rgba;
+    use image::{ImageBuffer, Rgba, RgbaImage};
 
     const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
+
+    fn prepare_small_image() -> RgbaImage {
+        ImageBuffer::from_fn(5, 5, |x, y| {
+            let i = (4 * x + 20 * y) as u8;
+            image::Rgba([i, i + 1, i + 2, i + 3])
+        })
+    }
 
     #[test]
     fn transpose_mut() {
@@ -115,7 +191,7 @@ mod tests {
             .to_rgba8();
         let (width, height) = img.dimensions();
         let mut c_iter =
-            ColorIter::from_transpose(TransposeMut::from_rows_mut(img.rows_mut(), height));
+            ColorIterMut::from_transpose(TransposeMut::from_rows_mut(img.rows_mut(), height));
 
         for x in 0..width {
             for y in 0..height {
@@ -142,5 +218,36 @@ mod tests {
         //         "Pixel should have been mutated earlier"
         //     );
         // }
+    }
+
+    #[cfg(test)]
+    mod color_iter {
+        use crate::media::image::iterators::tests::prepare_small_image;
+        use crate::media::image::iterators::*;
+        use image::Rgba;
+
+        #[test]
+        fn should_transpose_read() {
+            let img = prepare_small_image();
+            let mut iter = Transpose::from_rows(img.rows(), img.height());
+
+            assert_eq!(iter.next(), Some(&Rgba([0_u8, 1, 2, 3])));
+            assert_eq!(iter.next(), Some(&Rgba([20_u8, 21, 22, 23])));
+            assert_eq!(iter.next(), Some(&Rgba([40_u8, 41, 42, 43])));
+        }
+
+        #[test]
+        fn should_read_color() {
+            let img = prepare_small_image();
+            let iter = Transpose::from_rows(img.rows(), img.height());
+            let mut color_iter = ColorIter::from_transpose(iter);
+
+            assert_eq!(color_iter.next(), Some(&0_u8));
+            assert_eq!(color_iter.next(), Some(&1_u8));
+            assert_eq!(color_iter.next(), Some(&2_u8));
+            assert_eq!(color_iter.next(), Some(&3_u8));
+            assert_eq!(color_iter.next(), Some(&20_u8));
+            assert_eq!(color_iter.next(), Some(&21_u8));
+        }
     }
 }
