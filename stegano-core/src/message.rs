@@ -123,9 +123,8 @@ impl Message {
             if *b == EOF {
                 eof = i;
                 break;
-            } else {
-                eof = 0;
             }
+            eof = 0;
         }
 
         if eof > 0 {

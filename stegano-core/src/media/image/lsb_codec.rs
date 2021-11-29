@@ -64,7 +64,7 @@ impl LsbCodec {
     /// ## Example how to retrieve an encoder:
     ///
     /// ```rust
-    /// use stegano_core::media::image::LsbCodec;
+    /// use stegano_core::media::image::{LsbCodec, CodecOptions};
     /// use image::{RgbaImage, open};
     ///
     /// let mut plain_image = open("../resources/plain/carrier-image.png")
@@ -74,7 +74,7 @@ impl LsbCodec {
     /// let secret_message = "Hello World!".as_bytes();
     ///
     /// {
-    ///     LsbCodec::encoder(&mut plain_image)
+    ///     LsbCodec::encoder(&mut plain_image, &CodecOptions::default())
     ///         .write_all(&secret_message[..])
     ///         .expect("Cannot write to codec");
     /// }
@@ -86,7 +86,7 @@ impl LsbCodec {
     /// let msg = String::from_utf8(buf).expect("Cannot convert result to string");
     /// assert_eq!(msg, "Hello World!");
     /// ```
-    pub fn encoder<'i>(carrier: &'i mut RgbaImage) -> Box<dyn Write + 'i> {
-        Box::new(Encoder::new(ImageRgbaColorMut::new(carrier)))
+    pub fn encoder<'i>(carrier: &'i mut RgbaImage, opts: &CodecOptions) -> Box<dyn Write + 'i> {
+        Box::new(Encoder::new(ImageRgbaColorMut::new_with_options(carrier, opts)))
     }
 }

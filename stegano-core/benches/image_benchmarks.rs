@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::io::Read;
 use stegano_core::media::image::decoder::ImageRgbaColor;
-use stegano_core::media::image::LsbCodec;
+use stegano_core::media::image::{CodecOptions, LsbCodec};
 use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
 
 pub fn stegano_image_benchmark(c: &mut Criterion) {
@@ -29,7 +29,7 @@ pub fn stegano_image_benchmark(c: &mut Criterion) {
 
         b.iter(|| {
             let mut image_with_secret = image::RgbaImage::new(width, height);
-            LsbCodec::encoder(&mut image_with_secret)
+            LsbCodec::encoder(&mut image_with_secret, &CodecOptions::default())
                 .write_all(&secret_message[..])
                 .expect("Cannot write to codec");
         })

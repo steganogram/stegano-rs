@@ -1,8 +1,9 @@
-use clap::{crate_authors, crate_description, crate_version, App, AppSettings, Arg, SubCommand};
+use clap::{crate_authors, crate_description, crate_version, App, AppSettings, Arg, SubCommand, ArgMatches};
 
 use std::path::Path;
 use stegano_core::commands::{unveil, unveil_raw};
 use stegano_core::*;
+use stegano_core::media::image::lsb_codec::CodecOptions;
 
 fn main() -> Result<()> {
     let matches = App::new("Stegano CLI")
@@ -51,6 +52,15 @@ fn main() -> Result<()> {
                     .help("A text message that will be hidden"),
             )
             .arg(
+                Arg::with_name("color_step_increment")
+                    .long("x-color-step-increment")
+                    .value_name("color channel step increment")
+                    .takes_value(true)
+                    .default_value("1")
+                    .required(false)
+                    .help("Experimental: image color channel step increment"),
+            )
+            .arg(
                 Arg::with_name("force_content_version2")
                     .long("x-force-content-version-2")
                     .value_name("text message")
@@ -79,6 +89,22 @@ fn main() -> Result<()> {
                 .required(true)
                 .help("Final data will be stored in that folder"),
         )
+        .arg(
+            Arg::with_name("color_step_increment")
+                .long("x-color-step-increment")
+                .value_name("color channel step increment")
+                .takes_value(true)
+                .default_value("1")
+                .required(false)
+                .validator(|v| {
+                    if v.parse::<usize>().is_err() {
+                        Err(String::from("not a valid positive whole number"))
+                    } else {
+                        Ok(())
+                    }
+                })
+                .help("Experimental: image color channel step increment"),
+        )
     ).subcommand(SubCommand::with_name("unveil-raw")
         .about("Unveils raw data in PNG images")
         .arg(
@@ -103,7 +129,7 @@ fn main() -> Result<()> {
 
     match matches.subcommand() {
         ("hide", Some(m)) => {
-            let mut s = SteganoCore::encoder();
+            let mut s = SteganoCore::encoder_with_options(get_options(m));
 
             s.use_media(m.value_of("media").unwrap())?
                 .write_to(m.value_of("write_to_file").unwrap());
@@ -144,4 +170,12 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn get_options(args: &ArgMatches) -> CodecOptions {
+    let mut c = CodecOptions::default();
+    if args.is_present("color_step_increment") {
+        c.color_channel_step_increment = args.value_of("color_step_increment").unwrap().parse().unwrap();
+    }
+    c
 }
