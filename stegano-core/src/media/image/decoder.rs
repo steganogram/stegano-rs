@@ -1,5 +1,7 @@
+use crate::media::image::iterators::{ColorIter, Transpose};
+use crate::media::image::lsb_codec::CodecOptions;
 use crate::MediaPrimitive;
-use image::RgbaImage;
+use image::{Rgba, RgbaImage};
 
 /// stegano source for image files, based on `RgbaImage` by `image` crate
 ///
@@ -26,27 +28,25 @@ use image::RgbaImage;
 /// assert_eq!("\u{1}Hello World!", msg);
 /// ```
 pub struct ImagePngSource<'i> {
-    pub input: &'i RgbaImage,
-    max_x: u32,
-    max_y: u32,
-    max_c: u8,
-    pub x: u32,
-    pub y: u32,
-    pub c: u8,
+    i: usize,
+    steps: usize,
+    skip_alpha: bool,
+    pixel: ColorIter<'i, Rgba<u8>>,
 }
 
 impl<'i> ImagePngSource<'i> {
     /// constructor for a given `RgbaImage` that lives somewhere
     pub fn new(input: &'i RgbaImage) -> Self {
-        let (max_x, max_y) = input.dimensions();
+        Self::new_with_options(input, &CodecOptions::default())
+    }
+
+    pub fn new_with_options(input: &'i RgbaImage, options: &CodecOptions) -> Self {
+        let h = input.height();
         Self {
-            input,
-            max_x,
-            max_y,
-            max_c: 3,
-            x: 0,
-            y: 0,
-            c: 0,
+            i: 0,
+            steps: options.get_color_channel_step_increment(),
+            skip_alpha: options.get_skip_alpha_channel(),
+            pixel: ColorIter::from_transpose(Transpose::from_rows(input.rows(), h)),
         }
     }
 }
@@ -56,22 +56,24 @@ impl<'i> Iterator for ImagePngSource<'i> {
     type Item = MediaPrimitive;
 
     #[inline(always)]
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.x == self.max_x {
-            return None;
+    fn next(&'_ mut self) -> Option<Self::Item> {
+        if self.skip_alpha && self.i > 0 {
+            let is_next_alpha = (self.i + 1) % 4 == 0;
+            if is_next_alpha {
+                self.pixel.next();
+                self.i += 1;
+            }
         }
-        let pixel = self.input.get_pixel(self.x, self.y);
-        let result = Some(MediaPrimitive::ImageColorChannel(pixel.0[self.c as usize]));
-        self.c += 1;
-        if self.c == self.max_c {
-            self.c = 0;
-            self.y += 1;
+        let res = self
+            .pixel
+            .next()
+            .map(|c| MediaPrimitive::ImageColorChannel(*c));
+        self.i += 1;
+        for _ in 0..self.steps - 1 {
+            self.pixel.next();
+            self.i += 1;
         }
-        if self.y == self.max_y {
-            self.y = 0;
-            self.x += 1;
-        }
-        result
+        res
     }
 }
 

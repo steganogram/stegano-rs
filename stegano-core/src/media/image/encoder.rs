@@ -1,6 +1,6 @@
 use image::{Rgba, RgbaImage};
 
-use crate::media::image::iterators::{ColorIter, TransposeMut};
+use crate::media::image::iterators::{ColorIterMut, TransposeMut};
 use crate::media::image::lsb_codec::CodecOptions;
 use crate::MediaPrimitiveMut;
 
@@ -34,7 +34,7 @@ pub struct ImagePngMut<'a> {
     i: usize,
     steps: usize,
     skip_alpha: bool,
-    pixel: ColorIter<'a, Rgba<u8>>,
+    pixel: ColorIterMut<'a, Rgba<u8>>,
 }
 
 impl<'a> ImagePngMut<'a> {
@@ -49,7 +49,7 @@ impl<'a> ImagePngMut<'a> {
             i: 0,
             steps: options.get_color_channel_step_increment(),
             skip_alpha: options.get_skip_alpha_channel(),
-            pixel: ColorIter::from_transpose(TransposeMut::from_rows_mut(input.rows_mut(), h)),
+            pixel: ColorIterMut::from_transpose(TransposeMut::from_rows_mut(input.rows_mut(), h)),
         }
     }
 }
