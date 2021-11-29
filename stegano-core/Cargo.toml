@@ -36,9 +36,9 @@ tempfile = "3.2"
 bench = false
 
 [[bench]]
-name = "decoder_benchmark"
+name = "image_benchmarks"
 harness = false
 
 [[bench]]
-name = "encoder_benchmark"
+name = "audio_benchmarks"
 harness = false
