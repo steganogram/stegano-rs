@@ -22,7 +22,7 @@
 //! ## Unveil data from an image
 //!
 //! ```rust
-//! use stegano_core::{SteganoCore, SteganoEncoder};
+//! use stegano_core::{SteganoCore, SteganoEncoder, CodecOptions};
 //! use stegano_core::commands::unveil;
 //! use std::path::Path;
 //!
@@ -34,7 +34,8 @@
 //!
 //! unveil(
 //!     &Path::new("image-with-a-file-inside.png"),
-//!     &Path::new("./"));
+//!     &Path::new("./"),
+//!     &CodecOptions::default());
 //! ```
 //!
 //! [core]: ./struct.SteganoCore.html
@@ -84,12 +85,12 @@ pub mod universal_encoder;
 
 use hound::{WavReader, WavSpec, WavWriter};
 use image::RgbaImage;
+use std::default::Default;
 use std::fs::File;
 use std::path::Path;
-use std::default::Default;
 use thiserror::Error;
 
-use crate::media::image::CodecOptions;
+pub use crate::media::image::CodecOptions;
 
 #[derive(Error, Debug)]
 pub enum SteganoError {
@@ -191,13 +192,11 @@ impl SteganoCore {
 
 pub trait Hide {
     fn hide_message(&mut self, message: &Message) -> Result<&mut Media>;
-    fn hide_message_with_options(&mut self, message: &Message, opts: &CodecOptions) -> Result<&mut Media>;
-}
-
-pub trait Unveil {
-    // TODO should return Result<()>
-    fn unveil(&mut self) -> &mut Self;
-    fn unveil_with_options(&mut self, opts: &CodecOptions) -> &mut Self;
+    fn hide_message_with_options(
+        &mut self,
+        message: &Message,
+        opts: &CodecOptions,
+    ) -> Result<&mut Media>;
 }
 
 impl Media {
@@ -261,7 +260,11 @@ impl Hide for Media {
         self.hide_message_with_options(message, &CodecOptions::default())
     }
 
-    fn hide_message_with_options(&mut self, message: &Message, opts: &CodecOptions) -> Result<&mut Media> {
+    fn hide_message_with_options(
+        &mut self,
+        message: &Message,
+        opts: &CodecOptions,
+    ) -> Result<&mut Media> {
         let buf: Vec<u8> = message.into();
 
         match self {
@@ -461,7 +464,11 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        unveil(secret_media_p.as_path(), out_dir.path())?;
+        unveil(
+            secret_media_p.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
         assert_eq_file_content(
@@ -490,7 +497,11 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        unveil(image_with_secret_path.as_path(), out_dir.path())?;
+        unveil(
+            image_with_secret_path.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
         assert_eq_file_content(
@@ -542,7 +553,11 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        unveil(image_with_secret_path.as_path(), out_dir.path())?;
+        unveil(
+            image_with_secret_path.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
         assert_eq_file_content(
             &expected_file,
             secret_to_hide.as_ref(),
@@ -568,7 +583,11 @@ mod e2e_tests {
 
         assert_file_not_empty(image_with_secret);
 
-        unveil(image_with_secret_path.as_path(), out_dir.path())?;
+        unveil(
+            image_with_secret_path.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
 
         assert_eq_file_content(
             &expected_file,
@@ -587,6 +606,7 @@ mod e2e_tests {
         unveil(
             Path::new("../resources/with_attachment/Blah.txt.png"),
             out_dir.path(),
+            &CodecOptions::default(),
         )?;
 
         assert_eq_file_content(
@@ -607,6 +627,7 @@ mod e2e_tests {
         unveil(
             Path::new("../resources/with_attachment/Blah.txt__and__Blah-2.txt.png"),
             out_dir.path(),
+            &CodecOptions::default(),
         )?;
         assert_eq_file_content(
             &decoded_secret_1,
@@ -639,7 +660,11 @@ mod e2e_tests {
 
         assert_file_not_empty(image_with_secret);
 
-        unveil(image_with_secret_path.as_path(), out_dir.path())?;
+        unveil(
+            image_with_secret_path.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
 
         let decoded_secret = out_dir.path().join("Blah.txt");
         assert_eq_file_content(

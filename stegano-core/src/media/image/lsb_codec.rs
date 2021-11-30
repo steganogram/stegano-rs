@@ -41,7 +41,7 @@ impl LsbCodec {
     ///
     /// ## Example how to retrieve a decoder:
     /// ```rust
-    /// use stegano_core::media::image::LsbCodec;
+    /// use stegano_core::media::image::{CodecOptions, LsbCodec};
     /// use image::RgbaImage;
     ///
     /// let mut image_with_secret = image::open("../resources/secrets/image-with-hello-world.png")
@@ -49,22 +49,26 @@ impl LsbCodec {
     ///     .to_rgba8();
     ///
     /// let mut buf = vec![0; 13];
-    /// LsbCodec::decoder(&mut image_with_secret)
+    /// LsbCodec::decoder(&mut image_with_secret, &CodecOptions::default())
     ///     .read_exact(&mut buf[..])
     ///     .expect("Cannot read 13 bytes from codec");
     ///
     /// let msg = String::from_utf8(buf).expect("Cannot convert result to string");
     /// assert_eq!(msg, "\u{1}Hello World!");
     /// ```
-    pub fn decoder<'i>(input: &'i RgbaImage) -> Box<dyn Read + 'i> {
-        Box::new(Decoder::new(ImageRgbaColor::new(input), OneBitUnveil))
+    pub fn decoder<'i>(input: &'i RgbaImage, opts: &CodecOptions) -> Box<dyn Read + 'i> {
+        Box::new(Decoder::new(
+            ImageRgbaColor::new_with_options(input, opts),
+            OneBitUnveil,
+        ))
     }
 
     /// builds a LSB Image Encoder that implements Write
     /// ## Example how to retrieve an encoder:
     ///
     /// ```rust
-    /// use stegano_core::media::image::{LsbCodec, CodecOptions};
+    /// use stegano_core::media::image::{LsbCodec};
+    /// use stegano_core::media::image::CodecOptions;
     /// use image::{RgbaImage, open};
     ///
     /// let mut plain_image = open("../resources/plain/carrier-image.png")
@@ -79,7 +83,7 @@ impl LsbCodec {
     ///         .expect("Cannot write to codec");
     /// }
     /// let mut buf = vec![0; secret_message.len()];
-    /// LsbCodec::decoder(&mut plain_image.into())
+    /// LsbCodec::decoder(&mut plain_image.into(), &CodecOptions::default())
     ///     .read_exact(&mut buf[..])
     ///     .expect("Cannot read 12 bytes from codec");
     ///
@@ -87,6 +91,8 @@ impl LsbCodec {
     /// assert_eq!(msg, "Hello World!");
     /// ```
     pub fn encoder<'i>(carrier: &'i mut RgbaImage, opts: &CodecOptions) -> Box<dyn Write + 'i> {
-        Box::new(Encoder::new(ImageRgbaColorMut::new_with_options(carrier, opts)))
+        Box::new(Encoder::new(ImageRgbaColorMut::new_with_options(
+            carrier, opts,
+        )))
     }
 }
