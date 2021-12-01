@@ -1,9 +1,10 @@
 use crate::media::image::decoder::ImageRgbaColor;
 use crate::media::image::encoder::ImageRgbaColorMut;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
-use crate::universal_encoder::Encoder;
+use crate::universal_encoder::{Encoder, HideAlgorithm, OneBitHide, OneBitInLowFrequencyHide};
 use image::RgbaImage;
 use std::io::{Read, Write};
+use crate::MediaPrimitiveMut;
 
 #[derive(Debug)]
 pub struct CodecOptions {
@@ -12,6 +13,14 @@ pub struct CodecOptions {
     pub color_channel_step_increment: usize,
     /// if true no alpha channel would be used for encoding
     pub skip_alpha_channel: bool,
+    /// the concealer strategy
+    pub concealer: Concealer,
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+pub enum Concealer {
+    LeastSignificantBit,
+    LowFrequencies,
 }
 
 impl Default for CodecOptions {
@@ -19,6 +28,7 @@ impl Default for CodecOptions {
         Self {
             color_channel_step_increment: 1,
             skip_alpha_channel: true,
+            concealer: Concealer::LeastSignificantBit
         }
     }
 }
@@ -59,7 +69,10 @@ impl LsbCodec {
     pub fn decoder<'i>(input: &'i RgbaImage, opts: &CodecOptions) -> Box<dyn Read + 'i> {
         Box::new(Decoder::new(
             ImageRgbaColor::new_with_options(input, opts),
-            OneBitUnveil,
+            match opts.concealer {
+                Concealer::LeastSignificantBit => OneBitUnveil,
+                Concealer::LowFrequencies => OneBitUnveil,
+            },
         ))
     }
 
@@ -90,9 +103,12 @@ impl LsbCodec {
     /// let msg = String::from_utf8(buf).expect("Cannot convert result to string");
     /// assert_eq!(msg, "Hello World!");
     /// ```
-    pub fn encoder<'i>(carrier: &'i mut RgbaImage, opts: &CodecOptions) -> Box<dyn Write + 'i> {
-        Box::new(Encoder::new(ImageRgbaColorMut::new_with_options(
-            carrier, opts,
-        )))
+    pub fn encoder<'i>(carrier: &'i mut RgbaImage, opts: &CodecOptions) -> Box<dyn Write + 'i>
+    {
+        let algorithm: Box<dyn HideAlgorithm<MediaPrimitiveMut<'i>>> = match opts.concealer {
+            Concealer::LeastSignificantBit => Box::new(OneBitHide),
+            Concealer::LowFrequencies => Box::new(OneBitInLowFrequencyHide)
+        };
+        Box::new(   Encoder::new(ImageRgbaColorMut::new_with_options(carrier, opts), algorithm))
     }
 }

@@ -58,6 +58,7 @@ where
 }
 
 /// default 1 bit unveil strategy
+#[derive(Debug)]
 pub struct OneBitUnveil;
 impl UnveilAlgorithm<MediaPrimitive> for OneBitUnveil {
     #[inline(always)]

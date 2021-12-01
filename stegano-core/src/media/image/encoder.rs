@@ -13,7 +13,7 @@ use crate::MediaPrimitiveMut;
 /// use image::{RgbaImage};
 /// use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
 /// use stegano_core::media::image::encoder::ImageRgbaColorMut;
-/// use stegano_core::universal_encoder::Encoder;
+/// use stegano_core::universal_encoder::{Encoder, OneBitHide};
 ///
 /// // create a `RgbaImage` from a png image file
 /// let image_original = image::open("../resources/plain/carrier-image.png")
@@ -24,7 +24,7 @@ use crate::MediaPrimitiveMut;
 ///     .to_rgba8();
 /// let secret_message = "Hello World!".as_bytes();
 /// {
-///     let mut encoder = Encoder::new(ImageRgbaColorMut::new(&mut image).into_iter());
+///     let mut encoder = Encoder::new(ImageRgbaColorMut::new(&mut image).into_iter(), Box::new(OneBitHide));
 ///     encoder.write_all(secret_message)
 ///         .expect("Cannot write secret message");
 /// }
@@ -79,6 +79,7 @@ impl<'i> Iterator for ImageRgbaColorMut<'i> {
 mod decoder_tests {
     use super::*;
     use image::ImageBuffer;
+    use crate::media::image::lsb_codec::Concealer;
 
     const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
     fn prepare_small_image() -> RgbaImage {
@@ -97,6 +98,7 @@ mod decoder_tests {
             &CodecOptions {
                 skip_alpha_channel: true,
                 color_channel_step_increment: 2,
+                concealer: Concealer::LeastSignificantBit,
             },
         );
 
@@ -124,6 +126,7 @@ mod decoder_tests {
             &CodecOptions {
                 skip_alpha_channel: true,
                 color_channel_step_increment: 3,
+                concealer: Concealer::LeastSignificantBit,
             },
         );
 

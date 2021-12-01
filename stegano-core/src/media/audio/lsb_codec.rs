@@ -5,7 +5,7 @@ use hound::{WavReader, WavSpec};
 
 use crate::media::audio::wav_iter::{AudioWavIter, AudioWavIterMut};
 use crate::universal_decoder::{Decoder, OneBitUnveil};
-use crate::universal_encoder::Encoder;
+use crate::universal_encoder::{Encoder, OneBitHide};
 
 /// convenient wrapper for `WavReader::open`
 pub fn read_samples(file: &Path) -> (Vec<i16>, WavSpec) {
@@ -69,7 +69,7 @@ impl LsbCodec {
     ///     .expect("Cannot write to codec");
     /// ```
     pub fn encoder<'i>(input: &'i mut Vec<i16>) -> Box<dyn Write + 'i> {
-        Box::new(Encoder::new(AudioWavIterMut::new(input.iter_mut())))
+        Box::new(Encoder::new(AudioWavIterMut::new(input.iter_mut()), Box::new(OneBitHide)))
     }
 }
 
