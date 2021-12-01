@@ -140,16 +140,8 @@ impl<'a, P: Pixel + 'a> Iterator for ColorIter<'a, P> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use image::{ImageBuffer, Rgba, RgbaImage};
-
-    const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
-
-    fn prepare_small_image() -> RgbaImage {
-        ImageBuffer::from_fn(5, 5, |x, y| {
-            let i = (4 * x + 20 * y) as u8;
-            image::Rgba([i, i + 1, i + 2, i + 3])
-        })
-    }
+    use crate::test_utils::HELLO_WORLD_PNG;
+    use image::Rgba;
 
     #[test]
     fn transpose_mut() {
@@ -222,8 +214,8 @@ mod tests {
 
     #[cfg(test)]
     mod color_iter {
-        use crate::media::image::iterators::tests::prepare_small_image;
         use crate::media::image::iterators::*;
+        use crate::test_utils::prepare_small_image;
         use image::Rgba;
 
         #[test]

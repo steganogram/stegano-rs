@@ -701,3 +701,17 @@ mod e2e_tests {
         assert!(l > 0, "File is not supposed to be empty");
     }
 }
+
+#[cfg(test)]
+mod test_utils {
+    use image::{ImageBuffer, RgbaImage};
+
+    pub const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
+
+    pub fn prepare_small_image() -> RgbaImage {
+        ImageBuffer::from_fn(5, 5, |x, y| {
+            let i = (4 * x + 20 * y) as u8;
+            image::Rgba([i, i + 1, i + 2, i + 3])
+        })
+    }
+}

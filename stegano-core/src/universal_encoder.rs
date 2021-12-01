@@ -1,4 +1,5 @@
 use bitstream_io::{BitRead, BitReader, LittleEndian};
+use enum_dispatch::enum_dispatch;
 use std::io::{Cursor, Result, Write};
 
 use crate::{MediaPrimitive, MediaPrimitiveMut};
@@ -9,42 +10,52 @@ pub trait WriteCarrierItem {
     fn flush(&mut self) -> Result<()>;
 }
 
+#[enum_dispatch]
+pub enum HideAlgorithms {
+    OneBitHide,
+    OneBitInLowFrequencyHide,
+}
+
 /// generic hiding algorithm, used for specific ones like LSB
-pub trait HideAlgorithm<T> {
+#[enum_dispatch(HideAlgorithms)]
+pub trait HideAlgorithm {
     /// encodes one bit onto a carrier T e.g. u8 or i16
-    fn encode(&self, carrier: T, information: &Result<bool>);
+    fn encode<'c>(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>);
 }
 
 /// generic stegano encoder
-pub struct Encoder<'c, C>
+pub struct Encoder<'c, C, A>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
+    A: HideAlgorithm,
 {
     pub carrier: C,
-    pub algorithm: Box<dyn HideAlgorithm<MediaPrimitiveMut<'c>>>,
+    pub algorithm: A,
 }
 
-impl<'c, C> Encoder<'c, C>
+impl<'c, C, A> Encoder<'c, C, A>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
+    A: HideAlgorithm,
 {
-    pub fn new(carrier: C, algorithm: Box<dyn HideAlgorithm<MediaPrimitiveMut<'c>>>) -> Self {
+    pub fn new(carrier: C, algorithm: A) -> Self {
         Encoder { carrier, algorithm }
     }
 }
 
-impl<'c, C> Write for Encoder<'c, C>
+impl<'c, C, A> Write for Encoder<'c, C, A>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
+    A: HideAlgorithm,
 {
+    #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         // TODO better let the algorithm determine the density of encoding
         let items_to_take = buf.len() << 3; // 1 bit per sample <=> * 8 <=> << 3
         let mut bit_iter = BitReader::endian(Cursor::new(buf), LittleEndian);
         let mut bit_written: usize = 0;
-        let enc = self.algorithm.as_ref();
         for s in self.carrier.by_ref().take(items_to_take) {
-            enc.encode(s, &bit_iter.read_bit());
+            self.algorithm.encode(s, &bit_iter.read_bit());
             bit_written += 1;
         }
 
@@ -59,8 +70,9 @@ where
 /// default 1 bit hiding strategy
 #[derive(Debug)]
 pub struct OneBitHide;
-impl<'c> HideAlgorithm<MediaPrimitiveMut<'c>> for OneBitHide {
-    fn encode(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
+impl HideAlgorithm for OneBitHide {
+    #[inline(always)]
+    fn encode<'c>(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
         if let Ok(bit) = information {
             match carrier {
                 MediaPrimitiveMut::ImageColorChannel(b) => {
@@ -78,8 +90,9 @@ impl<'c> HideAlgorithm<MediaPrimitiveMut<'c>> for OneBitHide {
 /// 1 bit hiding strategy, but
 #[derive(Debug)]
 pub struct OneBitInLowFrequencyHide;
-impl<'c> HideAlgorithm<MediaPrimitiveMut<'c>> for OneBitInLowFrequencyHide {
-    fn encode(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
+impl HideAlgorithm for OneBitInLowFrequencyHide {
+    #[inline(always)]
+    fn encode<'c>(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
         if let Ok(bit) = information {
             match carrier {
                 MediaPrimitiveMut::ImageColorChannel(b) => {
@@ -115,12 +128,12 @@ mod tests {
         let mut data = 0b00001110;
         {
             let mp = MediaPrimitiveMut::ImageColorChannel(&mut data);
-            encoder.encode(mp, &Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe)));
+            encoder.encode(
+                mp,
+                &Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe)),
+            );
         }
-        assert_eq!(
-            data,
-            0b00001110
-        );
+        assert_eq!(data, 0b00001110);
     }
 
     #[test]

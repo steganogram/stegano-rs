@@ -24,7 +24,7 @@ use crate::MediaPrimitiveMut;
 ///     .to_rgba8();
 /// let secret_message = "Hello World!".as_bytes();
 /// {
-///     let mut encoder = Encoder::new(ImageRgbaColorMut::new(&mut image).into_iter(), Box::new(OneBitHide));
+///     let mut encoder = Encoder::new(ImageRgbaColorMut::new(&mut image).into_iter(), OneBitHide);
 ///     encoder.write_all(secret_message)
 ///         .expect("Cannot write secret message");
 /// }
@@ -78,16 +78,8 @@ impl<'i> Iterator for ImageRgbaColorMut<'i> {
 #[cfg(test)]
 mod decoder_tests {
     use super::*;
-    use image::ImageBuffer;
     use crate::media::image::lsb_codec::Concealer;
-
-    const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
-    fn prepare_small_image() -> RgbaImage {
-        ImageBuffer::from_fn(5, 5, |x, y| {
-            let i = (4 * x + 20 * y) as u8;
-            image::Rgba([i, i + 1, i + 2, i + 3])
-        })
-    }
+    use crate::test_utils::{prepare_small_image, HELLO_WORLD_PNG};
 
     #[test]
     fn it_should_step_in_increments_smaller_than_one_pixel() {
