@@ -24,7 +24,7 @@ use crate::MediaPrimitiveMut;
 ///     .to_rgba8();
 /// let secret_message = "Hello World!".as_bytes();
 /// {
-///     let mut encoder = Encoder::new(ImageRgbaColorMut::new(&mut image).into_iter(), Box::new(OneBitHide));
+///     let mut encoder = Encoder::new(ImageRgbaColorMut::new(&mut image).into_iter(), OneBitHide.into());
 ///     encoder.write_all(secret_message)
 ///         .expect("Cannot write secret message");
 /// }

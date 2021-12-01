@@ -1,5 +1,6 @@
 use bitstream_io::{BitRead, BitReader, LittleEndian};
 use std::io::{Cursor, Result, Write};
+use enum_dispatch::enum_dispatch;
 
 use crate::{MediaPrimitive, MediaPrimitiveMut};
 
@@ -9,10 +10,17 @@ pub trait WriteCarrierItem {
     fn flush(&mut self) -> Result<()>;
 }
 
+#[enum_dispatch]
+pub enum HideAlgorithms {
+    OneBitHide,
+    OneBitInLowFrequencyHide,
+}
+
 /// generic hiding algorithm, used for specific ones like LSB
-pub trait HideAlgorithm<T> {
+#[enum_dispatch(HideAlgorithms)]
+pub trait HideAlgorithm {
     /// encodes one bit onto a carrier T e.g. u8 or i16
-    fn encode(&self, carrier: T, information: &Result<bool>);
+    fn encode<'c>(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>);
 }
 
 /// generic stegano encoder
@@ -21,14 +29,14 @@ where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
 {
     pub carrier: C,
-    pub algorithm: Box<dyn HideAlgorithm<MediaPrimitiveMut<'c>>>,
+    pub algorithm: HideAlgorithms,
 }
 
 impl<'c, C> Encoder<'c, C>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
 {
-    pub fn new(carrier: C, algorithm: Box<dyn HideAlgorithm<MediaPrimitiveMut<'c>>>) -> Self {
+    pub fn new(carrier: C, algorithm: HideAlgorithms) -> Self {
         Encoder { carrier, algorithm }
     }
 }
@@ -42,9 +50,8 @@ where
         let items_to_take = buf.len() << 3; // 1 bit per sample <=> * 8 <=> << 3
         let mut bit_iter = BitReader::endian(Cursor::new(buf), LittleEndian);
         let mut bit_written: usize = 0;
-        let enc = self.algorithm.as_ref();
         for s in self.carrier.by_ref().take(items_to_take) {
-            enc.encode(s, &bit_iter.read_bit());
+            self.algorithm.encode(s, &bit_iter.read_bit());
             bit_written += 1;
         }
 
@@ -59,8 +66,8 @@ where
 /// default 1 bit hiding strategy
 #[derive(Debug)]
 pub struct OneBitHide;
-impl<'c> HideAlgorithm<MediaPrimitiveMut<'c>> for OneBitHide {
-    fn encode(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
+impl HideAlgorithm for OneBitHide {
+    fn encode<'c>(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
         if let Ok(bit) = information {
             match carrier {
                 MediaPrimitiveMut::ImageColorChannel(b) => {
@@ -78,8 +85,8 @@ impl<'c> HideAlgorithm<MediaPrimitiveMut<'c>> for OneBitHide {
 /// 1 bit hiding strategy, but
 #[derive(Debug)]
 pub struct OneBitInLowFrequencyHide;
-impl<'c> HideAlgorithm<MediaPrimitiveMut<'c>> for OneBitInLowFrequencyHide {
-    fn encode(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
+impl HideAlgorithm for OneBitInLowFrequencyHide {
+    fn encode<'c>(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
         if let Ok(bit) = information {
             match carrier {
                 MediaPrimitiveMut::ImageColorChannel(b) => {

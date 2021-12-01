@@ -1,10 +1,9 @@
 use crate::media::image::decoder::ImageRgbaColor;
 use crate::media::image::encoder::ImageRgbaColorMut;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
-use crate::universal_encoder::{Encoder, HideAlgorithm, OneBitHide, OneBitInLowFrequencyHide};
+use crate::universal_encoder::{Encoder, HideAlgorithms, OneBitHide, OneBitInLowFrequencyHide};
 use image::RgbaImage;
 use std::io::{Read, Write};
-use crate::MediaPrimitiveMut;
 
 #[derive(Debug)]
 pub struct CodecOptions {
@@ -105,9 +104,9 @@ impl LsbCodec {
     /// ```
     pub fn encoder<'i>(carrier: &'i mut RgbaImage, opts: &CodecOptions) -> Box<dyn Write + 'i>
     {
-        let algorithm: Box<dyn HideAlgorithm<MediaPrimitiveMut<'i>>> = match opts.concealer {
-            Concealer::LeastSignificantBit => Box::new(OneBitHide),
-            Concealer::LowFrequencies => Box::new(OneBitInLowFrequencyHide)
+        let algorithm: HideAlgorithms = match opts.concealer {
+            Concealer::LeastSignificantBit => OneBitHide.into(),
+            Concealer::LowFrequencies => OneBitInLowFrequencyHide.into()
         };
         Box::new(   Encoder::new(ImageRgbaColorMut::new_with_options(carrier, opts), algorithm))
     }
