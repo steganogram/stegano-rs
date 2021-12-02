@@ -30,7 +30,7 @@ enum_dispatch = "0.3"
 
 [dev-dependencies]
 speculate = "0.1"
-criterion = "0.3"
+criterion = { version = "0.3", features = ["html_reports"] }
 tempfile = "3.2"
 
 [lib]
