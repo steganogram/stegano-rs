@@ -19,7 +19,7 @@ maintenance = { status = "passively-maintained" }
 [dependencies]
 stegano-core = { path = "../stegano-core", version = "0.4.10" }
 #stegano-core = "0.4.5"
-clap = "2.33"
+clap = "2.34"
 
 [[bin]]
 name = "stegano"
