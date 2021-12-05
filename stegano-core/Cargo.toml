@@ -33,6 +33,11 @@ speculate = "0.1"
 criterion = { version = "0.3", features = ["html_reports"] }
 tempfile = "3.2"
 
+[dev-dependencies.cargo-husky]
+version = "1"
+default-features = false
+features = ["prepush-hook", "run-cargo-test", "run-cargo-clippy", "run-cargo-fmt"]
+
 [lib]
 bench = false
 

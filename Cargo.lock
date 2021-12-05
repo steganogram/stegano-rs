@@ -104,6 +104,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo-husky"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b02b629252fe8ef6460461409564e2c21d0c8e77e0944f3d189ff06c4e932ad"
+
+[[package]]
 name = "cast"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -816,6 +822,7 @@ dependencies = [
  "bitstream-io",
  "byteorder",
  "bzip2",
+ "cargo-husky",
  "criterion",
  "deflate 1.0.0",
  "enum_dispatch",
