@@ -22,7 +22,7 @@
 //! ## Unveil data from an image
 //!
 //! ```rust
-//! use stegano_core::{SteganoCore, SteganoEncoder};
+//! use stegano_core::{SteganoCore, SteganoEncoder, CodecOptions};
 //! use stegano_core::commands::unveil;
 //! use std::path::Path;
 //!
@@ -34,7 +34,8 @@
 //!
 //! unveil(
 //!     &Path::new("image-with-a-file-inside.png"),
-//!     &Path::new("./"));
+//!     &Path::new("./"),
+//!     &CodecOptions::default());
 //! ```
 //!
 //! [core]: ./struct.SteganoCore.html
@@ -42,11 +43,39 @@
 //! [dec]: ./struct.SteganoDecoder.html
 //! [raw]: ./struct.SteganoRawDecoder.html
 
+#![warn(
+// clippy::cargo_common_metadata,
+// clippy::branches_sharing_code,
+// clippy::cast_lossless,
+// clippy::cognitive_complexity,
+// clippy::get_unwrap,
+// clippy::if_then_some_else_none,
+// clippy::inefficient_to_string,
+// clippy::match_bool,
+// clippy::missing_const_for_fn,
+// clippy::missing_panics_doc,
+// clippy::option_if_let_else,
+// clippy::redundant_closure,
+clippy::redundant_else,
+// clippy::redundant_pub_crate,
+// clippy::ref_binding_to_reference,
+// clippy::ref_option_ref,
+// clippy::same_functions_in_if_condition,
+// clippy::unneeded_field_pattern,
+// clippy::unnested_or_patterns,
+// clippy::use_self,
+)]
+
 pub mod bit_iterator;
+
 pub use bit_iterator::BitIterator;
+
 pub mod message;
+
 pub use message::*;
+
 pub mod raw_message;
+
 pub use raw_message::*;
 
 pub mod commands;
@@ -56,9 +85,12 @@ pub mod universal_encoder;
 
 use hound::{WavReader, WavSpec, WavWriter};
 use image::RgbaImage;
+use std::default::Default;
 use std::fs::File;
 use std::path::Path;
 use thiserror::Error;
+
+pub use crate::media::image::CodecOptions;
 
 #[derive(Error, Debug)]
 pub enum SteganoError {
@@ -147,19 +179,24 @@ pub enum Media {
 }
 
 pub struct SteganoCore {}
+
 impl SteganoCore {
     pub fn encoder() -> SteganoEncoder {
-        SteganoEncoder::new()
+        SteganoEncoder::with_options(CodecOptions::default())
+    }
+
+    pub fn encoder_with_options(opts: CodecOptions) -> SteganoEncoder {
+        SteganoEncoder::with_options(opts)
     }
 }
 
 pub trait Hide {
     fn hide_message(&mut self, message: &Message) -> Result<&mut Media>;
-}
-
-pub trait Unveil {
-    // TODO should return Result<()>
-    fn unveil(&mut self) -> &mut Self;
+    fn hide_message_with_options(
+        &mut self,
+        message: &Message,
+        opts: &CodecOptions,
+    ) -> Result<&mut Media>;
 }
 
 impl Media {
@@ -220,13 +257,21 @@ impl Persist for Media {
 
 impl Hide for Media {
     fn hide_message(&mut self, message: &Message) -> Result<&mut Self> {
+        self.hide_message_with_options(message, &CodecOptions::default())
+    }
+
+    fn hide_message_with_options(
+        &mut self,
+        message: &Message,
+        opts: &CodecOptions,
+    ) -> Result<&mut Media> {
         let buf: Vec<u8> = message.into();
 
         match self {
             Media::Image(i) => {
                 let (width, height) = i.dimensions();
                 let _space_to_fill = (width * height * 3) / 8;
-                let mut encoder = media::image::LsbCodec::encoder(i);
+                let mut encoder = media::image::LsbCodec::encoder(i, opts);
 
                 encoder
                     .write_all(buf.as_ref())
@@ -246,6 +291,7 @@ impl Hide for Media {
 }
 
 pub struct SteganoEncoder {
+    options: CodecOptions,
     target: Option<String>,
     carrier: Option<Media>,
     message: Message,
@@ -254,6 +300,7 @@ pub struct SteganoEncoder {
 impl Default for SteganoEncoder {
     fn default() -> Self {
         Self {
+            options: CodecOptions::default(),
             target: None,
             carrier: None,
             message: Message::empty(),
@@ -264,6 +311,12 @@ impl Default for SteganoEncoder {
 impl SteganoEncoder {
     pub fn new() -> Self {
         Self::default()
+    }
+    pub fn with_options(opts: CodecOptions) -> Self {
+        Self {
+            options: opts,
+            ..Self::default()
+        }
     }
 
     pub fn use_media(&mut self, input_file: &str) -> Result<&mut Self> {
@@ -324,7 +377,8 @@ impl SteganoEncoder {
 
         if let Some(media) = self.carrier.as_mut() {
             media
-                .hide_message(&self.message)
+                // .hide_message(&self.message)
+                .hide_message_with_options(&self.message, &self.options)
                 .expect("Failed to hide message in media")
                 .save_as(Path::new(self.target.as_ref().unwrap()))
                 .expect("Failed to save media");
@@ -410,7 +464,11 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        unveil(secret_media_p.as_path(), out_dir.path())?;
+        unveil(
+            secret_media_p.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
         assert_eq_file_content(
@@ -439,7 +497,11 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        unveil(image_with_secret_path.as_path(), out_dir.path())?;
+        unveil(
+            image_with_secret_path.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
         assert_eq_file_content(
@@ -491,7 +553,11 @@ mod e2e_tests {
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        unveil(image_with_secret_path.as_path(), out_dir.path())?;
+        unveil(
+            image_with_secret_path.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
         assert_eq_file_content(
             &expected_file,
             secret_to_hide.as_ref(),
@@ -517,7 +583,11 @@ mod e2e_tests {
 
         assert_file_not_empty(image_with_secret);
 
-        unveil(image_with_secret_path.as_path(), out_dir.path())?;
+        unveil(
+            image_with_secret_path.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
 
         assert_eq_file_content(
             &expected_file,
@@ -536,6 +606,7 @@ mod e2e_tests {
         unveil(
             Path::new("../resources/with_attachment/Blah.txt.png"),
             out_dir.path(),
+            &CodecOptions::default(),
         )?;
 
         assert_eq_file_content(
@@ -556,6 +627,7 @@ mod e2e_tests {
         unveil(
             Path::new("../resources/with_attachment/Blah.txt__and__Blah-2.txt.png"),
             out_dir.path(),
+            &CodecOptions::default(),
         )?;
         assert_eq_file_content(
             &decoded_secret_1,
@@ -588,7 +660,11 @@ mod e2e_tests {
 
         assert_file_not_empty(image_with_secret);
 
-        unveil(image_with_secret_path.as_path(), out_dir.path())?;
+        unveil(
+            image_with_secret_path.as_path(),
+            out_dir.path(),
+            &CodecOptions::default(),
+        )?;
 
         let decoded_secret = out_dir.path().join("Blah.txt");
         assert_eq_file_content(
@@ -623,5 +699,19 @@ mod e2e_tests {
             .expect("image was not written.")
             .len();
         assert!(l > 0, "File is not supposed to be empty");
+    }
+}
+
+#[cfg(test)]
+mod test_utils {
+    use image::{ImageBuffer, RgbaImage};
+
+    pub const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
+
+    pub fn prepare_small_image() -> RgbaImage {
+        ImageBuffer::from_fn(5, 5, |x, y| {
+            let i = (4 * x + 20 * y) as u8;
+            image::Rgba([i, i + 1, i + 2, i + 3])
+        })
     }
 }

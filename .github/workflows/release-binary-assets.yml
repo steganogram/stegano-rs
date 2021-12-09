@@ -68,8 +68,20 @@ jobs:
           omitBodyDuringUpdate: true
           omitNameDuringUpdate: true
           omitPrereleaseDuringUpdate: true
-      - run: cargo deb -p stegano-cli
+      - name: cargo deb
         if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: sassman/rust-deb-builder@v1.57.0
+        with:
+          package: stegano-cli
+      - name: rename package
+        id: debpkg
+        shell: bash
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          filename="stegano-$TAG-amd64-static.deb"
+          mv target/x86_64-unknown-linux-musl/debian/stegano-cli*.deb "$filename"
+          echo "::set-output name=filename::$filename"
       - name: Upload Deb File
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: ncipollo/release-action@v1.8.7
@@ -77,7 +89,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: ./target/debian/stegano-${{ steps.tag_name.outputs.current_version }}-amd64.deb
+          artifacts: ${{ steps.debpkg.outputs.filename }}
           artifactContentType: application/vnd.debian.binary-package
           omitBodyDuringUpdate: true
           omitNameDuringUpdate: true

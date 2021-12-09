@@ -91,8 +91,6 @@ impl<'a> Iterator for AudioWavIterMut<'a, i16> {
     type Item = MediaPrimitiveMut<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.samples
-            .next()
-            .map(|s| MediaPrimitiveMut::AudioSample(s))
+        self.samples.next().map(MediaPrimitiveMut::AudioSample)
     }
 }

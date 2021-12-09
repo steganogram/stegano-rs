@@ -48,7 +48,9 @@ impl Message {
             ContentVersion::V1 => Self::new_of_v1(dec),
             ContentVersion::V2 => Self::new_of_v2(dec),
             ContentVersion::V4 => Self::new_of_v4(dec),
-            ContentVersion::Unsupported(_) => panic!("Seems like not a valid stegano file."),
+            ContentVersion::Unsupported(_) => {
+                panic!("Seems like you've got an invalid stegano file")
+            }
         }
     }
 
@@ -123,9 +125,8 @@ impl Message {
             if *b == EOF {
                 eof = i;
                 break;
-            } else {
-                eof = 0;
             }
+            eof = 0;
         }
 
         if eof > 0 {
