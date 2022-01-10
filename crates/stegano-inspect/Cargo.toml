@@ -1,0 +1,18 @@
+[package]
+name = "stegano-inspect"
+description = "little cli for inspecting stegano images"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+publish = false
+
+[dependencies]
+argh = "0.1"
+itertools = "0.10"
+
+jpeg-decoder = { version = "0.2.0", path = "../jpeg-decoder" }
+jpeg-encoder = { version = "0.4.1", features = ["simd", "std"] }
+
+[[bin]]
+name = "stegano-inspect"
+path = "src/main.rs"
