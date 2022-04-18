@@ -1,8 +1,3 @@
-## references:
-# cache: https://github.com/actions/cache/blob/main/examples.md#rust---cargo
-# audit: https://github.com/actions-rs/audit-check
-# "needs": https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idneeds
-
 name: Build
 on:
   push:
@@ -16,6 +11,9 @@ on:
       - "**/docs/**"
       - "**.md"
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: true
 
 jobs:
   check:
@@ -88,7 +86,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: [ 'ubuntu-latest']
+        version: ['ubuntu-latest']
     runs-on: ${{ matrix.version }}
     steps:
       - uses: actions/checkout@v2
