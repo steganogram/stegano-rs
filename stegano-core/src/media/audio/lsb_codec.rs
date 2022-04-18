@@ -68,7 +68,7 @@ impl LsbCodec {
     ///     .write_all(&secret_message[..])
     ///     .expect("Cannot write to codec");
     /// ```
-    pub fn encoder<'i>(input: &'i mut Vec<i16>) -> Box<dyn Write + 'i> {
+    pub fn encoder<'i>(input: &'i mut [i16]) -> Box<dyn Write + 'i> {
         Box::new(Encoder::new(
             AudioWavIterMut::new(input.iter_mut()),
             OneBitHide,

@@ -342,7 +342,7 @@ impl SteganoEncoder {
         {
             let _f = File::open(input_file).expect("Data file was not readable.");
         }
-        self.message.add_file(&input_file.to_string());
+        self.message.add_file(input_file);
 
         self
     }
