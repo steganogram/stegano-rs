@@ -1,6 +1,4 @@
-use clap::{
-    crate_authors, crate_description, crate_version, App, AppSettings, Arg, ArgMatches, SubCommand,
-};
+use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Command};
 
 use std::path::Path;
 use stegano_core::commands::{unveil, unveil_raw};
@@ -8,16 +6,16 @@ use stegano_core::media::image::lsb_codec::CodecOptions;
 use stegano_core::*;
 
 fn main() -> Result<()> {
-    let matches = App::new("Stegano CLI")
+    let matches = Command::new("Stegano CLI")
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .subcommand(SubCommand::with_name("hide")
+        .arg_required_else_help(true)
+        .subcommand(Command::new("hide")
             .about("Hides data in PNG images and WAV audio files")
             .arg(
-                Arg::with_name("media")
-                    .short("i")
+                Arg::new("media")
+                    .short('i')
                     .long("in")
                     .value_name("media file")
                     .takes_value(true)
@@ -25,8 +23,8 @@ fn main() -> Result<()> {
                     .help("Media file such as PNG image or WAV audio file, used readonly."),
             )
             .arg(
-                Arg::with_name("write_to_file")
-                    .short("o")
+                Arg::new("write_to_file")
+                    .short('o')
                     .long("out")
                     .value_name("output image file")
                     .takes_value(true)
@@ -34,19 +32,19 @@ fn main() -> Result<()> {
                     .help("Final image will be stored as file"),
             )
             .arg(
-                Arg::with_name("data_file")
-                    .short("d")
+                Arg::new("data_file")
+                    .short('d')
                     .long("data")
                     .value_name("data file")
                     .takes_value(true)
-                    .required_unless("message")
+                    .required_unless_present("message")
                     .min_values(1)
                     .max_values(100)
                     .help("File(s) to hide in the image"),
             )
             .arg(
-                Arg::with_name("message")
-                    .short("m")
+                Arg::new("message")
+                    .short('m')
                     .long("message")
                     .value_name("text message")
                     .takes_value(true)
@@ -54,7 +52,7 @@ fn main() -> Result<()> {
                     .help("A text message that will be hidden"),
             )
             .arg(
-                Arg::with_name("force_content_version2")
+                Arg::new("force_content_version2")
                     .long("x-force-content-version-2")
                     .value_name("text message")
                     .takes_value(false)
@@ -62,11 +60,11 @@ fn main() -> Result<()> {
                     .help("Experimental: enforce content version 2 encoding (for backwards compatibility)"),
             )
         )
-        .subcommand(SubCommand::with_name("unveil")
+        .subcommand(Command::new("unveil")
         .about("Unveils data from PNG images")
         .arg(
-            Arg::with_name("input_image")
-                .short("i")
+            Arg::new("input_image")
+                .short('i')
                 .long("in")
                 .value_name("image source file")
                 .takes_value(true)
@@ -74,19 +72,19 @@ fn main() -> Result<()> {
                 .help("Source image that contains secret data"),
         )
         .arg(
-            Arg::with_name("output_folder")
-                .short("o")
+            Arg::new("output_folder")
+                .short('o')
                 .long("out")
                 .value_name("output folder")
                 .takes_value(true)
                 .required(true)
                 .help("Final data will be stored in that folder"),
         )
-    ).subcommand(SubCommand::with_name("unveil-raw")
+    ).subcommand(Command::new("unveil-raw")
         .about("Unveils raw data in PNG images")
         .arg(
-            Arg::with_name("input_image")
-                .short("i")
+            Arg::new("input_image")
+                .short('i')
                 .long("in")
                 .value_name("image source file")
                 .takes_value(true)
@@ -94,8 +92,8 @@ fn main() -> Result<()> {
                 .help("Source image that contains secret data"),
         )
         .arg(
-            Arg::with_name("output_file")
-                .short("o")
+            Arg::new("output_file")
+                .short('o')
                 .long("out")
                 .value_name("output file")
                 .takes_value(true)
@@ -104,7 +102,7 @@ fn main() -> Result<()> {
         )
     )
         .arg(
-            Arg::with_name("color_step_increment")
+            Arg::new("color_step_increment")
                 .long("x-color-step-increment")
                 .value_name("color channel step increment")
                 .takes_value(true)
@@ -115,7 +113,7 @@ fn main() -> Result<()> {
         .get_matches();
 
     match matches.subcommand() {
-        ("hide", Some(m)) => {
+        Some(("hide", m)) => {
             let mut s = SteganoCore::encoder_with_options(get_options(m));
 
             s.use_media(m.value_of("media").unwrap())?
@@ -141,14 +139,14 @@ fn main() -> Result<()> {
 
             s.hide();
         }
-        ("unveil", Some(m)) => {
+        Some(("unveil", m)) => {
             unveil(
                 Path::new(m.value_of("input_image").unwrap()),
                 Path::new(m.value_of("output_folder").unwrap()),
                 &get_options(m),
             )?;
         }
-        ("unveil-raw", Some(m)) => {
+        Some(("unveil-raw", m)) => {
             unveil_raw(
                 Path::new(m.value_of("input_image").unwrap()),
                 Path::new(m.value_of("output_folder").unwrap()),

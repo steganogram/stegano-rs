@@ -1,7 +1,7 @@
 [package]
 name = "stegano-cli"
 description = "Hiding secret data with steganography in PNG images and WAV audio files"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Sven Assmann <sven.assmann.it@gmail.com>"]
 edition = "2021"
 license = "GPL-3.0-only"
@@ -17,9 +17,9 @@ travis-ci = { repository = "steganogram/stegano-rs", branch = "main" }
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-stegano-core = { path = "../stegano-core", version = "0.5.0" }
+stegano-core = { path = "../stegano-core", version = "0.5.1" }
 #stegano-core = "0.5.0"
-clap = "2.34"
+clap = {version = "3.1.8", features = ["cargo"] }
 
 [[bin]]
 name = "stegano"
