@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]: https://github.com/steganogram/stegano-rs/compare/v0.5.1...HEAD
 
 ## [0.5.1] - 2022-04-18
-[0.5.1]: https://github.com/steganogram/stegano-rs/compare/v0.5.1...v0.5.0
+[0.5.1]: https://github.com/steganogram/stegano-rs/compare/v0.5.0...v0.5.1
 ### 🛠️ Maintenance
 - chore(clippy): make clippy happy [#69](https://github.com/steganogram/stegano-rs/pull/69)
 - build(deps): bump clap from 2.34.0 to 3.1.8 [#69](https://github.com/steganogram/stegano-rs/pull/69)
@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [sassman](https://github.com/sassman)
 
 ## [0.5.0] - 2021-12-09
+[0.5.0]: https://github.com/steganogram/stegano-rs/compare/v0.4.10...v0.5.0
 ### ✨ Features
 - [image color channel step customization](https://github.com/steganogram/stegano-rs/pull/50)
   introducing a new experimental cli argument `--x-color-step-increment <number>` that allows for custom increments
@@ -31,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [sassman](https://github.com/sassman)
 
 ## [0.4.10] - 2021-11-15
-[0.4.10]: https://github.com/steganogram/stegano-rs/compare/v0.4.10...v0.4.9
+[0.4.10]: https://github.com/steganogram/stegano-rs/compare/v0.4.9...v0.4.10
 
 ### 🛠️ Maintenance
 - [chore(deps): bump versions](7f4aba395002a2c5beaba3ba8b58548e4f7c9723)
@@ -40,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [sassman](https://github.com/sassman)
 
 ## [0.4.9] - 2021-05-07
-[0.4.9]: https://github.com/steganogram/stegano-rs/compare/v0.4.9...v0.4.8
+[0.4.9]: https://github.com/steganogram/stegano-rs/compare/v0.4.8...v0.4.9
 ### 🛠️ Maintenance
 - [chore(deps): strip unused deps](https://github.com/steganogram/stegano-rs/pull/35)
 
@@ -161,8 +162,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Typos in cli output and descriptions
 
-[0.4.8]: https://github.com/steganogram/stegano-rs/compare/v0.4.8...v0.4.7
-[0.4.7]: https://github.com/steganogram/stegano-rs/compare/v0.4.7...v0.4.6
-[0.4.6]: https://github.com/steganogram/stegano-rs/compare/v0.4.6...v0.4.5
-[0.4.5]: https://github.com/steganogram/stegano-rs/compare/v0.4.5...v0.4.1
+[0.4.8]: https://github.com/steganogram/stegano-rs/compare/v0.4.7...v0.4.8
+[0.4.7]: https://github.com/steganogram/stegano-rs/compare/v0.4.6...v0.4.7
+[0.4.6]: https://github.com/steganogram/stegano-rs/compare/v0.4.5...v0.4.6
+[0.4.5]: https://github.com/steganogram/stegano-rs/compare/v0.4.1...v0.4.5
 [0.4.1]: https://github.com/steganogram/stegano-rs/compare/v0.4.0...v0.4.1
