@@ -26,6 +26,10 @@ jobs:
             os: windows-latest
             cross: false
             binName: stegano.exe
+          - target: x86_64-pc-windows-gnu
+            os: windows-latest
+            cross: false
+            binName: stegano.exe
     steps:
       - uses: actions/checkout@v2
       - name: Setup Rust
@@ -46,7 +50,7 @@ jobs:
         with:
           command: run
           use-cross: ${{ matrix.cross }}
-          args: --release --target=${{ matrix.target }} -- -V
+          args: --release --target=${{ matrix.target }} -- --help
       - name: Create Archive
         id: archive
         shell: bash
@@ -65,32 +69,6 @@ jobs:
           artifactErrorsFailBuild: true
           artifacts: ${{ steps.archive.outputs.filename }}
           artifactContentType: application/octet-stream
-          omitBodyDuringUpdate: true
-          omitNameDuringUpdate: true
-          omitPrereleaseDuringUpdate: true
-      - name: cargo deb
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: sassman/rust-deb-builder@v1.57.0
-        with:
-          package: stegano-cli
-      - name: rename package
-        id: debpkg
-        shell: bash
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-        run: |
-          filename="stegano-$TAG-amd64-static.deb"
-          mv target/x86_64-unknown-linux-musl/debian/stegano-cli*.deb "$filename"
-          echo "::set-output name=filename::$filename"
-      - name: Upload Deb File
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: ncipollo/release-action@v1.8.7
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          allowUpdates: true
-          artifactErrorsFailBuild: true
-          artifacts: ${{ steps.debpkg.outputs.filename }}
-          artifactContentType: application/vnd.debian.binary-package
           omitBodyDuringUpdate: true
           omitNameDuringUpdate: true
           omitPrereleaseDuringUpdate: true
