@@ -24,7 +24,7 @@ zip = "0.6"
 bzip2 = "0.4"
 deflate = "1.0"
 byteorder = "1.4"
-hound = "3.4"
+hound = "3.5"
 thiserror = "1.0"
 enum_dispatch = "0.3"
 
