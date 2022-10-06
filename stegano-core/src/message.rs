@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{Cursor, Read};
 use std::path::Path;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum ContentVersion {
     V1,
     V2,
@@ -199,7 +199,7 @@ impl From<&Message> for Vec<u8> {
                 let options = zip::write::FileOptions::default()
                     .compression_method(zip::CompressionMethod::Deflated);
 
-                (&m.files)
+                (m.files)
                     .iter()
                     .map(|(name, buf)| (name, buf))
                     .for_each(|(name, buf)| {

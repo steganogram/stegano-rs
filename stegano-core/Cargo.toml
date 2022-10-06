@@ -30,7 +30,7 @@ enum_dispatch = "0.3"
 
 [dev-dependencies]
 speculate = "0.1"
-criterion = { version = "0.3", features = ["html_reports"] }
+criterion = { version = "0.4", features = ["html_reports"] }
 tempfile = "3.3"
 
 [dev-dependencies.cargo-husky]

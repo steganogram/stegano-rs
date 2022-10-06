@@ -181,8 +181,8 @@ mod decoder_tests {
         }
         let first_pixel_changed = *img.get_pixel(0, 0);
         assert_ne!(
-            first_pixel.0.get(0),
-            first_pixel_changed.0.get(0),
+            first_pixel.0.first(),
+            first_pixel_changed.0.first(),
             "First Color (Red-Channel) should have been changed."
         );
         assert_eq!(
