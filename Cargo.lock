@@ -1051,7 +1051,7 @@ dependencies = [
 
 [[package]]
 name = "stegano-cli"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "clap 4.0.10",
  "stegano-core",
@@ -1059,7 +1059,7 @@ dependencies = [
 
 [[package]]
 name = "stegano-core"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "bitstream-io",
  "byteorder",
