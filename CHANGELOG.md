@@ -5,7 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/steganogram/stegano-rs/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/steganogram/stegano-rs/compare/v0.5.2...HEAD
+
+## [0.5.2] - 2022-10-07
+[0.5.2]: https://github.com/steganogram/stegano-rs/compare/v0.5.1...v0.5.2
+
+### 🛠️ Maintenance
+- chore(clippy): make clippy happy and bump dependencies [#90](https://github.com/steganogram/stegano-rs/pull/90)
+
+### Contributors
+- [sassman](https://github.com/sassman)
 
 ## [0.5.1] - 2022-04-18
 [0.5.1]: https://github.com/steganogram/stegano-rs/compare/v0.5.0...v0.5.1
@@ -16,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - build(deps): bump zip from 0.5.13 to 0.6.0 [#69](https://github.com/steganogram/stegano-rs/pull/69)
 - build(deps): bump image from 0.23.14 to 0.24.1 [#69](https://github.com/steganogram/stegano-rs/pull/69)
 - build(deps): bump tempfile from 3.2.0 to 3.3.0 [#69](https://github.com/steganogram/stegano-rs/pull/69)
+
 ### Contributors
 - [sassman](https://github.com/sassman)
 

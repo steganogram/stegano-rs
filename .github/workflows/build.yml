@@ -119,7 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: cargo deb
-        uses: sassman/rust-deb-builder@v1.57.0
+        uses: sassman/rust-deb-builder@v1
         with:
           package: stegano-cli
       - name: Archive deb artifact

@@ -136,14 +136,14 @@ pub enum SteganoError {
 }
 
 /// wrap the low level data types that carries information
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum MediaPrimitive {
     ImageColorChannel(u8),
     AudioSample(i16),
 }
 
 /// mutable primitive for storing stegano data
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum MediaPrimitiveMut<'a> {
     ImageColorChannel(&'a mut u8),
     AudioSample(&'a mut i16),
