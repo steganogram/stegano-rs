@@ -103,7 +103,7 @@ fn main() -> Result<()> {
 
     match matches.subcommand() {
         Some(("hide", m)) => {
-            let mut s = SteganoCore::encoder_with_options(get_options(m));
+            let mut s = SteganoCore::encoder_with_options(get_options(&matches));
 
             s.use_media(m.get_one::<String>("media").unwrap())?
                 .write_to(m.get_one::<String>("write_to_file").unwrap());
@@ -112,8 +112,8 @@ fn main() -> Result<()> {
                 s.hide_message(msg);
             }
 
-            if let Some(files) = m.get_many("data_file") {
-                s.hide_files(files.copied().collect());
+            if let Some(files) = m.get_many::<String>("data_file") {
+                s.hide_files(files.map(|f| &**f).collect());
             }
 
             if m.contains_id("force_content_version2") {
@@ -126,7 +126,7 @@ fn main() -> Result<()> {
             unveil(
                 Path::new(m.get_one::<String>("input_image").unwrap()),
                 Path::new(m.get_one::<String>("output_folder").unwrap()),
-                &get_options(m),
+                &get_options(&matches),
             )?;
         }
         Some(("unveil-raw", m)) => {
