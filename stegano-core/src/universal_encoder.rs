@@ -20,7 +20,7 @@ pub enum HideAlgorithms {
 #[enum_dispatch(HideAlgorithms)]
 pub trait HideAlgorithm {
     /// encodes one bit onto a carrier T e.g. u8 or i16
-    fn encode<'c>(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>);
+    fn encode(&self, carrier: MediaPrimitiveMut, information: &Result<bool>);
 }
 
 /// generic stegano encoder
@@ -72,7 +72,7 @@ where
 pub struct OneBitHide;
 impl HideAlgorithm for OneBitHide {
     #[inline(always)]
-    fn encode<'c>(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
+    fn encode(&self, carrier: MediaPrimitiveMut, information: &Result<bool>) {
         if let Ok(bit) = information {
             match carrier {
                 MediaPrimitiveMut::ImageColorChannel(b) => {
@@ -92,7 +92,7 @@ impl HideAlgorithm for OneBitHide {
 pub struct OneBitInLowFrequencyHide;
 impl HideAlgorithm for OneBitInLowFrequencyHide {
     #[inline(always)]
-    fn encode<'c>(&self, carrier: MediaPrimitiveMut<'c>, information: &Result<bool>) {
+    fn encode(&self, carrier: MediaPrimitiveMut, information: &Result<bool>) {
         if let Ok(bit) = information {
             match carrier {
                 MediaPrimitiveMut::ImageColorChannel(b) => {

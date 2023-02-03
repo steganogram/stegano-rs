@@ -33,7 +33,7 @@ where
             if bit == 0 {
                 self.byte = None;
             }
-            if self.byte == None {
+            if self.byte.is_none() {
                 let mut b = 0;
                 match self.iter.read(slice::from_mut(&mut b)) {
                     Ok(0) => None,
