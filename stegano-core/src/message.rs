@@ -204,7 +204,7 @@ impl From<&Message> for Vec<u8> {
                     .map(|(name, buf)| (name, buf))
                     .for_each(|(name, buf)| {
                         zip.start_file(name, options)
-                            .unwrap_or_else(|_| panic!("processing file '{}' failed.", name));
+                            .unwrap_or_else(|_| panic!("processing file '{name}' failed."));
 
                         let mut r = std::io::Cursor::new(buf);
                         std::io::copy(&mut r, &mut zip)
