@@ -24,7 +24,7 @@ jobs:
         version: [ 'ubuntu-latest']
     runs-on: ${{ matrix.version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: setup | rust
         uses: actions-rs/toolchain@v1
         with:
@@ -32,7 +32,7 @@ jobs:
           default: true
           profile: minimal
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - run: cargo check
 
   lint:
@@ -47,7 +47,7 @@ jobs:
           - clippy --all-targets --all-features -- -D warnings
     runs-on: ${{ matrix.version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: setup | rust
         uses: actions-rs/toolchain@v1
         with:
@@ -55,7 +55,7 @@ jobs:
           default: true
           profile: minimal
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - run: cargo ${{ matrix['cargo-cmd'] }}
 
   tests:
@@ -69,16 +69,16 @@ jobs:
     runs-on: ${{ matrix.version }}
     continue-on-error: ${{ matrix.rust == 'nightly' }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: setup | rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
           default: true
           profile: minimal
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - name: cargo test
-        run: cargo test --all --locked -- -Z unstable-options
+        run: cargo test --all --locked
 
   coverage:
     name: coverage report
@@ -89,14 +89,14 @@ jobs:
         version: ['ubuntu-latest']
     runs-on: ${{ matrix.version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: setup | rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           default: true
           profile: minimal
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - name: cargo tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
@@ -117,7 +117,7 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: cargo deb
         uses: sassman/rust-deb-builder@v1
         with:
@@ -133,14 +133,14 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: setup | rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           default: true
           profile: minimal
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - name: audit
         uses: actions-rs/audit-check@v1
         with:
