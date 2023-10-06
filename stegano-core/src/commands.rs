@@ -17,7 +17,7 @@ pub fn unveil(
     let files = match media {
         Media::Image(image) => {
             let mut decoder = LsbCodec::decoder(&image, opts);
-            let msg = Message::of(&mut decoder, PayloadCodecFactory::default());
+            let msg = Message::of(&mut decoder, PayloadCodecFactory).unwrap();
             let mut files = msg.files;
 
             if let Some(text) = msg.text {
@@ -29,7 +29,7 @@ pub fn unveil(
         Media::Audio(audio) => {
             let mut decoder = Decoder::new(AudioWavIter::new(audio.1.into_iter()), OneBitUnveil);
 
-            let msg = Message::of(&mut decoder, PayloadCodecFactory::default());
+            let msg = Message::of(&mut decoder, PayloadCodecFactory).unwrap();
             let mut files = msg.files;
 
             if let Some(text) = msg.text {

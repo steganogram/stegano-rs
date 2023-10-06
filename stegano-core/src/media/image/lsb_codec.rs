@@ -2,17 +2,22 @@ use crate::media::image::decoder::ImageRgbaColor;
 use crate::media::image::encoder::ImageRgbaColorMut;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
 use crate::universal_encoder::{Encoder, HideAlgorithms, OneBitHide, OneBitInLowFrequencyHide};
+
 use image::RgbaImage;
 use std::io::{Read, Write};
 
 #[derive(Debug)]
 pub struct CodecOptions {
-    /// would move the by step n each iteration,
+    /// would move the by step n each iteration, this reduces the capacity available.
+    ///
     /// Note: the alpha channel is count as regular channel
     pub color_channel_step_increment: usize,
-    /// if true no alpha channel would be used for encoding
+
+    /// If true no alpha channel would be used for encoding,
+    /// this reduces then the capacity by one bit per pixel
     pub skip_alpha_channel: bool,
-    /// the concealer strategy
+
+    /// the concealer strategy, decides on where in a color channel things are going to be hidden
     pub concealer: Concealer,
 }
 
@@ -23,6 +28,7 @@ pub enum Concealer {
 }
 
 impl Default for CodecOptions {
+    /// The good old golden options
     fn default() -> Self {
         Self {
             color_channel_step_increment: 1,

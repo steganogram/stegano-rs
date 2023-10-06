@@ -1,11 +1,12 @@
-use crate::media::payload::PayloadCodec;
-use crate::media::payload::{
-    PayloadCodecFactory, PayloadCodecFeatures, PayloadDecoder, PayloadEncoder,
-};
-use byteorder::{ReadBytesExt, WriteBytesExt};
+#![warn(clippy::unwrap_used, clippy::expect_used)]
+use crate::media::payload::{PayloadCodec, PayloadCodecFactory, PayloadCodecFeatures};
+use crate::result::Result;
+
+use crate::SteganoError;
+use byteorder::ReadBytesExt;
 use std::default::Default;
 use std::fs::File;
-use std::io::{Cursor, Read, Write};
+use std::io::{Cursor, Read};
 use std::path::Path;
 
 pub struct Message {
@@ -16,68 +17,61 @@ pub struct Message {
 
 // TODO implement Result returning
 impl Message {
-    pub fn of(dec: &mut dyn Read, codec_factory: PayloadCodecFactory) -> Self {
-        let version = dec.read_u8().expect("Failed to read version header");
+    pub fn of(dec: &mut dyn Read, codec_factory: PayloadCodecFactory) -> Result<Self> {
+        let version = dec.read_u8()?;
 
-        let codec: Box<dyn PayloadCodec> = codec_factory.create_codec(version);
+        let codec: Box<dyn PayloadCodec> = codec_factory.create_codec(version)?;
+        let content = codec.decode(dec)?;
 
-        let content = codec
-            .decode(dec)
-            .expect("The surrounding method here should be fallible .. ");
         if codec.has_feature(PayloadCodecFeatures::TextOnly) {
-            let text =
-                String::from_utf8(content).expect("the surrounding method needs to be fallible..");
+            let text = String::from_utf8(content)?;
 
-            Self {
+            Ok(Self {
                 codec_factory,
                 files: Default::default(),
                 text: Some(text),
-            }
+            })
         } else if codec.has_feature(PayloadCodecFeatures::TextAndDocuments) {
-            Self {
+            Ok(Self {
                 codec_factory,
-                ..Self::new_of(content)
-            }
+                ..Self::new_of(content)?
+            })
         } else {
-            unimplemented!("well.. maybe an own error..")
+            Err(SteganoError::UnsupportedMessageFormat(
+                codec.version().into(),
+            ))
         }
-        // match version {
-        //     PayloadCodecFeatures::TextOnly => Self::new_of_v1(dec),
-        //     PayloadCodecFeatures::TextOnlyAndTerminated => Self::new_of_v2(dec),
-        //     PayloadCodecFeatures::TextAndDocuments => Self::new_of_v4(dec),
-        //     PayloadCodecFeatures::Unsupported(_) => {
-        //         panic!("Seems like you've got an invalid stegano file")
-        //     }
-        // }
     }
 
-    pub fn new_of_files(files: &[String]) -> Self {
+    pub fn new_of_files(files: &[String]) -> Result<Self> {
         let mut m = Self::new();
 
-        files
-            .iter()
+        for f in files.iter() {
             //            .map(|f| (f, File::open(f).expect("Data file was not readable.")))
             //            // TODO instead of filtering, accepting directories would be nice
             //            .filter(|(name, f)| f.metadata().unwrap().is_file())
-            .for_each(|f| {
-                m.add_file(f);
-            });
+            m.add_file(f)?;
+        }
 
-        m
+        Ok(m)
     }
 
-    pub fn add_file(&mut self, file: &str) -> &mut Self {
-        let mut fd = File::open(file).expect("File was not readable");
+    pub fn add_file(&mut self, file: &str) -> Result<&mut Self> {
+        let mut fd = File::open(file)?;
         let mut fb: Vec<u8> = Vec::new();
 
-        fd.read_to_end(&mut fb).expect("Failed buffer whole file.");
+        fd.read_to_end(&mut fb)?;
 
-        let file = Path::new(file).file_name().unwrap().to_str().unwrap();
+        let file = Path::new(file)
+            .file_name()
+            .ok_or_else(|| SteganoError::InvalidFileName)?
+            .to_str()
+            .ok_or_else(|| SteganoError::InvalidFileName)?;
 
         self.add_file_data(file, fb);
         // self.files.push((file.to_owned(), fb));
 
-        self
+        Ok(self)
     }
 
     pub fn add_file_data(&mut self, file: &str, data: Vec<u8>) -> &mut Self {
@@ -93,13 +87,13 @@ impl Message {
     fn new() -> Self {
         Message {
             // todo: injection all the way up!!
-            codec_factory: PayloadCodecFactory::default(),
+            codec_factory: PayloadCodecFactory,
             files: Vec::new(),
             text: None,
         }
     }
 
-    fn new_of(buf: Vec<u8>) -> Message {
+    fn new_of(buf: Vec<u8>) -> Result<Message> {
         let mut files = Vec::new();
         let mut buf = Cursor::new(buf);
 
@@ -108,8 +102,7 @@ impl Message {
                 None => {}
                 Some(mut file) => {
                     let mut writer = Vec::new();
-                    file.read_to_end(&mut writer)
-                        .expect("Failed to read data from inner message structure.");
+                    file.read_to_end(&mut writer)?;
 
                     files.push((file.name().to_string(), writer));
                 }
@@ -119,53 +112,55 @@ impl Message {
         let mut m = Message::new();
         m.files.append(&mut files);
 
-        m
+        Ok(m)
     }
 }
 
-impl From<&mut Vec<u8>> for Message {
-    fn from(buf: &mut Vec<u8>) -> Self {
+impl TryFrom<&mut Vec<u8>> for Message {
+    type Error = SteganoError;
+
+    fn try_from(buf: &mut Vec<u8>) -> std::result::Result<Self, Self::Error> {
         let mut c = Cursor::new(buf);
-        Message::of(&mut c, PayloadCodecFactory::default())
+        Message::of(&mut c, PayloadCodecFactory)
     }
 }
 
-impl From<&Message> for Vec<u8> {
-    fn from(m: &Message) -> Vec<u8> {
+impl TryFrom<&Message> for Vec<u8> {
+    type Error = SteganoError;
+
+    fn try_from(m: &Message) -> std::result::Result<Self, Self::Error> {
         let mut buf = Vec::new();
 
-        let codec = m.codec_factory.create_codec(if m.files.is_empty() {
-            PayloadCodecFeatures::TextOnly
+        let codec = if m.files.is_empty() {
+            m.codec_factory.create_codec_for_text()
         } else {
-            PayloadCodecFeatures::TextAndDocuments
-        });
+            m.codec_factory.create_codec_for_documents()
+        };
+
         {
-            let w = std::io::Cursor::new(&mut buf);
+            let w = Cursor::new(&mut buf);
             let mut zip = zip::ZipWriter::new(w);
 
             let options = zip::write::FileOptions::default()
                 .compression_method(zip::CompressionMethod::Deflated);
 
-            (m.files)
-                .iter()
-                .map(|(name, buf)| (name, buf))
-                .for_each(|(name, buf)| {
-                    zip.start_file(name, options)
-                        .unwrap_or_else(|_| panic!("processing file '{name}' failed."));
+            for (name, buf) in (m.files).iter().map(|(name, buf)| (name, buf)) {
+                zip.start_file(name, options)?;
 
-                    let mut r = std::io::Cursor::new(buf);
-                    std::io::copy(&mut r, &mut zip).expect("Failed to copy data to the zip entry.");
-                });
+                let mut r = Cursor::new(buf);
+                std::io::copy(&mut r, &mut zip)?;
+            }
 
-            zip.finish().expect("finish zip failed.");
+            zip.finish()?;
         }
 
-        return codec.encode(&mut Cursor::new(buf)).unwrap();
+        Ok(codec.encode(&mut Cursor::new(buf))?)
     }
 }
 
 #[cfg(test)]
 mod message_tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)]
     use super::*;
     use std::io::copy;
     use zip::write::FileOptions;
@@ -174,7 +169,7 @@ mod message_tests {
     #[test]
     fn should_convert_into_vec_of_bytes() {
         let files = vec!["../resources/with_text/hello_world.png".to_string()];
-        let m = Message::new_of_files(&files);
+        let m = Message::new_of_files(&files).unwrap();
 
         assert_eq!(
             m.files.len(),
@@ -187,17 +182,17 @@ mod message_tests {
             "One file was not there, buffer was broken"
         );
 
-        let b: Vec<u8> = (&m).into();
+        let b: Vec<u8> = (&m).try_into().unwrap();
         assert_ne!(b.len(), 0, "File buffer was empty");
     }
 
     #[test]
     fn should_convert_from_vec_of_bytes() {
         let files = vec!["../resources/with_text/hello_world.png".to_string()];
-        let m = Message::new_of_files(&files);
-        let mut b: Vec<u8> = (&m).into();
+        let m = Message::new_of_files(&files).unwrap();
+        let mut b: Vec<u8> = (&m).try_into().unwrap();
 
-        let m = Message::from(&mut b);
+        let m = Message::try_from(&mut b).unwrap();
         assert_eq!(
             m.files.len(),
             1,
@@ -213,11 +208,11 @@ mod message_tests {
     #[test]
     fn should_instantiate_from_read_trait() {
         let files = vec!["../resources/with_text/hello_world.png".to_string()];
-        let m = Message::new_of_files(&files);
-        let mut b: Vec<u8> = (&m).into();
+        let m = Message::new_of_files(&files).unwrap();
+        let mut b: Vec<u8> = (&m).try_into().unwrap();
         let mut r = Cursor::new(&mut b);
 
-        let m = Message::of(&mut r, PayloadCodecFactory::default());
+        let m = Message::of(&mut r, PayloadCodecFactory).unwrap();
         assert_eq!(
             m.files.len(),
             1,
@@ -240,7 +235,7 @@ mod message_tests {
         const BUF: [u8; 6] = [0x1, b'H', b'e', 0xff, 0xff, 0xcd];
 
         let mut r = BufReader::new(&BUF[..]);
-        let m = Message::of(&mut r, PayloadCodecFactory::default());
+        let m = Message::of(&mut r, PayloadCodecFactory).unwrap();
         assert_eq!(m.text.unwrap(), "He", "Message.text was not as expected");
         assert_eq!(m.files.len(), 0, "Message.files were not empty.");
     }

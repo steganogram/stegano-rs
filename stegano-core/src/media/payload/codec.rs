@@ -1,20 +1,17 @@
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use std::cmp::min;
-use std::io::{Read, Write};
+use std::io::Read;
 
-const TEXT_ONLY: u8 = 1 << 0;
-const TEXT_AND_DOCUMENTS_TERMINATED: u8 = 1 << 1;
-const TEXT_AND_DOCUMENTS: u8 = 1 << 2;
-const LENGTH_HEADER: u8 = 1 << 3;
+pub(super) const TEXT_ONLY: u8 = 1 << 0;
+pub(super) const TEXT_AND_DOCUMENTS_TERMINATED: u8 = 1 << 1;
+pub(super) const TEXT_AND_DOCUMENTS: u8 = 1 << 2;
+pub(super) const LENGTH_HEADER: u8 = 1 << 3;
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
-#[repr(u8)]
 pub enum PayloadCodecFeatures {
-    TextOnly = TEXT_ONLY,
-    TextAndDocumentsTerminated = TEXT_AND_DOCUMENTS_TERMINATED,
-    TextAndDocuments = TEXT_AND_DOCUMENTS,
-    LengthHeader = LENGTH_HEADER,
-
+    TextOnly,
+    TextAndDocumentsTerminated,
+    TextAndDocuments,
+    LengthHeader,
     MixedFeatures(u8),
 }
 
@@ -40,68 +37,28 @@ pub trait PayloadDecoder {
     fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>>;
 }
 
-pub trait PayloadCodec: PayloadEncoder + PayloadDecoder {
+pub trait HasFeature {
+    fn has_feature(&self, feature: PayloadCodecFeatures) -> bool;
+}
+
+pub trait PayloadCodec: PayloadEncoder + PayloadDecoder + HasFeature {}
+
+impl HasFeature for u8 {
     fn has_feature(&self, feature: PayloadCodecFeatures) -> bool {
-        let v: u8 = self.version().into();
+        let v: u8 = *self;
         let f: u8 = feature.into();
 
         (v & f) != 0
     }
 }
 
-#[derive(Default)]
-pub struct PayloadCodecFactory;
-impl PayloadCodecFactory {
-    pub fn create_codec<T: Into<u8>>(&self, version: T) -> Box<dyn PayloadCodec> {
-        let version: u8 = version.into();
-        match version {
-            TEXT_ONLY => Box::new(PayloadFlexCodec::new(
-                PayloadEncoderWithLengthHeader::new(PayloadCodecFeatures::MixedFeatures(
-                    u8::from(PayloadCodecFeatures::TextOnly)
-                        | u8::from(PayloadCodecFeatures::LengthHeader),
-                )),
-                PayloadDecoderLegacyVersion1::default(),
-            )),
-            TEXT_AND_DOCUMENTS_TERMINATED => Box::new(PayloadFlexCodec::new(
-                Self::create_text_and_documents_encoder(),
-                PayloadDecoderLegacyVersion2::default(),
-            )),
-            TEXT_AND_DOCUMENTS => Box::new(PayloadFlexCodec::new(
-                Self::create_text_and_documents_encoder(),
-                PayloadDecoderWithLengthHeader::default(),
-            )),
-            version if version & u8::from(PayloadCodecFeatures::LengthHeader) != 0 => {
-                if version & u8::from(PayloadCodecFeatures::TextOnly) != 0 {
-                    Box::new(PayloadFlexCodec::new(
-                        // here we explicitly keep the specific version as is
-                        PayloadEncoderWithLengthHeader::new(PayloadCodecFeatures::MixedFeatures(
-                            version,
-                        )),
-                        PayloadDecoderWithLengthHeader::default(),
-                    ))
-                } else if version & u8::from(PayloadCodecFeatures::TextAndDocuments) != 0 {
-                    Box::new(PayloadFlexCodec::new(
-                        // here we explicitly keep the specific version as is
-                        PayloadEncoderWithLengthHeader::new(PayloadCodecFeatures::MixedFeatures(
-                            version,
-                        )),
-                        PayloadDecoderWithLengthHeader::default(),
-                    ))
-                } else {
-                    unimplemented!("totally unsupported version: {version}")
-                }
-            }
-            version => {
-                unimplemented!("yet unsupported version: {version}")
-            }
-        }
-    }
-
-    fn create_text_and_documents_encoder() -> PayloadEncoderWithLengthHeader {
-        PayloadEncoderWithLengthHeader::new(PayloadCodecFeatures::MixedFeatures(
-            u8::from(PayloadCodecFeatures::TextAndDocuments)
-                | u8::from(PayloadCodecFeatures::LengthHeader),
-        ))
+impl<E> HasFeature for E
+where
+    E: PayloadEncoder,
+{
+    fn has_feature(&self, feature: PayloadCodecFeatures) -> bool {
+        let v: u8 = self.version().into();
+        v.has_feature(feature)
     }
 }
 
@@ -109,19 +66,15 @@ impl PayloadCodecFactory {
 pub struct PayloadDecoderLegacyVersion1;
 
 impl PayloadDecoder for PayloadDecoderLegacyVersion1 {
-    fn decode(&self, mut content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
+    fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
         let mut buffer = Vec::new();
 
-        loop {
-            if let Ok(b) = content.read_u8() {
-                // very naive, only one terminator
-                if b == 0xff {
-                    break;
-                }
-                buffer.write_u8(b)?;
-            } else {
+        while let Ok(b) = content.read_u8() {
+            // very naive, only one terminator
+            if b == 0xff {
                 break;
             }
+            buffer.write_u8(b)?;
         }
 
         Ok(buffer)
@@ -134,7 +87,7 @@ pub type PayloadDecoderLegacyVersion2 = PayloadDecoderLegacyVersion1;
 #[derive(Default)]
 pub struct PayloadDecoderWithLengthHeader;
 impl PayloadDecoder for PayloadDecoderWithLengthHeader {
-    fn decode(&self, mut content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
+    fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
         let len = content.read_u32::<BigEndian>()? as usize;
         let mut buffer = Vec::new();
         content.read_to_end(&mut buffer)?;
@@ -162,7 +115,7 @@ impl PayloadEncoder for PayloadEncoderWithLengthHeader {
         self.version
     }
 
-    fn encode(&self, mut content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
+    fn encode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
         let mut src = Vec::new();
         content.read_to_end(&mut src)?;
 
