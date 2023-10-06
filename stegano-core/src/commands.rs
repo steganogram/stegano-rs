@@ -1,5 +1,6 @@
 use crate::media::audio::wav_iter::AudioWavIter;
 use crate::media::image::LsbCodec;
+use crate::media::payload::PayloadCodecFactory;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
 use crate::{CodecOptions, Media, Message, RawMessage, SteganoError};
 use std::fs::File;
@@ -16,7 +17,7 @@ pub fn unveil(
     let files = match media {
         Media::Image(image) => {
             let mut decoder = LsbCodec::decoder(&image, opts);
-            let msg = Message::of(&mut decoder);
+            let msg = Message::of(&mut decoder, PayloadCodecFactory::default());
             let mut files = msg.files;
 
             if let Some(text) = msg.text {
@@ -28,7 +29,7 @@ pub fn unveil(
         Media::Audio(audio) => {
             let mut decoder = Decoder::new(AudioWavIter::new(audio.1.into_iter()), OneBitUnveil);
 
-            let msg = Message::of(&mut decoder);
+            let msg = Message::of(&mut decoder, PayloadCodecFactory::default());
             let mut files = msg.files;
 
             if let Some(text) = msg.text {

@@ -91,6 +91,7 @@ use std::path::Path;
 use thiserror::Error;
 
 pub use crate::media::image::CodecOptions;
+use crate::media::payload::PayloadCodecFeatures;
 
 #[derive(Error, Debug)]
 pub enum SteganoError {
@@ -352,12 +353,6 @@ impl SteganoEncoder {
         input_files.iter().for_each(|&f| {
             self.hide_file(f);
         });
-
-        self
-    }
-
-    pub fn force_content_version(&mut self, c: ContentVersion) -> &mut Self {
-        self.message.header = c;
 
         self
     }
@@ -651,8 +646,9 @@ mod e2e_tests {
         let image_with_secret = image_with_secret_path.to_str().unwrap();
         let secret_to_hide = "../resources/secrets/Blah.txt";
 
+        // todo: this whole test case.. we don't want to support that any longer
         SteganoEncoder::new()
-            .force_content_version(ContentVersion::V2)
+            // .force_content_version(PayloadCodecFeatures::V2)
             .use_media(BASE_IMAGE)?
             .hide_file(secret_to_hide)
             .write_to(image_with_secret)
