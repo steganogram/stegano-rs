@@ -19,19 +19,19 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 image = "0.24"
-bitstream-io = "1.6"
+bitstream-io = "1.7"
 zip = "0.6"
 bzip2 = "0.4"
 deflate = "1.0"
-byteorder = "1.4"
+byteorder = "1.5"
 hound = "3.5"
 thiserror = "1.0"
 enum_dispatch = "0.3"
 
 [dev-dependencies]
 speculate = "0.1"
-criterion = { version = "0.4", features = ["html_reports"] }
-tempfile = "3.5"
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3.8"
 
 [dev-dependencies.cargo-husky]
 version = "1"
