@@ -68,18 +68,14 @@ clippy::redundant_else,
 )]
 
 pub mod bit_iterator;
-
 pub use bit_iterator::BitIterator;
 
 pub mod message;
-
 pub use message::*;
 
 pub mod raw_message;
-
 pub use raw_message::*;
 
-pub mod api;
 pub mod commands;
 pub mod error;
 pub mod media;
