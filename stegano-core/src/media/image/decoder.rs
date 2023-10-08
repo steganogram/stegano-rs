@@ -30,7 +30,6 @@ use image::{Rgba, RgbaImage};
 pub struct ImageRgbaColor<'i> {
     i: usize,
     steps: usize,
-    skip_alpha: bool,
     pixel: ColorIter<'i, Rgba<u8>>,
 }
 
@@ -45,8 +44,10 @@ impl<'i> ImageRgbaColor<'i> {
         Self {
             i: 0,
             steps: options.get_color_channel_step_increment(),
-            skip_alpha: options.get_skip_alpha_channel(),
-            pixel: ColorIter::from_transpose(Transpose::from_rows(input.rows(), h)),
+            pixel: ColorIter::from_transpose(
+                Transpose::from_rows(input.rows(), h, true),
+                options.skip_alpha_channel,
+            ),
         }
     }
 }
@@ -57,13 +58,6 @@ impl<'i> Iterator for ImageRgbaColor<'i> {
 
     #[inline(always)]
     fn next(&'_ mut self) -> Option<Self::Item> {
-        if self.skip_alpha && self.i > 0 {
-            let is_next_alpha = (self.i + 1) % 4 == 0;
-            if is_next_alpha {
-                self.pixel.next();
-                self.i += 1;
-            }
-        }
         let res = self
             .pixel
             .next()

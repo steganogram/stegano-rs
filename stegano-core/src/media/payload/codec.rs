@@ -64,7 +64,6 @@ where
 
 #[derive(Default)]
 pub struct PayloadDecoderLegacyVersion1;
-
 impl PayloadDecoder for PayloadDecoderLegacyVersion1 {
     fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
         let mut buffer = Vec::new();
@@ -81,8 +80,25 @@ impl PayloadDecoder for PayloadDecoderLegacyVersion1 {
     }
 }
 
-/// This alias exists only to illustrate the specific use case at the client code
-pub type PayloadDecoderLegacyVersion2 = PayloadDecoderLegacyVersion1;
+#[derive(Default)]
+pub struct PayloadDecoderLegacyVersion2;
+impl PayloadDecoder for PayloadDecoderLegacyVersion2 {
+    fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
+        let mut buffer = Vec::new();
+        content.read_to_end(&mut buffer)?;
+
+        let zeros = buffer.iter().rev().take_while(|x| x == &&0x0).count();
+        buffer.truncate(buffer.len() - zeros);
+        if buffer[buffer.len() - 1] == 0xff {
+            buffer.truncate(buffer.len() - 1);
+        }
+        if buffer[buffer.len() - 1] == 0xff {
+            buffer.truncate(buffer.len() - 1);
+        }
+
+        Ok(buffer)
+    }
+}
 
 #[derive(Default)]
 pub struct PayloadDecoderWithLengthHeader;

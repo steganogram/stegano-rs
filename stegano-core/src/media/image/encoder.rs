@@ -49,7 +49,10 @@ impl<'a> ImageRgbaColorMut<'a> {
             i: 0,
             steps: options.get_color_channel_step_increment(),
             skip_alpha: options.get_skip_alpha_channel(),
-            pixel: ColorIterMut::from_transpose(TransposeMut::from_rows_mut(input.rows_mut(), h)),
+            pixel: ColorIterMut::from_transpose(
+                TransposeMut::from_rows_mut(input.rows_mut(), h, true),
+                options.skip_alpha_channel,
+            ),
         }
     }
 }
@@ -79,11 +82,11 @@ impl<'i> Iterator for ImageRgbaColorMut<'i> {
 mod decoder_tests {
     use super::*;
     use crate::media::image::lsb_codec::Concealer;
-    use crate::test_utils::{prepare_small_image, HELLO_WORLD_PNG};
+    use crate::test_utils::{prepare_5x5_image, HELLO_WORLD_PNG};
 
     #[test]
     fn it_should_step_in_increments_smaller_than_one_pixel() {
-        let img_ro = prepare_small_image();
+        let img_ro = prepare_5x5_image();
         let mut img = img_ro.clone();
         let mut carrier = ImageRgbaColorMut::new_with_options(
             &mut img,
@@ -111,7 +114,7 @@ mod decoder_tests {
 
     #[test]
     fn it_should_step_in_increments_bigger_than_one_pixel() {
-        let img_ro = prepare_small_image();
+        let img_ro = prepare_5x5_image();
         let mut img = img_ro.clone();
         let mut carrier = ImageRgbaColorMut::new_with_options(
             &mut img,

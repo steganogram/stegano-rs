@@ -4,6 +4,7 @@ use crate::result::Result;
 
 use crate::SteganoError;
 use byteorder::ReadBytesExt;
+use image::EncodableLayout;
 use std::default::Default;
 use std::fs::File;
 use std::io::{Cursor, Read};
@@ -34,7 +35,7 @@ impl Message {
         } else if codec.has_feature(PayloadCodecFeatures::TextAndDocuments) {
             Ok(Self {
                 codec_factory,
-                ..Self::new_of(content)?
+                ..Self::new_with_documents(content)?
             })
         } else {
             Err(SteganoError::UnsupportedMessageFormat(
@@ -93,24 +94,25 @@ impl Message {
         }
     }
 
-    fn new_of(buf: Vec<u8>) -> Result<Message> {
-        let mut files = Vec::new();
+    fn new_with_documents(buf: Vec<u8>) -> Result<Message> {
         let mut buf = Cursor::new(buf);
+        let mut m = Message::new();
 
-        while let Ok(zip) = zip::read::read_zipfile_from_stream(&mut buf) {
-            match zip {
-                None => {}
-                Some(mut file) => {
-                    let mut writer = Vec::new();
-                    file.read_to_end(&mut writer)?;
+        // some experimental code
 
-                    files.push((file.name().to_string(), writer));
-                }
-            }
+        let mut zip = zip_next::ZipArchive::new(&mut buf).unwrap();
+        if !zip.comment().is_empty() {
+            m.text = Some(String::from_utf8_lossy(zip.comment().as_bytes()).to_string())
         }
 
-        let mut m = Message::new();
-        m.files.append(&mut files);
+        for i in 0..zip.len() {
+            let mut file = zip.by_index(i).unwrap();
+            let mut writer = Vec::new();
+            file.read_to_end(&mut writer)?;
+
+            m.files
+                .push((file.mangled_name().to_str().unwrap().to_string(), writer));
+        }
 
         Ok(m)
     }

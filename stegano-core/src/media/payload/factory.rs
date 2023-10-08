@@ -30,7 +30,7 @@ impl PayloadCodecFactory {
             ))),
             TEXT_AND_DOCUMENTS_TERMINATED => Ok(Box::new(PayloadFlexCodec::new(
                 Self::create_text_and_documents_encoder(),
-                PayloadDecoderLegacyVersion2::default(),
+                PayloadDecoderLegacyVersion2,
             ))),
             TEXT_AND_DOCUMENTS => Ok(self.create_codec_for_documents()),
             version if version.has_feature(PayloadCodecFeatures::LengthHeader) => {

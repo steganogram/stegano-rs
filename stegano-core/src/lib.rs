@@ -662,10 +662,32 @@ mod test_utils {
 
     pub const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
 
-    pub fn prepare_small_image() -> RgbaImage {
+    /// This image has some traits:
+    /// --------------y-------------
+    /// | 0,0 -> (0, 1, 2, 3 ) | 0,1 -> (4, 5, 6, 7 ) | ...
+    /// | 1,0 -> (20,21,22,23) | 1,1 -> (24,25,26,27) | ...
+    /// | 2,0 -> (40,41,42,43) | 2,1 -> (44,45,46,47) | ...
+    /// x ...
+    /// | ..
+    /// | ..
+    pub fn prepare_5x5_image() -> RgbaImage {
         ImageBuffer::from_fn(5, 5, |x, y| {
             let i = (4 * x + 20 * y) as u8;
             image::Rgba([i, i + 1, i + 2, i + 3])
         })
+    }
+
+    pub fn prepare_5x5_linear_growing_colors_except_last_row_column() -> RgbaImage {
+        let mut img = ImageBuffer::new(5, 5);
+        let mut i = 0;
+        for x in 0..(img.width() - 1) {
+            for y in 0..(img.height() - 1) {
+                let pi = img.get_pixel_mut(x, y);
+                *pi = image::Rgba([i, i + 1, i + 2, 255]);
+                i += 3;
+            }
+        }
+
+        img
     }
 }
