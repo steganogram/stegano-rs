@@ -23,6 +23,7 @@ where
 {
     pub input: I,
     pub algorithm: A,
+    position: usize,
 }
 
 /// generic stegano decoder constructor method
@@ -32,7 +33,11 @@ where
     A: UnveilAlgorithm,
 {
     pub fn new(input: I, algorithm: A) -> Self {
-        Decoder { input, algorithm }
+        Decoder {
+            input,
+            algorithm,
+            position: 0,
+        }
     }
 }
 
@@ -43,22 +48,22 @@ where
 {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         // TODO better let the algorithm determine the density of decoding
-        let items_to_take = buf.len() << 3; // 1 bit per carrier item
+        let items_to_take = buf.len() << 3; // 8 primitives = 1 byte
         let buf_writer = BufWriter::new(buf);
         let mut bit_buffer = BitWriter::endian(buf_writer, LittleEndian);
 
         let mut bit_read: usize = 0;
         for carrier in self.input.by_ref().take(items_to_take) {
             let bit = self.algorithm.decode(carrier);
-            bit_buffer.write_bit(bit).expect("Cannot write bit n");
+            bit_buffer.write_bit(bit)?;
             bit_read += 1;
         }
 
         if !bit_buffer.byte_aligned() {
-            bit_buffer
-                .byte_align()
-                .expect("Failed to align the last byte read from carrier.");
+            bit_buffer.byte_align()?
         }
+
+        self.position += bit_read >> 3;
 
         Ok(bit_read >> 3)
     }

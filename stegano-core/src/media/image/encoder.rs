@@ -33,7 +33,6 @@ use crate::MediaPrimitiveMut;
 pub struct ImageRgbaColorMut<'a> {
     i: usize,
     steps: usize,
-    skip_alpha: bool,
     pixel: ColorIterMut<'a, Rgba<u8>>,
 }
 
@@ -44,12 +43,14 @@ impl<'a> ImageRgbaColorMut<'a> {
     }
 
     pub fn new_with_options(input: &'a mut RgbaImage, options: &CodecOptions) -> Self {
-        let h = input.height();
+        let w = input.width();
         Self {
             i: 0,
-            steps: options.get_color_channel_step_increment(),
-            skip_alpha: options.get_skip_alpha_channel(),
-            pixel: ColorIterMut::from_transpose(TransposeMut::from_rows_mut(input.rows_mut(), h)),
+            steps: options.color_channel_step_increment,
+            pixel: ColorIterMut::from_transpose(
+                TransposeMut::from_rows_mut(input.rows_mut(), w, options.skip_last_row_and_column),
+                options.skip_alpha_channel,
+            ),
         }
     }
 }
@@ -58,13 +59,6 @@ impl<'i> Iterator for ImageRgbaColorMut<'i> {
     type Item = MediaPrimitiveMut<'i>;
 
     fn next(&'_ mut self) -> Option<Self::Item> {
-        if self.skip_alpha && self.i > 0 {
-            let is_next_alpha = (self.i + 1) % 4 == 0;
-            if is_next_alpha {
-                self.pixel.next();
-                self.i += 1;
-            }
-        }
         let res = self.pixel.next().map(MediaPrimitiveMut::ImageColorChannel);
         self.i += 1;
         for _ in 0..self.steps - 1 {
@@ -78,19 +72,49 @@ impl<'i> Iterator for ImageRgbaColorMut<'i> {
 #[cfg(test)]
 mod decoder_tests {
     use super::*;
-    use crate::media::image::lsb_codec::Concealer;
-    use crate::test_utils::{prepare_small_image, HELLO_WORLD_PNG};
+    use crate::test_utils::{
+        prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha, prepare_5x5_image,
+        HELLO_WORLD_PNG,
+    };
+
+    #[test]
+    fn it_should_iterate_over_all_colors_of_an_image() {
+        let img_ro = prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha();
+        let mut img = prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha();
+        let (width, height) = img.dimensions();
+        let mut media_primitive_iter = ImageRgbaColorMut::new(&mut img);
+
+        for x in 0..(width - 1) {
+            for y in 0..(height - 1) {
+                let expected_pixel = img_ro.get_pixel(x, y);
+                for color_idx in 0..3 {
+                    let mut expected_color = *expected_pixel.0.get(color_idx).unwrap();
+                    let given_color = media_primitive_iter.next().unwrap_or_else(|| {
+                        panic!("MediaPrimitive at ({x}, {y}) was not even existing!")
+                    });
+
+                    assert_eq!(
+                        given_color,
+                        MediaPrimitiveMut::ImageColorChannel(&mut expected_color),
+                        "MediaPrimitive at ({x}, {y}) does not match"
+                    );
+                }
+            }
+        }
+        // ensure iterator is exhausted
+        assert!(media_primitive_iter.next().is_none());
+    }
 
     #[test]
     fn it_should_step_in_increments_smaller_than_one_pixel() {
-        let img_ro = prepare_small_image();
+        let img_ro = prepare_5x5_image();
         let mut img = img_ro.clone();
         let mut carrier = ImageRgbaColorMut::new_with_options(
             &mut img,
             &CodecOptions {
                 skip_alpha_channel: true,
                 color_channel_step_increment: 2,
-                concealer: Concealer::LeastSignificantBit,
+                ..CodecOptions::default()
             },
         );
 
@@ -111,28 +135,26 @@ mod decoder_tests {
 
     #[test]
     fn it_should_step_in_increments_bigger_than_one_pixel() {
-        let img_ro = prepare_small_image();
+        let img_ro = prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha();
         let mut img = img_ro.clone();
         let mut carrier = ImageRgbaColorMut::new_with_options(
             &mut img,
             &CodecOptions {
                 skip_alpha_channel: true,
                 color_channel_step_increment: 3,
-                concealer: Concealer::LeastSignificantBit,
+                ..CodecOptions::default()
             },
         );
 
-        if let Some(MediaPrimitiveMut::ImageColorChannel(b)) = carrier.nth(1) {
-            let (x, y, c) = (0, 1, 0);
+        if let Some(MediaPrimitiveMut::ImageColorChannel(actual_color)) = carrier.nth(1) {
+            let (x, y, expected_color) = (0, 1, 0);
             let pixel = img_ro.get_pixel(x, y);
-            let expected_color = *pixel.0.get(c).unwrap();
-
-            let actual_color = *b;
+            let expected_color = pixel.0.get(expected_color).unwrap();
 
             assert_eq!(
-                expected_color, actual_color,
+                actual_color, expected_color,
                 "Pixel at (x={}, y={}) @ color {} mismatched expected={:?}",
-                x, y, c, pixel.0
+                x, y, expected_color, pixel.0
             );
         }
     }
@@ -148,19 +170,20 @@ mod decoder_tests {
         let (width, height) = img.dimensions();
         let mut carrier = ImageRgbaColorMut::new(&mut img);
 
-        for x in 0..width {
-            for y in 0..height {
+        for x in 0..(width - 1) {
+            for y in 0..(height - 1) {
                 let pixel = img_ro.get_pixel(x, y);
-                for c in 0..3 {
-                    let expected_color = pixel.0.get(c).unwrap();
-                    if let Some(MediaPrimitiveMut::ImageColorChannel(b)) = carrier.next() {
-                        let actual_color = *b;
-
+                for color_idx in 0..3 {
+                    let expected_color = pixel.0.get(color_idx).unwrap();
+                    if let Some(MediaPrimitiveMut::ImageColorChannel(actual_color)) = carrier.next()
+                    {
                         assert_eq!(
-                            *expected_color, actual_color,
+                            actual_color, expected_color,
                             "Pixel at (x={}, y={}) @ color {} mismatched current={:?}",
-                            x, y, c, pixel.0
+                            x, y, color_idx, pixel.0
                         );
+                    } else {
+                        panic!("There should always be a color for the 3 loops here..")
                     }
                 }
             }
