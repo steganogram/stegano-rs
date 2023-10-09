@@ -100,18 +100,23 @@ impl Message {
 
         // some experimental code
 
-        let mut zip = zip_next::ZipArchive::new(&mut buf).unwrap();
+        let mut zip = zip_next::ZipArchive::new(&mut buf)?;
         if !zip.comment().is_empty() {
             m.text = Some(String::from_utf8_lossy(zip.comment().as_bytes()).to_string())
         }
 
         for i in 0..zip.len() {
-            let mut file = zip.by_index(i).unwrap();
+            let mut file = zip.by_index(i)?;
             let mut writer = Vec::new();
             file.read_to_end(&mut writer)?;
 
-            m.files
-                .push((file.mangled_name().to_str().unwrap().to_string(), writer));
+            m.files.push((
+                file.mangled_name()
+                    .to_str()
+                    .unwrap_or("--no-file-name--")
+                    .to_string(),
+                writer,
+            ));
         }
 
         Ok(m)
