@@ -28,7 +28,7 @@ impl LsbCodec {
     /// use hound::WavReader;
     /// use stegano_core::media::audio::LsbCodec;
     ///
-    /// let audio_with_secret: &Path = "../resources/secrets/audio-with-secrets.wav".as_ref();
+    /// let audio_with_secret: &Path = "tests/audio/secrets/audio-with-secrets.wav".as_ref();
     /// let mut reader = WavReader::open(audio_with_secret).expect("Cannot create reader");
     ///
     /// let mut buf = vec![0; 12];
@@ -55,7 +55,7 @@ impl LsbCodec {
     /// use stegano_core::media::audio::LsbCodec;
     /// use stegano_core::media::audio::read_samples;
     ///
-    /// let input: &Path = "../resources/plain/carrier-audio.wav".as_ref();
+    /// let input: &Path = "tests/audio/plain/carrier-audio.wav".as_ref();
     /// let out_dir = TempDir::new().expect("Cannot create temp dir");
     /// let audio_with_secret = out_dir.path().join("audio-with-secret.wav");
     ///
@@ -78,24 +78,19 @@ impl LsbCodec {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use hound::WavWriter;
-
     use tempfile::TempDir;
 
-    use crate::Result;
-
-    use super::*;
-
-    const SOME_WAV: &str = "../resources/plain/carrier-audio.wav";
-    const SECRET: &str = "../README.md";
+    const SOME_WAV: &str = "tests/audio/plain/carrier-audio.wav";
 
     #[test]
-    fn it_should_encode_and_decode_in_chunks_by_using_read_to_end() -> Result<()> {
-        let out_dir = TempDir::new()?;
+    fn it_should_encode_and_decode_in_chunks_by_using_read_to_end() {
+        let out_dir = TempDir::new().unwrap();
         let audio_with_secret_p = out_dir.path().join("audio-with-secret.wav");
         let audio_with_secret = audio_with_secret_p.as_path();
 
-        let secret_to_hide_origin = std::fs::read(SECRET)?;
+        let secret_to_hide_origin = include_bytes!("lsb_codec.rs").to_vec();
         let secret_to_hide = secret_to_hide_origin.clone();
         let (mut samples, spec) = read_samples(SOME_WAV.as_ref());
         {
@@ -133,7 +128,5 @@ mod tests {
             String::from_utf8(secret_to_hide_origin),
             String::from_utf8(unveiled_secret)
         );
-
-        Ok(())
     }
 }

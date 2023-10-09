@@ -53,7 +53,7 @@ impl LsbCodec {
     /// use stegano_core::media::image::{CodecOptions, LsbCodec};
     /// use image::RgbaImage;
     ///
-    /// let mut image_with_secret = image::open("../resources/secrets/image-with-hello-world.png")
+    /// let mut image_with_secret = image::open("tests/images/secrets/image-with-hello-world.png")
     ///     .expect("Cannot open secret image")
     ///     .to_rgba8();
     ///
@@ -83,7 +83,7 @@ impl LsbCodec {
     /// use stegano_core::media::image::CodecOptions;
     /// use image::{RgbaImage, open};
     ///
-    /// let mut plain_image = open("../resources/plain/carrier-image.png")
+    /// let mut plain_image = open("tests/images/plain/carrier-image.png")
     ///     .expect("Cannot open carrier image")
     ///     .to_rgba8();
     /// let (width, height) = plain_image.dimensions();

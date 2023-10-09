@@ -12,7 +12,7 @@ use std::slice::IterMut;
 /// use stegano_core::media::audio::wav_iter::{AudioWavIterMut, AudioWavIter};
 ///
 /// // create a `WavReader` from an audio file
-/// let mut reader = WavReader::open("../resources/secrets/audio-with-secrets.wav")
+/// let mut reader = WavReader::open("tests/audio/secrets/audio-with-secrets.wav")
 ///     .expect("Cannot open secret audio file with WavReader");
 /// let mut secret = vec![0; 12];
 ///
@@ -60,7 +60,7 @@ where
 /// use stegano_core::media::audio::wav_iter::AudioWavIter;
 /// use stegano_core::media::audio::read_samples;
 ///
-/// let secret_file = Path::new("../resources/secrets/audio-with-secrets.wav");
+/// let secret_file = Path::new("tests/audio/secrets/audio-with-secrets.wav");
 /// // create a `WavReader` from an audio file
 /// let mut reader = WavReader::open(&secret_file)
 ///     .expect("Cannot open secret audio file with WavReader");

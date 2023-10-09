@@ -10,7 +10,7 @@ A cross-platform command line tool for steganography, focused on performance and
 
 ## Demo
 
-![demo](./stegano-cli/docs/demo.gif)
+![demo](crates/stegano-cli/docs/demo.gif)
 
 ## Features
 
@@ -32,7 +32,7 @@ A cross-platform command line tool for steganography, focused on performance and
 ## What is steganography?
 
 In short, the art of hiding information in something (like a book, a image, a audio or even a video). 
-[![speakerdeck](resources/plain/stegano-in-rust.jpeg)][slides]
+[![speakerdeck](crates/stegano-core/tests/images/plain/stegano-in-rust.jpeg)][slides]
 You can find more information [on my slides][slides] or checkout [my talk on the rust meetup munich in june, 2020][meetup].
 
 [slides]: https://speakerdeck.com/sassman/steganography-in-rust

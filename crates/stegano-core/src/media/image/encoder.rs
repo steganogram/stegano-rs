@@ -16,10 +16,10 @@ use crate::MediaPrimitiveMut;
 /// use stegano_core::universal_encoder::{Encoder, OneBitHide};
 ///
 /// // create a `RgbaImage` from a png image file
-/// let image_original = image::open("../resources/plain/carrier-image.png")
+/// let image_original = image::open("tests/images/plain/carrier-image.png")
 ///     .expect("Cannot open carrier image")
 ///     .to_rgba8();
-/// let mut image = image::open("../resources/plain/carrier-image.png")
+/// let mut image = image::open("tests/images/plain/carrier-image.png")
 ///     .expect("Cannot open carrier image")
 ///     .to_rgba8();
 /// let secret_message = "Hello World!".as_bytes();

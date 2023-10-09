@@ -1,7 +1,8 @@
 [workspace]
 members = [
-    "stegano-core",
-    "stegano-cli",
+    "crates/stegano-core",
+    "crates/stegano-cli",
+    "crates/jpeg-decoder",
 ]
 
 [profile.release]

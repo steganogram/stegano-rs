@@ -14,8 +14,8 @@
 //!
 //! SteganoCore::encoder()
 //!     .hide_file("Cargo.toml")
-//!     .use_media("../resources/plain/carrier-image.png").unwrap()
-//!     .write_to("image-with-a-file-inside.png")
+//!     .use_media("tests/images/plain/carrier-image.png").unwrap()
+//!     .write_to("/tmp/image-with-a-file-inside.png")
 //!     .hide();
 //! ```
 //!
@@ -28,13 +28,13 @@
 //!
 //! SteganoCore::encoder()
 //!     .hide_file("Cargo.toml")
-//!     .use_media("../resources/plain/carrier-image.png").unwrap()
-//!     .write_to("image-with-a-file-inside.png")
+//!     .use_media("tests/images/plain/carrier-image.png").unwrap()
+//!     .write_to("/tmp/image-with-a-file-inside.png")
 //!     .hide();
 //!
 //! unveil(
-//!     &Path::new("image-with-a-file-inside.png"),
-//!     &Path::new("./"),
+//!     &Path::new("/tmp/image-with-a-file-inside.png"),
+//!     &Path::new("/tmp"),
 //!     &CodecOptions::default());
 //! ```
 //!
@@ -396,7 +396,7 @@ mod e2e_tests {
     use std::io::Read;
     use tempfile::TempDir;
 
-    const BASE_IMAGE: &str = "../resources/Base.png";
+    const BASE_IMAGE: &str = "tests/images/Base.png";
 
     #[test]
     #[should_panic(expected = "Data file was not readable.")]
@@ -455,7 +455,7 @@ mod e2e_tests {
 
         SteganoEncoder::new()
             .hide_file("Cargo.toml")
-            .use_media("../resources/plain/carrier-audio.wav")?
+            .use_media("tests/audio/plain/carrier-audio.wav")?
             .write_to(secret_media_f)
             .hide();
 
@@ -488,7 +488,7 @@ mod e2e_tests {
 
         SteganoEncoder::new()
             .hide_file("Cargo.toml")
-            .use_media("../resources/with_text/hello_world.png")?
+            .use_media("tests/images/with_text/hello_world.png")?
             .write_to(image_with_secret)
             .hide();
 
@@ -520,7 +520,7 @@ mod e2e_tests {
         let raw_decoded_secret = expected_file.to_str().unwrap();
 
         unveil_raw(
-            Path::new("../resources/with_text/hello_world.png"),
+            Path::new("tests/images/with_text/hello_world.png"),
             expected_file.as_path(),
         )?;
 
@@ -537,7 +537,7 @@ mod e2e_tests {
     #[test]
     fn should_hide_and_unveil_a_binary_file() -> Result<()> {
         let out_dir = TempDir::new()?;
-        let secret_to_hide = "../resources/secrets/random_1666_byte.bin";
+        let secret_to_hide = "tests/images/secrets/random_1666_byte.bin";
         let image_with_secret_path = out_dir.path().join("random_1666_byte.bin.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
         let expected_file = out_dir.path().join("random_1666_byte.bin");
@@ -570,7 +570,7 @@ mod e2e_tests {
     #[test]
     fn should_hide_and_unveil_a_zip_file() -> Result<()> {
         let out_dir = TempDir::new()?;
-        let secret_to_hide = "../resources/secrets/zip_with_2_files.zip";
+        let secret_to_hide = "tests/images/secrets/zip_with_2_files.zip";
         let image_with_secret_path = out_dir.path().join("zip_with_2_files.zip.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
         let expected_file = out_dir.path().join("zip_with_2_files.zip");
@@ -604,14 +604,14 @@ mod e2e_tests {
         let decoded_secret = out_dir.path().join("Blah.txt");
 
         unveil(
-            Path::new("../resources/with_attachment/Blah.txt.png"),
+            Path::new("tests/images/with_attachment/Blah.txt.png"),
             out_dir.path(),
             &CodecOptions::default(),
         )?;
 
         assert_eq_file_content(
             &decoded_secret,
-            "../resources/secrets/Blah.txt".as_ref(),
+            "tests/images/secrets/Blah.txt".as_ref(),
             "Unveiled data did not match expected",
         );
 
@@ -625,19 +625,19 @@ mod e2e_tests {
         let decoded_secret_2 = out_dir.path().join("Blah-2.txt");
 
         unveil(
-            Path::new("../resources/with_attachment/Blah.txt__and__Blah-2.txt.png"),
+            Path::new("tests/images/with_attachment/Blah.txt__and__Blah-2.txt.png"),
             out_dir.path(),
             &CodecOptions::default(),
         )?;
         assert_eq_file_content(
             &decoded_secret_1,
-            "../resources/secrets/Blah.txt".as_ref(),
+            "tests/images/secrets/Blah.txt".as_ref(),
             "Unveiled data file #1 did not match expected",
         );
 
         assert_eq_file_content(
             &decoded_secret_2,
-            "../resources/secrets/Blah-2.txt".as_ref(),
+            "tests/images/secrets/Blah-2.txt".as_ref(),
             "Unveiled data file #2 did not match expected",
         );
 
@@ -649,7 +649,7 @@ mod e2e_tests {
         let out_dir = TempDir::new()?;
         let image_with_secret_path = out_dir.path().join("Blah.txt.png");
         let image_with_secret = image_with_secret_path.to_str().unwrap();
-        let secret_to_hide = "../resources/secrets/Blah.txt";
+        let secret_to_hide = "tests/images/secrets/Blah.txt";
 
         SteganoEncoder::new()
             .force_content_version(ContentVersion::V2)
@@ -706,7 +706,7 @@ mod e2e_tests {
 mod test_utils {
     use image::{ImageBuffer, RgbaImage};
 
-    pub const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
+    pub const HELLO_WORLD_PNG: &str = "tests/images/with_text/hello_world.png";
 
     pub fn prepare_small_image() -> RgbaImage {
         ImageBuffer::from_fn(5, 5, |x, y| {

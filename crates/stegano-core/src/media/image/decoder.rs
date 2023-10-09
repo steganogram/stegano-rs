@@ -14,7 +14,7 @@ use image::{Rgba, RgbaImage};
 /// use stegano_core::media::image::decoder::ImageRgbaColor;
 ///
 /// // create a `RgbaImage` from a png image file
-/// let mut image = image::open("../resources/with_text/hello_world.png")
+/// let mut image = image::open("tests/images/with_text/hello_world.png")
 ///     .expect("Cannot open secret image file")
 ///     .to_rgba8();
 /// let mut secret = vec![0; 13];
@@ -81,7 +81,7 @@ impl<'i> Iterator for ImageRgbaColor<'i> {
 mod decoder_tests {
     use super::*;
 
-    const HELLO_WORLD_PNG: &str = "../resources/with_text/hello_world.png";
+    const HELLO_WORLD_PNG: &str = "tests/images/with_text/hello_world.png";
 
     #[test]
     fn it_should_iterate_over_all_colors_of_an_image() {
