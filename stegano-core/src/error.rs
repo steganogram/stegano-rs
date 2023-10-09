@@ -1,6 +1,6 @@
 use std::string::FromUtf8Error;
 use thiserror::Error;
-use zip::result::ZipError;
+use zip_next::result::ZipError;
 
 #[derive(Error, Debug)]
 pub enum SteganoError {

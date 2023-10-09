@@ -141,13 +141,13 @@ impl TryFrom<&Message> for Vec<u8> {
 
         {
             let w = Cursor::new(&mut buf);
-            let mut zip = zip::ZipWriter::new(w);
+            let mut zip = zip_next::ZipWriter::new(w);
 
-            let options = zip::write::FileOptions::default()
-                .compression_method(zip::CompressionMethod::Deflated);
+            let options = zip_next::write::FileOptions::default()
+                .compression_method(zip_next::CompressionMethod::Deflated);
 
             for (name, buf) in (m.files).iter().map(|(name, buf)| (name, buf)) {
-                zip.start_file(name, options)?;
+                zip.start_file(name, options.clone())?;
 
                 let mut r = Cursor::new(buf);
                 std::io::copy(&mut r, &mut zip)?;
@@ -165,8 +165,8 @@ mod message_tests {
     #![allow(clippy::unwrap_used, clippy::expect_used)]
     use super::*;
     use std::io::copy;
-    use zip::write::FileOptions;
-    use zip::{CompressionMethod, ZipWriter};
+    use zip_next::write::FileOptions;
+    use zip_next::{CompressionMethod, ZipWriter};
 
     #[test]
     fn should_convert_into_vec_of_bytes() {
