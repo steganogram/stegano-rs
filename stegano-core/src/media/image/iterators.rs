@@ -1,37 +1,37 @@
 use image::buffer::{Pixels, PixelsMut, Rows, RowsMut};
 use image::Pixel;
 use std::iter::Take;
+use std::ops::Sub;
 use std::slice::{Iter, IterMut};
 
 /// Allows transposed mutable access to pixel, like column based
 pub(crate) struct TransposeMut<'a, P: Pixel + 'a> {
     i: usize,
     i_max: usize,
-    use_max_columns: u32,
+    use_max_rows: u32,
     rows_mut: Take<RowsMut<'a, P>>,
-    rows: Vec<PixelsMut<'a, P>>,
+    rows_buffer: Vec<PixelsMut<'a, P>>,
 }
 
 impl<'a, P: Pixel + 'a> TransposeMut<'a, P> {
     /// utilises RowsMut to give Column based mut access to pixel
     pub fn from_rows_mut(
         rows_mut: RowsMut<'a, P>,
-        height: u32,
+        width: u32,
         skip_last_row_and_column: bool,
     ) -> Self {
-        let width = rows_mut.len();
-        let (rows_mut, height) = if skip_last_row_and_column {
-            (rows_mut.take(width - 1), height - 1)
+        let (height, width) = if skip_last_row_and_column {
+            (rows_mut.len() - 1, width.sub(1) as usize)
         } else {
-            (rows_mut.take(width), height)
+            (rows_mut.len(), width as usize)
         };
 
         Self {
             i: 0,
-            i_max: height as usize * rows_mut.len(),
-            use_max_columns: height,
-            rows_mut,
-            rows: Vec::with_capacity(height as usize),
+            i_max: height * width,
+            use_max_rows: height as _,
+            rows_mut: rows_mut.take(height),
+            rows_buffer: Vec::with_capacity(height),
         }
     }
 }
@@ -43,13 +43,13 @@ impl<'a, P: Pixel + 'a> Iterator for TransposeMut<'a, P> {
         if self.i == self.i_max {
             return None;
         }
-        let row_idx = ((self.i as u32) % self.use_max_columns) as usize;
+        let row_idx = ((self.i as u32) % self.use_max_rows) as usize;
         self.i += 1;
-        match self.rows.get_mut(row_idx) {
+        match self.rows_buffer.get_mut(row_idx) {
             None => match self.rows_mut.next() {
                 Some(mut row) => {
                     let p = row.next();
-                    self.rows.push(row);
+                    self.rows_buffer.push(row);
                     p
                 }
                 _ => None,
@@ -62,27 +62,26 @@ impl<'a, P: Pixel + 'a> Iterator for TransposeMut<'a, P> {
 pub(crate) struct Transpose<'a, P: Pixel + 'a> {
     i: usize,
     i_max: usize,
-    use_max_columns: u32,
+    use_max_rows: u32,
     rows: Take<Rows<'a, P>>,
     rows_buffer: Vec<Pixels<'a, P>>,
 }
 
 impl<'a, P: Pixel + 'a> Transpose<'a, P> {
     /// utilizes Rows to give column based readonly access to pixel
-    pub fn from_rows(rows: Rows<'a, P>, height: u32, skip_last_row_and_column: bool) -> Self {
-        let width = rows.len();
-        let (rows, height) = if skip_last_row_and_column {
-            (rows.take(width - 1), height - 1)
+    pub fn from_rows(rows: Rows<'a, P>, width: u32, skip_last_row_and_column: bool) -> Self {
+        let (height, width) = if skip_last_row_and_column {
+            (rows.len() - 1, width.sub(1) as usize)
         } else {
-            (rows.take(width), height)
+            (rows.len(), width as usize)
         };
 
         Self {
             i: 0,
-            use_max_columns: height,
-            i_max: height as usize * rows.len(),
-            rows,
-            rows_buffer: Vec::with_capacity(height as usize),
+            i_max: height * width,
+            use_max_rows: height as _,
+            rows: rows.take(height),
+            rows_buffer: Vec::with_capacity(height),
         }
     }
 }
@@ -94,7 +93,7 @@ impl<'a, P: Pixel + 'a> Iterator for Transpose<'a, P> {
         if self.i == self.i_max {
             return None;
         }
-        let row_idx = ((self.i as u32) % self.use_max_columns) as usize;
+        let row_idx = ((self.i as u32) % self.use_max_rows) as usize;
         self.i += 1;
         match self.rows_buffer.get_mut(row_idx) {
             None => match self.rows.next() {
@@ -180,159 +179,143 @@ impl<'a, P: Pixel + 'a> Iterator for ColorIter<'a, P> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::HELLO_WORLD_PNG;
-    use image::Rgba;
+
+    use crate::test_utils::{
+        prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha,
+        prepare_4x6_linear_growing_colors_regular_skipped_alpha,
+    };
 
     #[test]
-    fn transpose_mut() {
-        let mut img = image::open(HELLO_WORLD_PNG)
-            .expect("Input image is not readable.")
-            .to_rgba8();
-        let mut img_ref = image::open(HELLO_WORLD_PNG)
-            .expect("Input image is not readable.")
-            .to_rgba8();
-        let (width, height) = img.dimensions();
-        let mut t = TransposeMut::from_rows_mut(img.rows_mut(), height, true);
-
-        for x in 0..width {
-            for y in 0..height {
-                let pi = t.next().unwrap();
-                let p1 = img_ref.get_pixel_mut(x, y);
-                assert_eq!(p1, pi, "Pixel ({}, {}) does not match", x, y);
-                *pi = Rgba([33, 33, 33, 33]);
-            }
+    fn should_ensure_transpose_works_for_regular_image() {
+        let mut img = prepare_4x6_linear_growing_colors_regular_skipped_alpha();
+        let width = img.width();
+        assert_eq!(width, 4);
+        assert_eq!(img.height(), 6);
+        assert_eq!(img.rows().len(), img.height() as _);
+        let iter = Transpose::from_rows(img.rows(), width, false);
+        let color_iter = ColorIter::from_transpose(iter, true);
+        for (i, c) in color_iter.enumerate() {
+            let i: u8 = i as u8;
+            assert_eq!(c, &i, "the ({i}+1)-th color was wrong");
         }
-        assert_eq!(t.next(), None, "Iterator should be exhausted");
-        let t = TransposeMut::from_rows_mut(img.rows_mut(), height, true);
-        for pi in t {
-            assert_eq!(
-                pi,
-                &Rgba([33, 33, 33, 33]),
-                "Pixel should have been mutated earlier"
-            );
+
+        // now the mut iterator
+        let iter = TransposeMut::from_rows_mut(img.rows_mut(), width, false);
+        let color_iter = ColorIterMut::from_transpose(iter, true);
+        for (i, c) in color_iter.enumerate() {
+            let i: u8 = i as u8;
+            assert_eq!(c, &i, "the ({i}+1)-th color was wrong");
         }
     }
 
     #[test]
-    fn iter_color() {
-        let mut img = image::open(HELLO_WORLD_PNG)
-            .expect("Input image is not readable.")
-            .to_rgba8();
-        let mut img_ref = image::open(HELLO_WORLD_PNG)
-            .expect("Input image is not readable.")
-            .to_rgba8();
-        let (width, height) = img.dimensions();
-        let mut c_iter = ColorIterMut::from_transpose(
-            TransposeMut::from_rows_mut(img.rows_mut(), height, true),
-            true,
-        );
+    fn should_ensure_transpose_works_for_images_without_last_row_and_column() {
+        let mut img = prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha();
+        let width = img.width();
+        let iter = Transpose::from_rows(img.rows(), width, true);
+        let color_iter = ColorIter::from_transpose(iter, true);
+        for (i, c) in color_iter.enumerate() {
+            let i: u8 = i as u8;
+            assert_eq!(c, &i, "the ({i}+1)-th color was wrong");
+        }
 
-        for x in 0..width {
-            for y in 0..height {
-                for c in 0..4 {
-                    let actual_color = c_iter.next().unwrap();
-                    let p1 = img_ref.get_pixel_mut(x, y);
-                    let expected_color = p1.0.get_mut(c).unwrap();
+        // now the mut iterator
+        let iter = TransposeMut::from_rows_mut(img.rows_mut(), width, true);
+        let color_iter = ColorIterMut::from_transpose(iter, true);
+        for (i, c) in color_iter.enumerate() {
+            let i: u8 = i as u8;
+            assert_eq!(c, &i, "the ({i}+1)-th color was wrong");
+        }
+    }
+
+    #[test]
+    fn ensure_transpose_pixel_iterator_transposes_correctly() {
+        let img = prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha();
+        let (width, height) = img.dimensions();
+        let mut iter = Transpose::from_rows(img.rows(), width, true);
+
+        for x in 0..(width - 1) {
+            for y in 0..(height - 1) {
+                let expected_pixel = img.get_pixel(x, y);
+                let given_pixel = iter
+                    .next()
+                    .unwrap_or_else(|| panic!("Pixel at ({x}, {y}) was not even existing!"));
+
+                assert_eq!(
+                    given_pixel, expected_pixel,
+                    "Pixel at ({x}, {y}) does not match"
+                );
+            }
+        }
+        // ensure iterator is exhausted
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn ensure_color_iterator_transposes_correctly_with_alpha_channel() {
+        let img = prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha();
+        let (width, height) = img.dimensions();
+        let iter = Transpose::from_rows(img.rows(), width, true);
+        let mut color_iter = ColorIter::from_transpose(iter, false);
+
+        for x in 0..(width - 1) {
+            for y in 0..(height - 1) {
+                let expected_pixel = img.get_pixel(x, y);
+                for color_idx in 0..4 {
+                    let expected_color = expected_pixel.0.get(color_idx).unwrap();
+                    let given_color = color_iter
+                        .next()
+                        .unwrap_or_else(|| panic!("Color at ({x}, {y}) was not even existing!"));
 
                     assert_eq!(
-                        expected_color, actual_color,
-                        "Pixel ({}, {}) colors does not match",
-                        x, y
+                        given_color, expected_color,
+                        "Color at ({x}, {y}) does not match"
                     );
-                    // *pi = Rgba([33, 33, 33, 33]);
                 }
             }
         }
-        // assert_eq!(t.next(), None, "Iterator should be exhausted");
-        // let t = TransposeMut::from_rows_mut(img.rows_mut(), height);
-        // for pi in t {
-        //     assert_eq!(
-        //         pi,
-        //         &Rgba([33, 33, 33, 33]),
-        //         "Pixel should have been mutated earlier"
-        //     );
-        // }
+        // ensure iterator is exhausted
+        assert!(color_iter.next().is_none());
+
+        let iter = Transpose::from_rows(img.rows(), width, true);
+        let color_iter = ColorIter::from_transpose(iter, false);
+
+        let last_pixel = img.get_pixel(width - 2, height - 2);
+        let given_last_color = color_iter.last();
+        assert_eq!(last_pixel.0.last(), given_last_color);
     }
 
-    #[cfg(test)]
-    mod color_iter {
-        use crate::media::image::iterators::*;
-        use crate::test_utils::{
-            prepare_5x5_image, prepare_5x5_linear_growing_colors_except_last_row_column,
-        };
-        use image::Rgba;
+    #[test]
+    fn ensure_color_iterator_transposes_correctly_without_alpha_channel() {
+        let img = prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha();
+        let (width, height) = img.dimensions();
+        let iter = Transpose::from_rows(img.rows(), width, true);
+        let mut color_iter = ColorIter::from_transpose(iter, true);
 
-        #[test]
-        fn should_transpose_read() {
-            let img = prepare_5x5_image();
-            let mut iter = Transpose::from_rows(img.rows(), img.height(), false);
+        for x in 0..(width - 1) {
+            for y in 0..(height - 1) {
+                let expected_pixel = img.get_pixel(x, y);
+                for color_idx in 0..3 {
+                    let expected_color = expected_pixel.0.get(color_idx).unwrap();
+                    let given_color = color_iter
+                        .next()
+                        .unwrap_or_else(|| panic!("Color at ({x}, {y}) was not even existing!"));
 
-            // first column
-            assert_eq!(iter.next(), Some(&Rgba([0_u8, 1, 2, 3])));
-            assert_eq!(iter.next(), Some(&Rgba([20_u8, 21, 22, 23])));
-            assert_eq!(iter.next(), Some(&Rgba([40_u8, 41, 42, 43])));
-            assert_eq!(iter.next(), Some(&Rgba([60_u8, 61, 62, 63])));
-            assert_eq!(iter.next(), Some(&Rgba([80_u8, 81, 82, 83])));
-
-            // second column
-            assert_eq!(iter.next(), Some(&Rgba([4_u8, 5, 6, 7])));
-            assert_eq!(iter.next(), Some(&Rgba([24_u8, 25, 26, 27])));
-            assert_eq!(iter.next(), Some(&Rgba([44_u8, 45, 46, 47])));
-        }
-
-        #[test]
-        fn should_read_color() {
-            let img = prepare_5x5_image();
-            let iter = Transpose::from_rows(img.rows(), img.height(), false);
-            let mut color_iter = ColorIter::from_transpose(iter, true);
-
-            // first row.. alpha skipped
-            assert_eq!(color_iter.next(), Some(&0_u8));
-            assert_eq!(color_iter.next(), Some(&1_u8));
-            assert_eq!(color_iter.next(), Some(&2_u8));
-            // 2nd row
-            assert_eq!(color_iter.next(), Some(&20_u8));
-            assert_eq!(color_iter.next(), Some(&21_u8));
-            assert_eq!(color_iter.next(), Some(&22_u8));
-            // 3rd row
-            assert_eq!(color_iter.next(), Some(&40_u8));
-            assert_eq!(color_iter.next(), Some(&41_u8));
-            assert_eq!(color_iter.next(), Some(&42_u8));
-            // 4rd row
-            assert_eq!(color_iter.next(), Some(&60_u8));
-            assert_eq!(color_iter.next(), Some(&61_u8));
-            assert_eq!(color_iter.next(), Some(&62_u8));
-            // 5rd row
-            assert_eq!(color_iter.next(), Some(&80_u8));
-            assert_eq!(color_iter.next(), Some(&81_u8));
-            assert_eq!(color_iter.next(), Some(&82_u8));
-        }
-
-        /// this test ensures the transponation works
-        /// and the end is working and the lost rows and columns are always skipped
-        #[test]
-        fn should_ensure_transpose_works_really() {
-            let img = prepare_5x5_linear_growing_colors_except_last_row_column();
-            let iter = Transpose::from_rows(img.rows(), img.height(), true);
-            let color_iter = ColorIter::from_transpose(iter, true);
-
-            for (i, c) in color_iter.enumerate() {
-                let i: u8 = i as u8;
-                assert_eq!(c, &i, "the ({i}+1)-th color was wrong");
+                    assert_eq!(
+                        given_color, expected_color,
+                        "Color at ({x}, {y}) does not match"
+                    );
+                }
             }
         }
+        // ensure iterator is exhausted
+        assert!(color_iter.next().is_none());
 
-        #[test]
-        fn should_ensure_transpose_mut_works_really() {
-            let mut img = prepare_5x5_linear_growing_colors_except_last_row_column();
-            let height = img.height();
-            let mut iter = TransposeMut::from_rows_mut(img.rows_mut(), height, true);
-            let color_iter = ColorIterMut::from_transpose(iter, true);
+        let iter = Transpose::from_rows(img.rows(), width, true);
+        let color_iter = ColorIter::from_transpose(iter, true);
 
-            for (i, c) in color_iter.enumerate() {
-                let i: u8 = i as u8;
-                assert_eq!(c, &i, "the ({i}+1)-th color was wrong");
-            }
-        }
+        let last_pixel = img.get_pixel(width - 2, height - 2);
+        let given_last_color = color_iter.last();
+        assert_eq!(last_pixel.0.get(2), given_last_color);
     }
 }

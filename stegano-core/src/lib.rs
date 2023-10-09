@@ -100,6 +100,12 @@ pub enum MediaPrimitive {
     AudioSample(i16),
 }
 
+impl From<u8> for MediaPrimitive {
+    fn from(value: u8) -> Self {
+        MediaPrimitive::ImageColorChannel(value)
+    }
+}
+
 /// mutable primitive for storing stegano data
 #[derive(Debug, Eq, PartialEq)]
 pub enum MediaPrimitiveMut<'a> {
@@ -604,9 +610,7 @@ mod e2e_tests {
         let image_with_secret = image_with_secret_path.to_str().unwrap();
         let secret_to_hide = "../resources/secrets/Blah.txt";
 
-        // todo: this whole test case.. we don't want to support that any longer
         SteganoEncoder::new()
-            // .force_content_version(PayloadCodecFeatures::V2)
             .use_media(BASE_IMAGE)?
             .hide_file(secret_to_hide)?
             .write_to(image_with_secret)
@@ -677,11 +681,25 @@ mod test_utils {
         })
     }
 
-    pub fn prepare_5x5_linear_growing_colors_except_last_row_column() -> RgbaImage {
-        let mut img = ImageBuffer::new(5, 5);
+    pub fn prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha() -> RgbaImage {
+        let mut img = ImageBuffer::new(4, 6);
         let mut i = 0;
         for x in 0..(img.width() - 1) {
             for y in 0..(img.height() - 1) {
+                let pi = img.get_pixel_mut(x, y);
+                *pi = image::Rgba([i, i + 1, i + 2, 255]);
+                i += 3;
+            }
+        }
+
+        img
+    }
+
+    pub fn prepare_4x6_linear_growing_colors_regular_skipped_alpha() -> RgbaImage {
+        let mut img = ImageBuffer::new(4, 6);
+        let mut i = 0;
+        for x in 0..img.width() {
+            for y in 0..img.height() {
                 let pi = img.get_pixel_mut(x, y);
                 *pi = image::Rgba([i, i + 1, i + 2, 255]);
                 i += 3;
