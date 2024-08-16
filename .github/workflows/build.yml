@@ -61,6 +61,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: setup | rust
         uses: dtolnay/rust-toolchain@stable
+      - uses: cargo-bins/cargo-binstall@main
       - run: cargo binstall -y cargo-llvm-cov
       - run: cargo llvm-cov --lcov --output-path lcov.info
       - name: Upload to codecov.io
@@ -99,6 +100,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: setup | rust
         uses: dtolnay/rust-toolchain@stable
+      - uses: cargo-bins/cargo-binstall@main
       - run: cargo binstall -y cargo-audit
       - name: audit
         run: cargo audit
