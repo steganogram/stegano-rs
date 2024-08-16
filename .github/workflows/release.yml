@@ -1,10 +1,10 @@
 name: Release
 on:
   push:
-    tags: 
-      - 'v[0-9]+.[0-9]+.[0-9]+'
-      - 'v[0-9]+.[0-9]+.[0-9]-alpha.[0-9]+'
-      - 'v[0-9]+.[0-9]+.[0-9]-beta.[0-9]+'
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]-alpha.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]-beta.[0-9]+"
     paths-ignore:
       - "**/docs/**"
       - "**.md"
@@ -18,19 +18,12 @@ jobs:
   publish:
     name: post / cargo publish
     needs: doing-a-build
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: setup | rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          profile: minimal
-      - uses: Swatinem/rust-cache@v1
-      - env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish --manifest-path stegano-core/Cargo.toml
+        uses: dtolnay/rust-toolchain@stable
+      - run: cargo publish --manifest-path stegano-core/Cargo.toml
       # without this sleep there was an error that the just published version is not available for stegano-cli as dependency
       - name: waiting for crates.io to get ready with stegano-core latest version
         run: sleep 60
@@ -43,14 +36,9 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: setup | rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          profile: minimal
-      - uses: Swatinem/rust-cache@v1
+        uses: dtolnay/rust-toolchain@stable
       - name: Get version from tag
         id: tag_name
         run: echo ::set-output name=current_version::${GITHUB_REF#refs/tags/v}
