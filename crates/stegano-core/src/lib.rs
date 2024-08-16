@@ -383,6 +383,12 @@ impl SteganoEncoder {
         }
 
         if let Some(media) = self.carrier.as_mut() {
+            // if let Some(password) = &self.password {
+            //     let data: Vec<u8> = (&self.message).into();
+            //     let data = stegano_seasmoke::encrypt_data(password, &data).unwrap();
+            //     self.message = Message::from(data);
+            // }
+
             media
                 // .hide_message(&self.message)
                 // todo: here we either want to wrap the message with some sort of encrypted message
