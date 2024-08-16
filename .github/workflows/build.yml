@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: setup | rust
-        uses: dtolnay/rust-toolchain@{{ matrix.rust }}}
+        uses: dtolnay/rust-toolchain@${{ matrix.rust }}}
       - name: cargo test
         run: cargo test --all --locked
 
