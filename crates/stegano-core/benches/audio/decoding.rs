@@ -4,7 +4,7 @@ use stegano_core::media::audio::LsbCodec;
 
 pub fn audio_decoding(c: &mut Criterion) {
     c.bench_function("Audio Decoding", |b| {
-        let mut reader = WavReader::open("../resources/secrets/audio-with-secrets.wav")
+        let mut reader = WavReader::open("tests/audio/secrets/audio-with-secrets.wav")
             .expect("Cannot create reader");
         let mut buf = [0; 12];
 
