@@ -5,7 +5,7 @@ use stegano_core::universal_encoder::{Encoder, OneBitHide};
 
 pub fn image_encoding(c: &mut Criterion) {
     c.bench_function("Image Encoding", |b| {
-        let mut plain_image = image::open("../resources/plain/carrier-image.png")
+        let mut plain_image = image::open("tests/images/plain/carrier-image.png")
             .expect("Input image is not readable.")
             .to_rgba8();
         let secret_message = b"Hello World!";

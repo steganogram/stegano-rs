@@ -5,7 +5,7 @@ use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
 
 pub fn image_decoding(c: &mut Criterion) {
     c.bench_function("Image Decoding", |b| {
-        let img = image::open("../resources/with_text/hello_world.png")
+        let img = image::open("tests/images/with_text/hello_world.png")
             .expect("Input image is not readable.")
             .to_rgba8();
         let mut buf = [0; 13];
