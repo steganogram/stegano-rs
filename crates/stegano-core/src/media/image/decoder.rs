@@ -30,7 +30,6 @@ use image::{Rgba, RgbaImage};
 pub struct ImageRgbaColor<'i> {
     i: usize,
     steps: usize,
-    skip_alpha: bool,
     pixel: ColorIter<'i, Rgba<u8>>,
 }
 
@@ -41,12 +40,14 @@ impl<'i> ImageRgbaColor<'i> {
     }
 
     pub fn new_with_options(input: &'i RgbaImage, options: &CodecOptions) -> Self {
-        let h = input.height();
+        let w = input.width();
         Self {
             i: 0,
             steps: options.get_color_channel_step_increment(),
-            skip_alpha: options.get_skip_alpha_channel(),
-            pixel: ColorIter::from_transpose(Transpose::from_rows(input.rows(), h)),
+            pixel: ColorIter::from_transpose(
+                Transpose::from_rows(input.rows(), w, true),
+                options.skip_alpha_channel,
+            ),
         }
     }
 }
@@ -57,13 +58,6 @@ impl<'i> Iterator for ImageRgbaColor<'i> {
 
     #[inline(always)]
     fn next(&'_ mut self) -> Option<Self::Item> {
-        if self.skip_alpha && self.i > 0 {
-            let is_next_alpha = (self.i + 1) % 4 == 0;
-            if is_next_alpha {
-                self.pixel.next();
-                self.i += 1;
-            }
-        }
         let res = self
             .pixel
             .next()
@@ -88,50 +82,27 @@ mod decoder_tests {
         let img = image::open(HELLO_WORLD_PNG)
             .expect("Input image is not readable.")
             .to_rgba8();
-        let (_, height) = img.dimensions();
-        let first_pixel = *img.get_pixel(0, 0);
-        let second_pixel = *img.get_pixel(0, 1);
-        let second_row_first_pixel = *img.get_pixel(1, 0);
-        let mut source = ImageRgbaColor::new(&img);
-        assert_eq!(
-            source.next().unwrap(),
-            MediaPrimitive::ImageColorChannel(first_pixel.0[0]),
-            "pixel(0, 0) color 1 does not match"
-        );
-        source.next();
-        assert_eq!(
-            source.next().unwrap(),
-            MediaPrimitive::ImageColorChannel(first_pixel.0[2]),
-            "pixel(0, 0) color 3 does not match"
-        );
-        assert_eq!(
-            source.next().unwrap(),
-            MediaPrimitive::ImageColorChannel(second_pixel.0[0]),
-            "pixel(0, 1) color 1 does not match"
-        );
-        assert_eq!(
-            source.nth(((height * 3) - 4) as usize).unwrap(),
-            MediaPrimitive::ImageColorChannel(second_row_first_pixel.0[0]),
-            "pixel(1, 0) color 1 does not match"
-        );
-    }
-
-    #[test]
-    fn it_should_yield_none_after_last_pixel_last_color() {
-        let img = image::open(HELLO_WORLD_PNG)
-            .expect("Input image is not readable.")
-            .to_rgba8();
         let (width, height) = img.dimensions();
-        let mut source = ImageRgbaColor::new(&img);
-        assert_ne!(
-            source.nth(((height * width * 3) - 1) as usize),
-            None,
-            "last pixel color 3 should not be None"
-        );
-        assert_eq!(
-            source.nth(((height * width * 3) + 1) as usize),
-            None,
-            "last pixel after color 3 should be none"
-        );
+        let mut media_primitive_iter = ImageRgbaColor::new(&img);
+
+        for x in 0..(width - 1) {
+            for y in 0..(height - 1) {
+                let expected_pixel = img.get_pixel(x, y);
+                for color_idx in 0..3 {
+                    let expected_color = *expected_pixel.0.get(color_idx).unwrap();
+                    let given_color = media_primitive_iter.next().unwrap_or_else(|| {
+                        panic!("MediaPrimitive at ({x}, {y}) was not even existing!")
+                    });
+
+                    assert_eq!(
+                        given_color,
+                        expected_color.into(),
+                        "MediaPrimitive at ({x}, {y}) does not match"
+                    );
+                }
+            }
+        }
+        // ensure iterator is exhausted
+        assert!(media_primitive_iter.next().is_none());
     }
 }

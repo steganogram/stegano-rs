@@ -13,7 +13,7 @@
 //! use stegano_core::{SteganoCore, SteganoEncoder};
 //!
 //! SteganoCore::encoder()
-//!     .hide_file("Cargo.toml")
+//!     .hide_file("Cargo.toml").unwrap()
 //!     .use_media("tests/images/plain/carrier-image.png").unwrap()
 //!     .write_to("/tmp/image-with-a-file-inside.png")
 //!     .hide();
@@ -27,7 +27,7 @@
 //! use std::path::Path;
 //!
 //! SteganoCore::encoder()
-//!     .hide_file("Cargo.toml")
+//!     .hide_file("Cargo.toml").unwrap()
 //!     .use_media("tests/images/plain/carrier-image.png").unwrap()
 //!     .write_to("/tmp/image-with-a-file-inside.png")
 //!     .hide();
@@ -44,6 +44,7 @@
 //! [raw]: ./struct.SteganoRawDecoder.html
 
 #![warn(
+// clippy::unwrap_used,
 // clippy::cargo_common_metadata,
 // clippy::branches_sharing_code,
 // clippy::cast_lossless,
@@ -67,19 +68,18 @@ clippy::redundant_else,
 )]
 
 pub mod bit_iterator;
-
 pub use bit_iterator::BitIterator;
 
 pub mod message;
-
 pub use message::*;
 
 pub mod raw_message;
-
 pub use raw_message::*;
 
 pub mod commands;
+pub mod error;
 pub mod media;
+pub mod result;
 pub mod universal_decoder;
 pub mod universal_encoder;
 
@@ -88,58 +88,22 @@ use image::RgbaImage;
 use std::default::Default;
 use std::fs::File;
 use std::path::Path;
-use thiserror::Error;
 
+pub use crate::error::SteganoError;
 pub use crate::media::image::CodecOptions;
-
-#[derive(Error, Debug)]
-pub enum SteganoError {
-    /// Represents an unsupported carrier media. For example, a Movie file is not supported
-    #[error("Media format is not supported")]
-    UnsupportedMedia,
-
-    /// Represents an invalid carrier audio media. For example, a broken WAV file
-    #[error("Audio media is invalid")]
-    InvalidAudioMedia,
-
-    /// Represents an invalid carrier image media. For example, a broken PNG file
-    #[error("Image media is invalid")]
-    InvalidImageMedia,
-
-    /// Represents an unveil of no secret data. For example when a media did not contain any secrets
-    #[error("No secret data found")]
-    NoSecretData,
-
-    /// Represents a failure to read from input.
-    #[error("Read error")]
-    ReadError { source: std::io::Error },
-
-    /// Represents a failure to write target file.
-    #[error("Write error")]
-    WriteError { source: std::io::Error },
-
-    /// Represents a failure when encoding an audio file.
-    #[error("Audio encoding error")]
-    AudioEncodingError,
-
-    /// Represents a failure when encoding an image file.
-    #[error("Image encoding error")]
-    ImageEncodingError,
-
-    /// Represents a failure when creating an audio file.
-    #[error("Audio creation error")]
-    AudioCreationError,
-
-    /// Represents all other cases of `std::io::Error`.
-    #[error(transparent)]
-    IoError(#[from] std::io::Error),
-}
+pub use crate::result::Result;
 
 /// wrap the low level data types that carries information
 #[derive(Debug, Eq, PartialEq)]
 pub enum MediaPrimitive {
     ImageColorChannel(u8),
     AudioSample(i16),
+}
+
+impl From<u8> for MediaPrimitive {
+    fn from(value: u8) -> Self {
+        MediaPrimitive::ImageColorChannel(value)
+    }
 }
 
 /// mutable primitive for storing stegano data
@@ -170,7 +134,6 @@ impl HideBit for MediaPrimitiveMut<'_> {
 }
 
 pub type WavAudio = (WavSpec, Vec<i16>);
-pub type Result<E> = std::result::Result<E, SteganoError>;
 
 /// a media container for steganography
 pub enum Media {
@@ -265,7 +228,7 @@ impl Hide for Media {
         message: &Message,
         opts: &CodecOptions,
     ) -> Result<&mut Media> {
-        let buf: Vec<u8> = message.into();
+        let buf: Vec<u8> = message.try_into()?;
 
         match self {
             Media::Image(i) => {
@@ -345,28 +308,22 @@ impl SteganoEncoder {
         self
     }
 
-    pub fn hide_file(&mut self, input_file: &str) -> &mut Self {
+    pub fn hide_file(&mut self, input_file: &str) -> Result<&mut Self> {
         {
             let _f = File::open(input_file).expect("Data file was not readable.");
         }
-        self.message.add_file(input_file);
+        self.message.add_file(input_file)?;
 
-        self
+        Ok(self)
     }
 
-    pub fn hide_files(&mut self, input_files: Vec<&str>) -> &mut Self {
+    pub fn hide_files(&mut self, input_files: Vec<&str>) -> Result<&mut Self> {
         self.message.files = Vec::new();
-        input_files.iter().for_each(|&f| {
-            self.hide_file(f);
-        });
+        for f in input_files.iter() {
+            self.hide_file(f)?;
+        }
 
-        self
-    }
-
-    pub fn force_content_version(&mut self, c: ContentVersion) -> &mut Self {
-        self.message.header = c;
-
-        self
+        Ok(self)
     }
 
     pub fn hide(&mut self) -> &Self {
@@ -417,13 +374,15 @@ mod e2e_tests {
     #[test]
     #[should_panic(expected = "Data file was not readable.")]
     fn should_panic_on_invalid_data_file() {
-        SteganoEncoder::new().hide_file("foofile");
+        SteganoEncoder::new().hide_file("foofile").unwrap();
     }
 
     #[test]
     #[should_panic(expected = "Data file was not readable.")]
     fn should_panic_on_invalid_data_file_among_valid() {
-        SteganoEncoder::new().hide_files(vec!["Cargo.toml", "foofile"]);
+        SteganoEncoder::new()
+            .hide_files(vec!["Cargo.toml", "foofile"])
+            .unwrap();
     }
 
     #[test]
@@ -470,7 +429,7 @@ mod e2e_tests {
         let secret_media_f = secret_media_p.to_str().unwrap();
 
         SteganoEncoder::new()
-            .hide_file("Cargo.toml")
+            .hide_file("Cargo.toml")?
             .use_media("tests/audio/plain/carrier-audio.wav")?
             .write_to(secret_media_f)
             .hide();
@@ -503,7 +462,7 @@ mod e2e_tests {
         let image_with_secret = image_with_secret_path.to_str().unwrap();
 
         SteganoEncoder::new()
-            .hide_file("Cargo.toml")
+            .hide_file("Cargo.toml")?
             .use_media("tests/images/with_text/hello_world.png")?
             .write_to(image_with_secret)
             .hide();
@@ -559,7 +518,7 @@ mod e2e_tests {
         let expected_file = out_dir.path().join("random_1666_byte.bin");
 
         SteganoEncoder::new()
-            .hide_file(secret_to_hide)
+            .hide_file(secret_to_hide)?
             .use_media(BASE_IMAGE)?
             .write_to(image_with_secret)
             .hide();
@@ -592,7 +551,7 @@ mod e2e_tests {
         let expected_file = out_dir.path().join("zip_with_2_files.zip");
 
         SteganoEncoder::new()
-            .hide_file(secret_to_hide)
+            .hide_file(secret_to_hide)?
             .use_media(BASE_IMAGE)?
             .write_to(image_with_secret)
             .hide();
@@ -668,9 +627,8 @@ mod e2e_tests {
         let secret_to_hide = "tests/images/secrets/Blah.txt";
 
         SteganoEncoder::new()
-            .force_content_version(ContentVersion::V2)
             .use_media(BASE_IMAGE)?
-            .hide_file(secret_to_hide)
+            .hide_file(secret_to_hide)?
             .write_to(image_with_secret)
             .hide();
 
@@ -724,10 +682,46 @@ mod test_utils {
 
     pub const HELLO_WORLD_PNG: &str = "tests/images/with_text/hello_world.png";
 
-    pub fn prepare_small_image() -> RgbaImage {
+    /// This image has some traits:
+    /// --------------y-------------
+    /// | 0,0 -> (0, 1, 2, 3 ) | 0,1 -> (4, 5, 6, 7 ) | ...
+    /// | 1,0 -> (20,21,22,23) | 1,1 -> (24,25,26,27) | ...
+    /// | 2,0 -> (40,41,42,43) | 2,1 -> (44,45,46,47) | ...
+    /// x ...
+    /// | ..
+    /// | ..
+    pub fn prepare_5x5_image() -> RgbaImage {
         ImageBuffer::from_fn(5, 5, |x, y| {
             let i = (4 * x + 20 * y) as u8;
             image::Rgba([i, i + 1, i + 2, i + 3])
         })
+    }
+
+    pub fn prepare_4x6_linear_growing_colors_except_last_row_column_skipped_alpha() -> RgbaImage {
+        let mut img = ImageBuffer::new(4, 6);
+        let mut i = 0;
+        for x in 0..(img.width() - 1) {
+            for y in 0..(img.height() - 1) {
+                let pi = img.get_pixel_mut(x, y);
+                *pi = image::Rgba([i, i + 1, i + 2, 255]);
+                i += 3;
+            }
+        }
+
+        img
+    }
+
+    pub fn prepare_4x6_linear_growing_colors_regular_skipped_alpha() -> RgbaImage {
+        let mut img = ImageBuffer::new(4, 6);
+        let mut i = 0;
+        for x in 0..img.width() {
+            for y in 0..img.height() {
+                let pi = img.get_pixel_mut(x, y);
+                *pi = image::Rgba([i, i + 1, i + 2, 255]);
+                i += 3;
+            }
+        }
+
+        img
     }
 }

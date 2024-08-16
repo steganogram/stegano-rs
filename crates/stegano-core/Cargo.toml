@@ -1,7 +1,7 @@
 [package]
 name = "stegano-core"
 description = "Steganography core library for stegano-cli. Supports hiding data in PNG images via LSB Encoding."
-version = "0.5.3"
+version = "0.6.0"
 authors = ["Sven Kanoldt <sven@d34dl0ck.me>"]
 edition = "2021"
 license = "GPL-3.0-only"
@@ -24,12 +24,15 @@ codecov = { repository = "steganogram/stegano-rs", branch = "main", service = "g
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-image = "0.24"
-bitstream-io = "1.6"
-zip = "0.6"
-bzip2 = "0.4"
-deflate = "1.0"
-byteorder = "1.4"
+image = { version = "0.24", default-features = false, features = [
+    "png",
+    "jpeg",
+] }
+bitstream-io = { version = "1.7" }
+zip_next = { version = "0.10", default-features = false, features = [
+    "deflate",
+] }
+byteorder = "1.5"
 hound = "3.5"
 thiserror = "1.0"
 enum_dispatch = "0.3"
@@ -39,7 +42,7 @@ stegano-seasmoke = { version = "0.1", path = "../stegano-seasmoke" }
 [dev-dependencies]
 speculate = "0.1"
 criterion = { version = "0.5", features = ["html_reports"] }
-tempfile = "3.5"
+tempfile = "3.8"
 
 [dev-dependencies.cargo-husky]
 version = "1"

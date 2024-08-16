@@ -2,18 +2,32 @@ use crate::media::image::decoder::ImageRgbaColor;
 use crate::media::image::encoder::ImageRgbaColorMut;
 use crate::universal_decoder::{Decoder, OneBitUnveil};
 use crate::universal_encoder::{Encoder, HideAlgorithms, OneBitHide, OneBitInLowFrequencyHide};
+
 use image::RgbaImage;
 use std::io::{Read, Write};
 
 #[derive(Debug)]
 pub struct CodecOptions {
-    /// would move the by step n each iteration,
-    /// Note: the alpha channel is count as regular channel
+    /// determines the step with when iterating over the color channels.
+    /// For example `2` would move from (R)GBA to RG(B)A.
+    /// Depending on if the alpha channel is skipped (`skip_alpha_channel`) it would either
+    /// not count alpha at all or it does.
+    ///
+    /// For example `2` with alpha skipped would move from RG(B)A to R(G)BA on the next pixel because alpha does not count.
+    /// Where as when alpha is not skipped it would would move from RG(B)A to (R)GBA on the next pixel.
+    ///
+    /// Note this number influences the capacity directly.
     pub color_channel_step_increment: usize,
-    /// if true no alpha channel would be used for encoding
+
+    /// If true no alpha channel would be used for encoding,
+    /// this reduces then the capacity by one bit per pixel
     pub skip_alpha_channel: bool,
-    /// the concealer strategy
+
+    /// the concealer strategy, decides on where in a color channel things are going to be stored.
     pub concealer: Concealer,
+
+    /// This limits all iterations to skip the least column and row, in fact it reduces width and height of the image by 1
+    pub skip_last_row_and_column: bool,
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -23,11 +37,13 @@ pub enum Concealer {
 }
 
 impl Default for CodecOptions {
+    /// The good old golden options
     fn default() -> Self {
         Self {
             color_channel_step_increment: 1,
             skip_alpha_channel: true,
             concealer: Concealer::LeastSignificantBit,
+            skip_last_row_and_column: true,
         }
     }
 }

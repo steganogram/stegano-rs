@@ -1,86 +1,78 @@
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+#![warn(clippy::unwrap_used, clippy::expect_used)]
+use crate::media::payload::{PayloadCodec, PayloadCodecFactory, PayloadCodecFeatures};
+use crate::result::Result;
+
+use crate::SteganoError;
+use byteorder::ReadBytesExt;
+use image::EncodableLayout;
+use std::default::Default;
 use std::fs::File;
 use std::io::{Cursor, Read};
 use std::path::Path;
 
-#[derive(PartialEq, Eq, Debug)]
-pub enum ContentVersion {
-    V1,
-    V2,
-    V4,
-    Unsupported(u8),
-}
-
-impl ContentVersion {
-    pub fn to_u8(&self) -> u8 {
-        match self {
-            Self::V1 => 0x01,
-            Self::V2 => 0x02,
-            Self::V4 => 0x04,
-            Self::Unsupported(v) => *v,
-        }
-    }
-
-    pub fn from_u8(value: u8) -> Self {
-        match value {
-            0x01 => Self::V1,
-            0x02 => Self::V2,
-            0x04 => Self::V4,
-            b => Self::Unsupported(b),
-        }
-    }
-}
-
 pub struct Message {
-    pub header: ContentVersion,
+    pub codec_factory: PayloadCodecFactory,
     pub files: Vec<(String, Vec<u8>)>,
     pub text: Option<String>,
 }
 
 // TODO implement Result returning
 impl Message {
-    pub fn of(dec: &mut dyn Read) -> Self {
-        let version = dec.read_u8().expect("Failed to read version header");
+    pub fn of(dec: &mut dyn Read, codec_factory: PayloadCodecFactory) -> Result<Self> {
+        let version = dec.read_u8()?;
 
-        let version = ContentVersion::from_u8(version);
+        let codec: Box<dyn PayloadCodec> = codec_factory.create_codec(version)?;
+        let content = codec.decode(dec)?;
 
-        match version {
-            ContentVersion::V1 => Self::new_of_v1(dec),
-            ContentVersion::V2 => Self::new_of_v2(dec),
-            ContentVersion::V4 => Self::new_of_v4(dec),
-            ContentVersion::Unsupported(_) => {
-                panic!("Seems like you've got an invalid stegano file")
-            }
+        if codec.has_feature(PayloadCodecFeatures::TextOnly) {
+            let text = String::from_utf8(content)?;
+
+            Ok(Self {
+                codec_factory,
+                files: Default::default(),
+                text: Some(text),
+            })
+        } else if codec.has_feature(PayloadCodecFeatures::TextAndDocuments) {
+            Ok(Self {
+                codec_factory,
+                ..Self::new_with_documents(content)?
+            })
+        } else {
+            Err(SteganoError::UnsupportedMessageFormat(
+                codec.version().into(),
+            ))
         }
     }
 
-    pub fn new_of_files(files: &[String]) -> Self {
-        let mut m = Self::new(ContentVersion::V4);
+    pub fn new_of_files(files: &[String]) -> Result<Self> {
+        let mut m = Self::new();
 
-        files
-            .iter()
+        for f in files.iter() {
             //            .map(|f| (f, File::open(f).expect("Data file was not readable.")))
             //            // TODO instead of filtering, accepting directories would be nice
             //            .filter(|(name, f)| f.metadata().unwrap().is_file())
-            .for_each(|f| {
-                m.add_file(f);
-            });
+            m.add_file(f)?;
+        }
 
-        m
+        Ok(m)
     }
 
-    pub fn add_file(&mut self, file: &str) -> &mut Self {
-        let mut fd = File::open(file).expect("File was not readable");
+    pub fn add_file(&mut self, file: &str) -> Result<&mut Self> {
+        let mut fd = File::open(file)?;
         let mut fb: Vec<u8> = Vec::new();
 
-        fd.read_to_end(&mut fb).expect("Failed buffer whole file.");
+        fd.read_to_end(&mut fb)?;
 
-        let file = Path::new(file).file_name().unwrap().to_str().unwrap();
+        let file = Path::new(file)
+            .file_name()
+            .ok_or_else(|| SteganoError::InvalidFileName)?
+            .to_str()
+            .ok_or_else(|| SteganoError::InvalidFileName)?;
 
         self.add_file_data(file, fb);
         // self.files.push((file.to_owned(), fb));
 
-        self
+        Ok(self)
     }
 
     pub fn add_file_data(&mut self, file: &str, data: Vec<u8>) -> &mut Self {
@@ -90,158 +82,101 @@ impl Message {
     }
 
     pub fn empty() -> Self {
-        Self::new(ContentVersion::V4)
+        Self::new()
     }
 
-    fn new(version: ContentVersion) -> Self {
+    fn new() -> Self {
         Message {
-            header: version,
+            // todo: injection all the way up!!
+            codec_factory: PayloadCodecFactory,
             files: Vec::new(),
             text: None,
         }
     }
 
-    fn new_of_v4(r: &mut dyn Read) -> Self {
-        let payload_size = r
-            .read_u32::<BigEndian>()
-            .expect("Failed to read payload size header");
-
-        let mut buf = Vec::new();
-        r.take(payload_size as u64)
-            .read_to_end(&mut buf)
-            .expect("Message read of content version 0x04 failed.");
-
-        Self::new_of(buf)
-    }
-
-    fn new_of_v2(r: &mut dyn Read) -> Self {
-        const EOF: u8 = 0xff;
-        let mut buf = Vec::new();
-        r.read_to_end(&mut buf)
-            .expect("Message read of content version 0x04 failed.");
-
-        let mut eof = 0;
-        for (i, b) in buf.iter().enumerate().rev() {
-            if *b == EOF {
-                eof = i;
-                break;
-            }
-            eof = 0;
-        }
-
-        if eof > 0 {
-            buf.resize(eof, 0);
-        }
-
-        Self::new_of(buf)
-    }
-
-    fn new_of(buf: Vec<u8>) -> Message {
-        let mut files = Vec::new();
+    fn new_with_documents(buf: Vec<u8>) -> Result<Message> {
         let mut buf = Cursor::new(buf);
+        let mut m = Message::new();
 
-        while let Ok(zip) = zip::read::read_zipfile_from_stream(&mut buf) {
-            match zip {
-                None => {}
-                Some(mut file) => {
-                    let mut writer = Vec::new();
-                    file.read_to_end(&mut writer)
-                        .expect("Failed to read data from inner message structure.");
+        // some experimental code
 
-                    files.push((file.name().to_string(), writer));
-                }
-            }
+        let mut zip = zip_next::ZipArchive::new(&mut buf)?;
+        if !zip.comment().is_empty() {
+            m.text = Some(String::from_utf8_lossy(zip.comment().as_bytes()).to_string())
         }
 
-        let mut m = Message::new(ContentVersion::V4);
-        m.files.append(&mut files);
+        for i in 0..zip.len() {
+            let mut file = zip.by_index(i)?;
+            let mut writer = Vec::new();
+            file.read_to_end(&mut writer)?;
 
-        m
+            m.files.push((
+                file.mangled_name()
+                    .to_str()
+                    .unwrap_or("--no-file-name--")
+                    .to_string(),
+                writer,
+            ));
+        }
+
+        Ok(m)
     }
+}
 
-    fn new_of_v1(r: &mut dyn Read) -> Self {
-        const EOF: u8 = 0xff;
+impl TryFrom<&mut Vec<u8>> for Message {
+    type Error = SteganoError;
+
+    fn try_from(buf: &mut Vec<u8>) -> std::result::Result<Self, Self::Error> {
+        let mut c = Cursor::new(buf);
+        Message::of(&mut c, PayloadCodecFactory)
+    }
+}
+
+impl TryFrom<&Message> for Vec<u8> {
+    type Error = SteganoError;
+
+    fn try_from(m: &Message) -> std::result::Result<Self, Self::Error> {
         let mut buf = Vec::new();
 
-        while let Ok(b) = r.read_u8() {
-            if b == EOF {
-                break;
-            }
-            buf.push(b);
-        }
-
-        // TODO shall we upgrade all v1 to v4, to get rid of the legacy?
-        let mut m = Message::new(ContentVersion::V1);
-        m.text = Some(String::from_utf8(buf).expect("Message failed to decode from image"));
-
-        m
-    }
-}
-
-impl From<&mut Vec<u8>> for Message {
-    fn from(buf: &mut Vec<u8>) -> Self {
-        let mut c = Cursor::new(buf);
-        Message::of(&mut c)
-    }
-}
-
-impl From<&Message> for Vec<u8> {
-    fn from(m: &Message) -> Vec<u8> {
-        let mut v = vec![m.header.to_u8()];
+        let codec = if m.files.is_empty() {
+            m.codec_factory.create_codec_for_text()
+        } else {
+            m.codec_factory.create_codec_for_documents()
+        };
 
         {
-            let mut buf = Vec::new();
+            let w = Cursor::new(&mut buf);
+            let mut zip = zip_next::ZipWriter::new(w);
 
-            {
-                let w = std::io::Cursor::new(&mut buf);
-                let mut zip = zip::ZipWriter::new(w);
+            let options = zip_next::write::FileOptions::default()
+                .compression_method(zip_next::CompressionMethod::Deflated);
 
-                let options = zip::write::FileOptions::default()
-                    .compression_method(zip::CompressionMethod::Deflated);
+            for (name, buf) in (m.files).iter().map(|(name, buf)| (name, buf)) {
+                zip.start_file(name, options.clone())?;
 
-                (m.files)
-                    .iter()
-                    .map(|(name, buf)| (name, buf))
-                    .for_each(|(name, buf)| {
-                        zip.start_file(name, options)
-                            .unwrap_or_else(|_| panic!("processing file '{name}' failed."));
-
-                        let mut r = std::io::Cursor::new(buf);
-                        std::io::copy(&mut r, &mut zip)
-                            .expect("Failed to copy data to the zip entry.");
-                    });
-
-                zip.finish().expect("finish zip failed.");
+                let mut r = Cursor::new(buf);
+                std::io::copy(&mut r, &mut zip)?;
             }
 
-            if m.header == ContentVersion::V4 {
-                v.write_u32::<BigEndian>(buf.len() as u32)
-                    .expect("Failed to write the inner message size.");
-            }
-
-            v.append(&mut buf);
-
-            if m.header == ContentVersion::V2 {
-                v.write_u16::<BigEndian>(0xffff)
-                    .expect("Failed to write content format 2 termination.");
-            }
+            zip.finish()?;
         }
 
-        v
+        Ok(codec.encode(&mut Cursor::new(buf))?)
     }
 }
 
 #[cfg(test)]
 mod message_tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)]
     use super::*;
     use std::io::copy;
-    use zip::write::FileOptions;
-    use zip::{CompressionMethod, ZipWriter};
+    use zip_next::write::FileOptions;
+    use zip_next::{CompressionMethod, ZipWriter};
 
     #[test]
     fn should_convert_into_vec_of_bytes() {
         let files = vec!["tests/images/with_text/hello_world.png".to_string()];
-        let m = Message::new_of_files(&files);
+        let m = Message::new_of_files(&files).unwrap();
 
         assert_eq!(
             m.files.len(),
@@ -254,17 +189,17 @@ mod message_tests {
             "One file was not there, buffer was broken"
         );
 
-        let b: Vec<u8> = (&m).into();
+        let b: Vec<u8> = (&m).try_into().unwrap();
         assert_ne!(b.len(), 0, "File buffer was empty");
     }
 
     #[test]
     fn should_convert_from_vec_of_bytes() {
         let files = vec!["tests/images/with_text/hello_world.png".to_string()];
-        let m = Message::new_of_files(&files);
-        let mut b: Vec<u8> = (&m).into();
+        let m = Message::new_of_files(&files).unwrap();
+        let mut b: Vec<u8> = (&m).try_into().unwrap();
 
-        let m = Message::from(&mut b);
+        let m = Message::try_from(&mut b).unwrap();
         assert_eq!(
             m.files.len(),
             1,
@@ -280,11 +215,11 @@ mod message_tests {
     #[test]
     fn should_instantiate_from_read_trait() {
         let files = vec!["tests/images/with_text/hello_world.png".to_string()];
-        let m = Message::new_of_files(&files);
-        let mut b: Vec<u8> = (&m).into();
+        let m = Message::new_of_files(&files).unwrap();
+        let mut b: Vec<u8> = (&m).try_into().unwrap();
         let mut r = Cursor::new(&mut b);
 
-        let m = Message::of(&mut r);
+        let m = Message::of(&mut r, PayloadCodecFactory).unwrap();
         assert_eq!(
             m.files.len(),
             1,
@@ -300,10 +235,14 @@ mod message_tests {
     #[test]
     fn should_instantiate_from_read_trait_from_message_buffer() {
         use std::io::BufReader;
+
+        // todo: Question: this layer here expects somehow valid message buffers,
+        //       that is why it's failing right now.
+        //       If this layer would be more robust, the termination checking must be implemented better.
         const BUF: [u8; 6] = [0x1, b'H', b'e', 0xff, 0xff, 0xcd];
 
         let mut r = BufReader::new(&BUF[..]);
-        let m = Message::of(&mut r);
+        let m = Message::of(&mut r, PayloadCodecFactory).unwrap();
         assert_eq!(m.text.unwrap(), "He", "Message.text was not as expected");
         assert_eq!(m.files.len(), 0, "Message.files were not empty.");
     }

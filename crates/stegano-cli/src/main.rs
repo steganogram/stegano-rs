@@ -11,86 +11,83 @@ fn main() -> Result<()> {
         .author(crate_authors!())
         .about(crate_description!())
         .arg_required_else_help(true)
-        .subcommand(Command::new("hide")
-            .about("Hides data in PNG images and WAV audio files")
-            .arg(
-                Arg::new("media")
-                    .short('i')
-                    .long("in")
-                    .value_name("media file")
-                    .required(true)
-                    .help("Media file such as PNG image or WAV audio file, used readonly."),
-            )
-            .arg(
-                Arg::new("write_to_file")
-                    .short('o')
-                    .long("out")
-                    .value_name("output image file")
-                    .required(true)
-                    .help("Final image will be stored as file"),
-            )
-            .arg(
-                Arg::new("data_file")
-                    .short('d')
-                    .long("data")
-                    .value_name("data file")
-                    .required_unless_present("message")
-                    .num_args(1..100)
-                    .help("File(s) to hide in the image"),
-            )
-            .arg(
-                Arg::new("message")
-                    .short('m')
-                    .long("message")
-                    .value_name("text message")
-                    .required(false)
-                    .help("A text message that will be hidden"),
-            )
-            .arg(
-                Arg::new("force_content_version2")
-                    .long("x-force-content-version-2")
-                    .value_name("text message")
-                    .required(false)
-                    .help("Experimental: enforce content version 2 encoding (for backwards compatibility)"),
-            )
+        .subcommand(
+            Command::new("hide")
+                .about("Hides data in PNG images and WAV audio files")
+                .arg(
+                    Arg::new("media")
+                        .short('i')
+                        .long("in")
+                        .value_name("media file")
+                        .required(true)
+                        .help("Media file such as PNG image or WAV audio file, used readonly."),
+                )
+                .arg(
+                    Arg::new("write_to_file")
+                        .short('o')
+                        .long("out")
+                        .value_name("output image file")
+                        .required(true)
+                        .help("Final image will be stored as file"),
+                )
+                .arg(
+                    Arg::new("data_file")
+                        .short('d')
+                        .long("data")
+                        .value_name("data file")
+                        .required_unless_present("message")
+                        .num_args(1..100)
+                        .help("File(s) to hide in the image"),
+                )
+                .arg(
+                    Arg::new("message")
+                        .short('m')
+                        .long("message")
+                        .value_name("text message")
+                        .required(false)
+                        .help("A text message that will be hidden"),
+                ),
         )
-        .subcommand(Command::new("unveil")
-        .about("Unveils data from PNG images")
-        .arg(
-            Arg::new("input_image")
-                .short('i')
-                .long("in")
-                .value_name("image source file")
-                .required(true)
-                .help("Source image that contains secret data"),
+        .subcommand(
+            Command::new("unveil")
+                .about("Unveils data from PNG images")
+                .arg(
+                    Arg::new("input_image")
+                        .short('i')
+                        .long("in")
+                        .value_name("image source file")
+                        .required(true)
+                        .help("Source image that contains secret data"),
+                )
+                .arg(
+                    Arg::new("output_folder")
+                        .short('o')
+                        .long("out")
+                        .value_name("output folder")
+                        .required(true)
+                        .help("Final data will be stored in that folder"),
+                ),
         )
-        .arg(
-            Arg::new("output_folder")
-                .short('o')
-                .long("out")
-                .value_name("output folder")
-                .required(true)
-                .help("Final data will be stored in that folder"),
+        .subcommand(
+            Command::new("unveil-raw")
+                .about("Unveils raw data in PNG images")
+                .arg(
+                    Arg::new("input_image")
+                        .short('i')
+                        .long("in")
+                        .value_name("image source file")
+                        .required(true)
+                        .help("Source image that contains secret data"),
+                )
+                .arg(
+                    Arg::new("output_file")
+                        .short('o')
+                        .long("out")
+                        .value_name("output file")
+                        .required(true)
+                        .help("Raw data will be stored as binary file"),
+                ),
         )
-    ).subcommand(Command::new("unveil-raw")
-        .about("Unveils raw data in PNG images")
-        .arg(
-            Arg::new("input_image")
-                .short('i')
-                .long("in")
-                .value_name("image source file")
-                .required(true)
-                .help("Source image that contains secret data"),
-        )
-        .arg(
-            Arg::new("output_file")
-                .short('o')
-                .long("out")
-                .value_name("output file")
-                .required(true)
-                .help("Raw data will be stored as binary file"),
-        )
-    )
         .arg(
             Arg::new("color_step_increment")
                 .long("x-color-step-increment")
@@ -113,11 +110,7 @@ fn main() -> Result<()> {
             }
 
             if let Some(files) = m.get_many::<String>("data_file") {
-                s.hide_files(files.map(|f| &**f).collect());
-            }
-
-            if m.contains_id("force_content_version2") {
-                s.force_content_version(ContentVersion::V2);
+                s.hide_files(files.map(|f| &**f).collect())?;
             }
 
             s.hide();
