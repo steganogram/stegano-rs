@@ -294,6 +294,7 @@ pub struct SteganoEncoder {
     options: CodecOptions,
     target: Option<String>,
     carrier: Option<Media>,
+    password: Option<String>,
     message: Message,
 }
 
@@ -303,6 +304,7 @@ impl Default for SteganoEncoder {
             options: CodecOptions::default(),
             target: None,
             carrier: None,
+            password: None,
             message: Message::empty(),
         }
     }
@@ -328,6 +330,11 @@ impl SteganoEncoder {
 
     pub fn write_to(&mut self, output_file: &str) -> &mut Self {
         self.target = Some(output_file.to_owned());
+        self
+    }
+
+    pub fn with_encryption(&mut self, password: &str) -> &mut Self {
+        self.password = Some(password.to_owned());
         self
     }
 
@@ -378,6 +385,9 @@ impl SteganoEncoder {
         if let Some(media) = self.carrier.as_mut() {
             media
                 // .hide_message(&self.message)
+                // todo: here we either want to wrap the message with some sort of encrypted message
+                // or we want to encrypt the message and then hand in the data only
+                // or tbd!?
                 .hide_message_with_options(&self.message, &self.options)
                 .expect("Failed to hide message in media")
                 .save_as(Path::new(self.target.as_ref().unwrap()))

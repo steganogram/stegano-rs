@@ -2,8 +2,7 @@
 members = [
     "crates/stegano-core",
     "crates/stegano-cli",
-    ## future music..
-    # "crates/jpeg-decoder",
+    "crates/stegano-seasmoke",
 ]
 
 [profile.release]

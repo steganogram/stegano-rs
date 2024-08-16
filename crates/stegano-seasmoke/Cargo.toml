@@ -1,0 +1,20 @@
+[package]
+name = "stegano-seasmoke"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "providing cryptography functionality as library"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+argon2 = "0.5"
+rand = "0.8"
+chacha20poly1305 = { version = "0.10" }
+zeroize = "1.8"
+thiserror = "1.0"
+
+[build-dependencies]
+csbindgen = "1.8.0"
+cbindgen = "0.26"
