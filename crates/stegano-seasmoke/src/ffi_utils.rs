@@ -81,3 +81,39 @@ pub unsafe extern "C" fn free_byte_buffer(buffer: *mut ByteBuffer) {
     // drop inner buffer, if you need Vec<u8>, use buf.destroy_into_vec() instead.
     buf.destroy();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_vec() {
+        let data = vec![1, 2, 3, 4, 5];
+        let buffer = ByteBuffer::from_vec(data);
+
+        assert_eq!(buffer.len(), 5);
+        assert!(!buffer.is_empty());
+    }
+
+    #[test]
+    fn test_from_struct_vec() {
+        #[allow(dead_code)]
+        struct Foo {
+            a: i32,
+            b: String,
+        }
+
+        let data = vec![
+            Foo {
+                a: 1,
+                b: "hello".to_string(),
+            },
+            Foo {
+                a: 2,
+                b: "world".to_string(),
+            },
+        ];
+        let buffer = ByteBuffer::from_vec_struct(data);
+        assert_eq!(buffer.len(), 64);
+    }
+}
