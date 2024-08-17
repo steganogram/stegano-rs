@@ -10,6 +10,7 @@ use std::fs::File;
 use std::io::{Cursor, Read};
 use std::path::Path;
 
+#[derive(Debug)]
 pub struct Message {
     pub codec_factory: PayloadCodecFactory,
     pub files: Vec<(String, Vec<u8>)>,
@@ -170,7 +171,7 @@ impl TryFrom<&Message> for Vec<u8> {
 mod message_tests {
     #![allow(clippy::unwrap_used, clippy::expect_used)]
     use super::*;
-    use std::io::copy;
+    use std::io::{copy, BufReader};
     use zip_next::write::FileOptions;
     use zip_next::{CompressionMethod, ZipWriter};
 
@@ -270,5 +271,20 @@ mod message_tests {
         zip.finish().expect("finish zip failed.");
 
         Ok(())
+    }
+
+    #[test]
+    fn should_error_on_unsupported_message() {
+        let mut buf = [0xfa_u8];
+        let mut r = Cursor::new(&mut buf);
+        let mut reader = BufReader::new(&mut r);
+        let message_result = Message::of(&mut reader, PayloadCodecFactory);
+
+        match message_result.err().unwrap() {
+            SteganoError::UnsupportedMessageFormat(0xfa_u8) => {
+                // expected
+            }
+            err => panic!("Error was not of type UnsupportedMessageFormat, but was of {err:?}"),
+        }
     }
 }

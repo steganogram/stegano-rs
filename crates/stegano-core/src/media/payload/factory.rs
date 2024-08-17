@@ -2,7 +2,7 @@ use super::*;
 use crate::error::SteganoError;
 use crate::result::Result;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct PayloadCodecFactory;
 impl PayloadCodecFactory {
     /// returns the current text and documents codec, with length-header feature

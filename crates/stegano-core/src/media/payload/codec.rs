@@ -8,7 +8,7 @@ pub(super) const LENGTH_HEADER: u8 = 1 << 3;
 pub(super) const AES_CRYPTO: u8 = 1 << 4;
 pub(super) const CHA_CRYPTO: u8 = 1 << 5;
 
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum PayloadCodecFeatures {
     TextOnly,
     TextAndDocumentsTerminated,
@@ -68,7 +68,7 @@ where
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct PayloadDecoderLegacyVersion1;
 impl PayloadDecoder for PayloadDecoderLegacyVersion1 {
     fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
@@ -86,7 +86,7 @@ impl PayloadDecoder for PayloadDecoderLegacyVersion1 {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct PayloadDecoderLegacyVersion2;
 impl PayloadDecoder for PayloadDecoderLegacyVersion2 {
     fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
@@ -106,7 +106,7 @@ impl PayloadDecoder for PayloadDecoderLegacyVersion2 {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct PayloadDecoderWithLengthHeader;
 impl PayloadDecoder for PayloadDecoderWithLengthHeader {
     fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
@@ -122,6 +122,7 @@ impl PayloadDecoder for PayloadDecoderWithLengthHeader {
     }
 }
 
+#[derive(Debug)]
 pub struct PayloadEncoderWithLengthHeader {
     version: PayloadCodecFeatures,
 }
