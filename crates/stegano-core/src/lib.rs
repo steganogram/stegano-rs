@@ -308,7 +308,7 @@ impl SteganoEncoder {
         self
     }
 
-    pub fn hide_file(&mut self, input_file: &str) -> Result<&mut Self> {
+    pub fn hide_file<P: AsRef<Path> + ?Sized>(&mut self, input_file: &P) -> Result<&mut Self> {
         {
             let _f = File::open(input_file).expect("Data file was not readable.");
         }
@@ -317,7 +317,7 @@ impl SteganoEncoder {
         Ok(self)
     }
 
-    pub fn hide_files(&mut self, input_files: Vec<&str>) -> Result<&mut Self> {
+    pub fn hide_files<P: AsRef<Path>>(&mut self, input_files: &[P]) -> Result<&mut Self> {
         self.message.files = Vec::new();
         for f in input_files.iter() {
             self.hide_file(f)?;
@@ -381,7 +381,7 @@ mod e2e_tests {
     #[should_panic(expected = "Data file was not readable.")]
     fn should_panic_on_invalid_data_file_among_valid() {
         SteganoEncoder::new()
-            .hide_files(vec!["Cargo.toml", "foofile"])
+            .hide_files(&["Cargo.toml", "foofile"])
             .unwrap();
     }
 

@@ -44,7 +44,7 @@ impl Message {
         }
     }
 
-    pub fn new_of_files(files: &[String]) -> Result<Self> {
+    pub fn new_of_files<P: AsRef<Path>>(files: &[P]) -> Result<Self> {
         let mut m = Self::new();
 
         for f in files.iter() {
@@ -57,13 +57,14 @@ impl Message {
         Ok(m)
     }
 
-    pub fn add_file(&mut self, file: &str) -> Result<&mut Self> {
+    pub fn add_file<P: AsRef<Path> + ?Sized>(&mut self, file: &P) -> Result<&mut Self> {
         let mut fd = File::open(file)?;
         let mut fb: Vec<u8> = Vec::new();
 
         fd.read_to_end(&mut fb)?;
 
-        let file = Path::new(file)
+        let file = file
+            .as_ref()
             .file_name()
             .ok_or_else(|| SteganoError::InvalidFileName)?
             .to_str()
@@ -214,8 +215,8 @@ mod message_tests {
 
     #[test]
     fn should_instantiate_from_read_trait() {
-        let files = vec!["tests/images/with_text/hello_world.png".to_string()];
-        let m = Message::new_of_files(&files).unwrap();
+        let files = &["tests/images/with_text/hello_world.png"];
+        let m = Message::new_of_files(files).unwrap();
         let mut b: Vec<u8> = (&m).try_into().unwrap();
         let mut r = Cursor::new(&mut b);
 

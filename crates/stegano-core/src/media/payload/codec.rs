@@ -5,6 +5,8 @@ pub(super) const TEXT_ONLY: u8 = 1 << 0;
 pub(super) const TEXT_AND_DOCUMENTS_TERMINATED: u8 = 1 << 1;
 pub(super) const TEXT_AND_DOCUMENTS: u8 = 1 << 2;
 pub(super) const LENGTH_HEADER: u8 = 1 << 3;
+pub(super) const AES_CRYPTO: u8 = 1 << 4;
+pub(super) const CHA_CRYPTO: u8 = 1 << 5;
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum PayloadCodecFeatures {
@@ -12,6 +14,8 @@ pub enum PayloadCodecFeatures {
     TextAndDocumentsTerminated,
     TextAndDocuments,
     LengthHeader,
+    AesCrypto,
+    ChaCrypto,
     MixedFeatures(u8),
 }
 
@@ -22,6 +26,8 @@ impl From<PayloadCodecFeatures> for u8 {
             PayloadCodecFeatures::TextAndDocumentsTerminated => TEXT_AND_DOCUMENTS_TERMINATED,
             PayloadCodecFeatures::TextAndDocuments => TEXT_AND_DOCUMENTS,
             PayloadCodecFeatures::LengthHeader => LENGTH_HEADER,
+            PayloadCodecFeatures::AesCrypto => AES_CRYPTO,
+            PayloadCodecFeatures::ChaCrypto => CHA_CRYPTO,
             PayloadCodecFeatures::MixedFeatures(other) => other,
         }
     }

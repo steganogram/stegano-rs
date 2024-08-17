@@ -110,7 +110,8 @@ fn main() -> Result<()> {
             }
 
             if let Some(files) = m.get_many::<String>("data_file") {
-                s.hide_files(files.map(|f| &**f).collect())?;
+                let files: Vec<&str> = files.into_iter().map(|s| s.as_str()).collect();
+                s.hide_files(&files)?;
             }
 
             s.hide();
