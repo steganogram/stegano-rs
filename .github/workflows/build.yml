@@ -63,11 +63,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - uses: cargo-bins/cargo-binstall@main
       - run: cargo binstall -y cargo-llvm-cov
-      - run: cargo llvm-cov --lcov --output-path lcov.info
+      - run: cargo llvm-cov --all-features --workspace --codecov --output-path codecov.json
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v4
         with:
-          file: lcov.info
+          file: codecov.json
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -75,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
-          path: lcov.info
+          path: codecov.json
 
   # pkg-deb:
   #   name: binaray package .deb
