@@ -63,7 +63,16 @@ impl Message {
         let mut fb: Vec<u8> = Vec::new();
 
         fd.read_to_end(&mut fb)?;
+        self.add_file_data(file, fb)?;
 
+        Ok(self)
+    }
+
+    pub fn add_file_data<P: AsRef<Path> + ?Sized>(
+        &mut self,
+        file: &P,
+        data: Vec<u8>,
+    ) -> Result<&mut Self> {
         let file = file
             .as_ref()
             .file_name()
@@ -71,16 +80,9 @@ impl Message {
             .to_str()
             .ok_or_else(|| SteganoError::InvalidFileName)?;
 
-        self.add_file_data(file, fb);
-        // self.files.push((file.to_owned(), fb));
-
-        Ok(self)
-    }
-
-    pub fn add_file_data(&mut self, file: &str, data: Vec<u8>) -> &mut Self {
         self.files.push((file.to_owned(), data));
 
-        self
+        Ok(self)
     }
 
     pub fn empty() -> Self {
@@ -99,8 +101,6 @@ impl Message {
     fn new_with_documents(buf: Vec<u8>) -> Result<Message> {
         let mut buf = Cursor::new(buf);
         let mut m = Message::new();
-
-        // some experimental code
 
         let mut zip = zip_next::ZipArchive::new(&mut buf)?;
         if !zip.comment().is_empty() {
@@ -168,7 +168,7 @@ impl TryFrom<&Message> for Vec<u8> {
 }
 
 #[cfg(test)]
-mod message_tests {
+mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used)]
     use super::*;
     use std::io::{copy, BufReader};

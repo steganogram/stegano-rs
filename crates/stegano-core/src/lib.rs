@@ -301,11 +301,11 @@ impl SteganoEncoder {
         self
     }
 
-    pub fn hide_message(&mut self, msg: &str) -> &mut Self {
+    pub fn hide_message(&mut self, msg: &str) -> Result<&mut Self> {
         self.message
-            .add_file_data("secret-message.txt", msg.as_bytes().to_vec());
+            .add_file_data("secret-message.txt", msg.as_bytes().to_vec())?;
 
-        self
+        Ok(self)
     }
 
     pub fn hide_file<P: AsRef<Path> + ?Sized>(&mut self, input_file: &P) -> Result<&mut Self> {

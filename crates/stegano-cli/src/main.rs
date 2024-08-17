@@ -106,7 +106,7 @@ fn main() -> Result<()> {
                 .write_to(m.get_one::<String>("write_to_file").unwrap());
 
             if let Some(msg) = m.get_one::<String>("message") {
-                s.hide_message(msg);
+                s.hide_message(msg)?;
             }
 
             if let Some(files) = m.get_many::<String>("data_file") {
