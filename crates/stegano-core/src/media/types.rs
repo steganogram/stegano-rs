@@ -1,0 +1,92 @@
+use std::path::Path;
+
+pub use hound::{WavReader, WavSpec, WavWriter};
+pub use image::RgbaImage;
+
+use crate::error::SteganoError;
+use crate::media::image::CodecOptions;
+use crate::result::Result;
+use crate::Persist;
+
+pub type WavAudio = (WavSpec, Vec<i16>);
+
+/// a media container for steganography
+pub enum Media {
+    Image(RgbaImage),
+    Audio(WavAudio),
+}
+
+impl Media {
+    pub fn from_file(f: &Path) -> Result<Self> {
+        if let Some(ext) = f.extension() {
+            let ext = ext.to_str().unwrap().to_lowercase();
+            match ext.as_str() {
+                "png" => Ok(Self::Image(
+                    image::open(f)
+                        .map_err(|_e| SteganoError::InvalidImageMedia)?
+                        .to_rgba8(),
+                )),
+                "wav" => {
+                    let mut reader =
+                        WavReader::open(f).map_err(|_e| SteganoError::InvalidAudioMedia)?;
+                    let spec = reader.spec();
+                    let samples: Vec<i16> = reader.samples().map(|s| s.unwrap()).collect();
+
+                    Ok(Self::Audio((spec, samples)))
+                }
+                _ => Err(SteganoError::UnsupportedMedia),
+            }
+        } else {
+            Err(SteganoError::UnsupportedMedia)
+        }
+    }
+
+    pub fn hide_data(&mut self, msg_data: Vec<u8>, opts: &CodecOptions) -> Result<&mut Self> {
+        match self {
+            Media::Image(i) => {
+                let (width, height) = i.dimensions();
+                let _space_to_fill = (width * height * 3) / 8;
+                let mut encoder = super::image::LsbCodec::encoder(i, opts);
+
+                encoder
+                    .write_all(msg_data.as_ref())
+                    .map_err(|_e| SteganoError::ImageEncodingError)?
+            }
+            Media::Audio((_spec, samples)) => {
+                let mut encoder = super::audio::LsbCodec::encoder(samples);
+
+                encoder
+                    .write_all(msg_data.as_ref())
+                    .map_err(|_e| SteganoError::AudioEncodingError)?
+            }
+        }
+
+        Ok(self)
+    }
+}
+
+impl Persist for Media {
+    fn save_as(&mut self, file: &Path) -> Result<()> {
+        match self {
+            Media::Image(i) => i.save(file).map_err(|_e| SteganoError::ImageEncodingError),
+            Media::Audio((spec, samples)) => {
+                let mut writer =
+                    WavWriter::create(file, *spec).map_err(|_| SteganoError::AudioCreationError)?;
+                if let Some(error) = samples
+                    .iter()
+                    .map(|s| {
+                        writer
+                            .write_sample(*s)
+                            .map_err(|_| SteganoError::AudioEncodingError)
+                    })
+                    .filter_map(Result::err)
+                    .next()
+                {
+                    return Err(error);
+                }
+
+                Ok(())
+            }
+        }
+    }
+}

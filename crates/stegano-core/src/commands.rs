@@ -1,6 +1,6 @@
 use crate::media::audio::wav_iter::AudioWavIter;
 use crate::media::image::LsbCodec;
-use crate::media::payload::PayloadCodecFactory;
+use crate::media::payload::{FabA, FabS, PayloadCodecFactory};
 use crate::universal_decoder::{Decoder, OneBitUnveil};
 use crate::{CodecOptions, Media, Message, RawMessage, SteganoError};
 use std::fs::File;
@@ -11,13 +11,19 @@ pub fn unveil(
     secret_media: &Path,
     destination: &Path,
     opts: &CodecOptions,
+    password: Option<&String>,
 ) -> Result<(), SteganoError> {
     let media = Media::from_file(secret_media)?;
+    let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = password {
+        Box::new(FabS::new(password))
+    } else {
+        Box::new(FabA)
+    };
 
     let files = match media {
         Media::Image(image) => {
             let mut decoder = LsbCodec::decoder(&image, opts);
-            let msg = Message::of(&mut decoder, PayloadCodecFactory).unwrap();
+            let msg = Message::from_raw_data(&mut decoder, &*fab)?;
             let mut files = msg.files;
 
             if let Some(text) = msg.text {
@@ -29,7 +35,7 @@ pub fn unveil(
         Media::Audio(audio) => {
             let mut decoder = Decoder::new(AudioWavIter::new(audio.1.into_iter()), OneBitUnveil);
 
-            let msg = Message::of(&mut decoder, PayloadCodecFactory).unwrap();
+            let msg = Message::from_raw_data(&mut decoder, &*fab).unwrap();
             let mut files = msg.files;
 
             if let Some(text) = msg.text {

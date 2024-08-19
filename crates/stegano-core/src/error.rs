@@ -2,6 +2,8 @@ use std::string::FromUtf8Error;
 use thiserror::Error;
 use zip_next::result::ZipError;
 
+pub use stegano_seasmoke::SeasmokeError;
+
 #[derive(Error, Debug)]
 pub enum SteganoError {
     /// Represents an unsupported carrier media. For example, a Movie file is not supported
@@ -59,4 +61,18 @@ pub enum SteganoError {
     /// Represents all other cases of `std::io::Error`.
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+
+    /// Represents an error when encrypting the data
+    #[error("Encryption error")]
+    EncryptionError(SeasmokeError),
+
+    /// Represents an error when decrypting the data
+    #[error("Decryption error")]
+    DecryptionError(SeasmokeError),
+
+    #[error("No carrier media set")]
+    CarrierNotSet,
+
+    #[error("No target file set")]
+    TargetNotSet,
 }

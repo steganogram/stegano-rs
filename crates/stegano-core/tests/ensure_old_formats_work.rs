@@ -22,6 +22,7 @@ fn ensure_text_only_without_password_from_v2_1_1_9_unveils() {
         DEMO_IMG_V1_TEXT_ONLY_WITHOUT_PASSWD_V2_1_1_9.as_ref(),
         out_dir.as_ref(),
         &CodecOptions::default(),
+        None,
     )
     .unwrap();
 
@@ -42,6 +43,7 @@ fn ensure_text_and_documents_without_password_from_v2_1_1_9_unveils() {
         DEMO_IMG_V2_TEXT_AND_DOCUMENT_WITHOUT_PASSWD_V2_1_1_9.as_ref(),
         out_dir.as_ref(),
         &CodecOptions::default(),
+        None,
     )
     .unwrap();
 

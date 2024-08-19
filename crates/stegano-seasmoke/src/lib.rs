@@ -12,7 +12,7 @@ pub mod error;
 pub mod ffi;
 pub mod ffi_utils;
 
-use error::SeasmokeError;
+pub use crate::error::SeasmokeError;
 
 const NONCE_LEN: usize = 24;
 const SALT_LEN: usize = 32;
@@ -29,10 +29,9 @@ pub fn decrypt_data(password: &str, data: &[u8]) -> Result<Vec<u8>> {
     let key = derive_key(password.as_bytes(), salt)?;
 
     let decryptor = XChaCha20Poly1305::new(&key.into());
-    // todo: remove the unwrap and use a map error
     let decipher_data = decryptor
         .decrypt(nonce.into(), &data[0..data.len() - SALT_LEN - NONCE_LEN])
-        .unwrap();
+        .map_err(SeasmokeError::DecryptionError)?;
 
     // todo write tests for enc and decrypt
     Ok(decipher_data)
@@ -49,8 +48,9 @@ pub fn encrypt_data(password: &str, data: &[u8]) -> Result<Vec<u8>> {
     assert!(nonce.len() == NONCE_LEN);
 
     let encryptor = XChaCha20Poly1305::new(&key.into());
-    // todo: remove the unwrap and use a map error
-    let mut cipher_data = encryptor.encrypt(&nonce, data).unwrap();
+    let mut cipher_data = encryptor
+        .encrypt(&nonce, data)
+        .map_err(SeasmokeError::EncryptionError)?;
     cipher_data.extend_from_slice(&nonce);
     cipher_data.extend_from_slice(&salt);
 

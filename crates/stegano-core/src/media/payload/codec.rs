@@ -1,12 +1,14 @@
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::Read;
 
-pub(super) const TEXT_ONLY: u8 = 1 << 0;
-pub(super) const TEXT_AND_DOCUMENTS_TERMINATED: u8 = 1 << 1;
-pub(super) const TEXT_AND_DOCUMENTS: u8 = 1 << 2;
-pub(super) const LENGTH_HEADER: u8 = 1 << 3;
-pub(super) const AES_CRYPTO: u8 = 1 << 4;
-pub(super) const CHA_CRYPTO: u8 = 1 << 5;
+use crate::result::Result;
+
+pub(crate) const TEXT_ONLY: u8 = 1 << 0;
+pub(crate) const TEXT_AND_DOCUMENTS_TERMINATED: u8 = 1 << 1;
+pub(crate) const TEXT_AND_DOCUMENTS: u8 = 1 << 2;
+pub(crate) const LENGTH_HEADER: u8 = 1 << 3;
+pub(crate) const AES_CRYPTO: u8 = 1 << 4;
+pub(crate) const CHA_CRYPTO: u8 = 1 << 5;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum PayloadCodecFeatures {
@@ -17,6 +19,16 @@ pub enum PayloadCodecFeatures {
     AesCrypto,
     ChaCrypto,
     MixedFeatures(u8),
+}
+
+impl PayloadCodecFeatures {
+    /// Adds other features, but also consumes self.
+    pub fn add_feature(self, other: PayloadCodecFeatures) -> Self {
+        let v: u8 = self.into();
+        let f: u8 = other.into();
+
+        PayloadCodecFeatures::MixedFeatures(v | f)
+    }
 }
 
 impl From<PayloadCodecFeatures> for u8 {
@@ -36,11 +48,11 @@ impl From<PayloadCodecFeatures> for u8 {
 pub trait PayloadEncoder {
     fn version(&self) -> PayloadCodecFeatures;
 
-    fn encode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>>;
+    fn encode(&self, content: &mut dyn Read) -> Result<Vec<u8>>;
 }
 
 pub trait PayloadDecoder {
-    fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>>;
+    fn decode(&self, content: &mut dyn Read) -> Result<Vec<u8>>;
 }
 
 pub trait HasFeature {
@@ -58,6 +70,13 @@ impl HasFeature for u8 {
     }
 }
 
+impl HasFeature for PayloadCodecFeatures {
+    fn has_feature(&self, feature: PayloadCodecFeatures) -> bool {
+        let v: u8 = (*self).into();
+        v.has_feature(feature)
+    }
+}
+
 impl<E> HasFeature for E
 where
     E: PayloadEncoder,
@@ -69,52 +88,17 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct PayloadDecoderLegacyVersion1;
-impl PayloadDecoder for PayloadDecoderLegacyVersion1 {
-    fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
-        let mut buffer = Vec::new();
-
-        while let Ok(b) = content.read_u8() {
-            // very naive, only one terminator
-            if b == 0xff {
-                break;
-            }
-            buffer.write_u8(b)?;
-        }
-
-        Ok(buffer)
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct PayloadDecoderLegacyVersion2;
-impl PayloadDecoder for PayloadDecoderLegacyVersion2 {
-    fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
-        let mut buffer = Vec::new();
-        content.read_to_end(&mut buffer)?;
-
-        let zeros = buffer.iter().rev().take_while(|x| x == &&0x0).count();
-        buffer.truncate(buffer.len() - zeros);
-        if buffer[buffer.len() - 1] == 0xff {
-            buffer.truncate(buffer.len() - 1);
-        }
-        if buffer[buffer.len() - 1] == 0xff {
-            buffer.truncate(buffer.len() - 1);
-        }
-
-        Ok(buffer)
-    }
-}
-
-#[derive(Debug, Default)]
 pub struct PayloadDecoderWithLengthHeader;
 impl PayloadDecoder for PayloadDecoderWithLengthHeader {
-    fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
+    fn decode(&self, content: &mut dyn Read) -> Result<Vec<u8>> {
         let len = content.read_u32::<BigEndian>()? as usize;
         let mut buffer = Vec::new();
         content.read_to_end(&mut buffer)?;
         if len > buffer.len() {
-            todo!("read len value cannot be bigger than the actual buffer");
+            panic!(
+                "read len value cannot be bigger `{len}` than the actual buffer `{}`",
+                buffer.len()
+            );
         }
         buffer.truncate(len);
 
@@ -138,7 +122,7 @@ impl PayloadEncoder for PayloadEncoderWithLengthHeader {
         self.version
     }
 
-    fn encode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
+    fn encode(&self, content: &mut dyn Read) -> Result<Vec<u8>> {
         let mut src = Vec::new();
         content.read_to_end(&mut src)?;
 
@@ -177,15 +161,31 @@ impl PayloadEncoder for PayloadFlexCodec {
         self.encoder.version()
     }
 
-    fn encode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
+    fn encode(&self, content: &mut dyn Read) -> Result<Vec<u8>> {
         self.encoder.encode(content)
     }
 }
 
 impl PayloadDecoder for PayloadFlexCodec {
-    fn decode(&self, content: &mut dyn Read) -> std::io::Result<Vec<u8>> {
+    fn decode(&self, content: &mut dyn Read) -> Result<Vec<u8>> {
         self.decoder.decode(content)
     }
 }
 
 impl PayloadCodec for PayloadFlexCodec {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_feature_adding() {
+        let f = PayloadCodecFeatures::TextAndDocuments
+            .add_feature(PayloadCodecFeatures::LengthHeader)
+            .add_feature(PayloadCodecFeatures::ChaCrypto);
+
+        assert!(f.has_feature(PayloadCodecFeatures::TextAndDocuments));
+        assert!(f.has_feature(PayloadCodecFeatures::LengthHeader));
+        assert!(f.has_feature(PayloadCodecFeatures::ChaCrypto));
+    }
+}
