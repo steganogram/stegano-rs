@@ -70,7 +70,6 @@
 // clippy::unnested_or_patterns,
 // clippy::use_self,
 )]
-#![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
 
 pub mod bit_iterator;
 pub use bit_iterator::BitIterator;
