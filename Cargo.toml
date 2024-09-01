@@ -5,6 +5,7 @@ members = [
     "crates/stegano-cli",
     "crates/stegano-seasmoke",
 ]
+package.license = "GPL-3.0-only"
 
 [profile.release]
 lto = "fat"

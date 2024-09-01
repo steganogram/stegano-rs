@@ -4,11 +4,16 @@ description = "Hiding secret data with steganography in PNG images and WAV audio
 version = "0.6.0"
 authors = ["Sven Kanoldt <sven@d34dl0ck.me>"]
 edition = "2021"
-license = "GPL-3.0-only"
+license.workspace = true
 homepage = "https://www.stegano.org"
 readme = "README.md"
 keywords = ["steganography", "image", "hiding", "unveil", "commandline"]
-categories = ["encoding", "multimedia::encoding", "multimedia::images", "command-line-utilities"]
+categories = [
+    "encoding",
+    "multimedia::encoding",
+    "multimedia::images",
+    "command-line-utilities",
+]
 repository = "https://github.com/steganogram/stegano-rs"
 include = ["src/**/*", "LICENSE", "README.md", "../CHANGELOG.md"]
 
@@ -19,7 +24,7 @@ maintenance = { status = "passively-maintained" }
 [dependencies]
 stegano-core = { path = "../stegano-core", version = "0.6.0" }
 #stegano-core = "0.5.0"
-clap = {version = "4.2", features = ["cargo"] }
+clap = { version = "4.2", features = ["cargo"] }
 
 [[bin]]
 name = "stegano"

@@ -94,13 +94,8 @@ jobs:
   #         path: target/x86_64-unknown-linux-musl/debian/stegano-cli*.deb
 
   audit:
-    name: security audit
+    name: security audit and license check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: setup | rust
-        uses: dtolnay/rust-toolchain@stable
-      - uses: cargo-bins/cargo-binstall@main
-      - run: cargo binstall -y cargo-audit
-      - name: audit
-        run: cargo audit
+      - uses: EmbarkStudios/cargo-deny-action@v1
