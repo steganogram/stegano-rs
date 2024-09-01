@@ -6,6 +6,8 @@ use stegano_core::media::image::lsb_codec::CodecOptions;
 use stegano_core::*;
 
 fn main() -> Result<()> {
+    env_logger::init();
+
     let matches = Command::new("Stegano CLI")
         .version(crate_version!())
         .author(crate_authors!())

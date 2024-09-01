@@ -2,6 +2,7 @@ use std::path::Path;
 
 pub use hound::{WavReader, WavSpec, WavWriter};
 pub use image::RgbaImage;
+use log::error;
 
 use crate::error::SteganoError;
 use crate::media::image::CodecOptions;
@@ -48,9 +49,10 @@ impl Media {
                 let _space_to_fill = (width * height * 3) / 8;
                 let mut encoder = super::image::LsbCodec::encoder(i, opts);
 
-                encoder
-                    .write_all(msg_data.as_ref())
-                    .map_err(|_e| SteganoError::ImageEncodingError)?
+                encoder.write_all(msg_data.as_ref()).map_err(|e| {
+                    error!("Error encoding image: {e}");
+                    SteganoError::ImageEncodingError
+                })?
             }
             Media::Audio((_spec, samples)) => {
                 let mut encoder = super::audio::LsbCodec::encoder(samples);
@@ -68,7 +70,10 @@ impl Media {
 impl Persist for Media {
     fn save_as(&mut self, file: &Path) -> Result<()> {
         match self {
-            Media::Image(i) => i.save(file).map_err(|_e| SteganoError::ImageEncodingError),
+            Media::Image(i) => i.save(file).map_err(|e| {
+                error!("Error saving image to file: {:?}: {e}", file);
+                SteganoError::ImageEncodingError
+            }),
             Media::Audio((spec, samples)) => {
                 let mut writer =
                     WavWriter::create(file, *spec).map_err(|_| SteganoError::AudioCreationError)?;
