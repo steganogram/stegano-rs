@@ -75,4 +75,10 @@ pub enum SteganoError {
 
     #[error("No target file set")]
     TargetNotSet,
+
+    #[error(
+"Capacity Error: The provided input image with the dimensions {0}x{1} is too small to accept all provided data.
+                The image dimensions required are at least {2}x{3}"
+    )]
+    ImageCapacityError(usize, usize, usize, usize),
 }

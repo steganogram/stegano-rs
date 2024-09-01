@@ -1,5 +1,7 @@
 use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Command};
 
+use std::any::Any;
+use std::error::Error;
 use std::path::Path;
 use stegano_core::commands::{unveil, unveil_raw};
 use stegano_core::media::image::lsb_codec::CodecOptions;
@@ -116,9 +118,21 @@ fn main() -> Result<()> {
         )
         .get_matches();
 
-    match matches.subcommand() {
+    match handle_subcommands(matches) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
+    }
+
+    Ok(())
+}
+
+fn handle_subcommands(args: ArgMatches) -> std::result::Result<(), SteganoError> {
+    match args.subcommand() {
         Some(("hide", m)) => {
-            let mut s = SteganoCore::encoder_with_options(get_options(&matches));
+            let mut s = SteganoCore::encoder_with_options(get_options(&args));
 
             s.use_media(m.get_one::<String>("media").unwrap())?
                 .save_as(m.get_one::<String>("write_to_file").unwrap());
@@ -136,26 +150,22 @@ fn main() -> Result<()> {
                 s.add_files(&files)?;
             }
 
-            s.hide_and_save()?;
+            s.hide_and_save().map(|_| ())
         }
-        Some(("unveil", m)) => {
-            unveil(
-                Path::new(m.get_one::<String>("input_image").unwrap()),
-                Path::new(m.get_one::<String>("output_folder").unwrap()),
-                &get_options(&matches),
-                m.get_one::<String>("password"),
-            )?;
+        Some(("unveil", m)) => unveil(
+            Path::new(m.get_one::<String>("input_image").unwrap()),
+            Path::new(m.get_one::<String>("output_folder").unwrap()),
+            &get_options(&args),
+            m.get_one::<String>("password"),
+        ),
+        Some(("unveil-raw", m)) => unveil_raw(
+            Path::new(m.get_one::<String>("input_image").unwrap()),
+            Path::new(m.get_one::<String>("output_file").unwrap()),
+        ),
+        _ => {
+            panic!("Unknown subcommand")
         }
-        Some(("unveil-raw", m)) => {
-            unveil_raw(
-                Path::new(m.get_one::<String>("input_image").unwrap()),
-                Path::new(m.get_one::<String>("output_file").unwrap()),
-            )?;
-        }
-        _ => {}
     }
-
-    Ok(())
 }
 
 fn get_options(args: &ArgMatches) -> CodecOptions {

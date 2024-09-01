@@ -46,12 +46,29 @@ impl Media {
         match self {
             Media::Image(i) => {
                 let (width, height) = i.dimensions();
-                let _space_to_fill = (width * height * 3) / 8;
                 let mut encoder = super::image::LsbCodec::encoder(i, opts);
 
                 encoder.write_all(msg_data.as_ref()).map_err(|e| {
-                    error!("Error encoding image: {e}");
-                    SteganoError::ImageEncodingError
+                    error!("Error encoding image: {e}, kind {}", e.kind());
+
+                    match e.kind() {
+                        std::io::ErrorKind::WriteZero => {
+                            let capacity = width * height;
+                            // let ratio = width as f64 / height as f64;
+                            let estimated_needed_dimensions = msg_data.len() * 8 / 3;
+                            let scale = estimated_needed_dimensions as f64 / capacity as f64;
+                            let w = scale * width as f64;
+                            let h = scale * height as f64;
+
+                            SteganoError::ImageCapacityError(
+                                width as _,
+                                height as _,
+                                w as _,
+                                h as _,
+                            )
+                        }
+                        _ => SteganoError::ImageEncodingError,
+                    }
                 })?
             }
             Media::Audio((_spec, samples)) => {
