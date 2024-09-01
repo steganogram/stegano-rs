@@ -1,6 +1,6 @@
 use std::string::FromUtf8Error;
 use thiserror::Error;
-use zip_next::result::ZipError;
+use zip::result::ZipError;
 
 pub use stegano_seasmoke::SeasmokeError;
 

@@ -8,6 +8,7 @@ use std::default::Default;
 use std::fs::File;
 use std::io::{Cursor, Read};
 use std::path::Path;
+use zip::{ZipArchive, ZipWriter};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Message {
@@ -102,7 +103,7 @@ impl Message {
         let mut buf = Cursor::new(buf);
         let mut m = Message::new();
 
-        let mut zip = zip_next::ZipArchive::new(&mut buf)?;
+        let mut zip = ZipArchive::new(&mut buf)?;
         if !zip.comment().is_empty() {
             m.text = Some(String::from_utf8_lossy(zip.comment().as_bytes()).to_string())
         }
@@ -153,13 +154,13 @@ pub(crate) fn encode_message(encoder: &dyn PayloadCodec, msg: &Message) -> Resul
 
     {
         let w = Cursor::new(&mut buf);
-        let mut zip = zip_next::ZipWriter::new(w);
+        let mut zip = ZipWriter::new(w);
 
-        let options = zip_next::write::FileOptions::default()
-            .compression_method(zip_next::CompressionMethod::Deflated);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
 
         for (name, buf) in (msg.files).iter().map(|(name, buf)| (name, buf)) {
-            zip.start_file(name, options.clone())?;
+            zip.start_file(name, options)?;
 
             let mut r = Cursor::new(buf);
             std::io::copy(&mut r, &mut zip)?;
@@ -193,8 +194,8 @@ mod tests {
 
     use super::*;
     use std::io::{copy, BufReader};
-    use zip_next::write::FileOptions;
-    use zip_next::{CompressionMethod, ZipWriter};
+    use zip::write::SimpleFileOptions;
+    use zip::{CompressionMethod, ZipWriter};
 
     #[test]
     fn should_convert_into_vec_of_bytes() {
@@ -278,7 +279,7 @@ mod tests {
         let w = Cursor::new(&mut out_buf);
         let mut zip = ZipWriter::new(w);
 
-        let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+        let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
 
         zip.start_file("hello_world.png", options)
             .unwrap_or_else(|_| panic!("processing file '{}' failed.", "hello_world.png"));

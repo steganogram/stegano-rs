@@ -29,9 +29,7 @@ image = { version = "0.24", default-features = false, features = [
     "jpeg",
 ] }
 bitstream-io = { version = "1.7" }
-zip_next = { version = "0.10", default-features = false, features = [
-    "deflate",
-] }
+zip = { version = "2.2.0", default-features = false, features = ["deflate"] }
 byteorder = "1.5"
 hound = "3.5"
 thiserror = "1.0"
