@@ -11,7 +11,7 @@ pub fn unveil(
     secret_media: &Path,
     destination: &Path,
     opts: &CodecOptions,
-    password: Option<&String>,
+    password: Option<String>,
 ) -> Result<(), SteganoError> {
     let media = Media::from_file(secret_media)?;
     let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = password {
