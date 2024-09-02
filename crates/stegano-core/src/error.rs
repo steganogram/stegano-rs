@@ -81,4 +81,10 @@ pub enum SteganoError {
                 The image dimensions required are at least {2}x{3}"
     )]
     ImageCapacityError(usize, usize, usize, usize),
+
+    #[error("API Error: Missing message")]
+    MissingMessage,
+
+    #[error("API Error: Missing files")]
+    MissingFiles,
 }

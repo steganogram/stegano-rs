@@ -24,20 +24,23 @@
 //!
 //! ```rust
 //! use stegano_core::{SteganoCore, SteganoEncoder, CodecOptions};
-//! use stegano_core::commands::unveil;
+//! use stegano_core::commands::{unveil, hide};
 //! use std::path::{PathBuf, Path};
 //!
-//! SteganoCore::encoder()
-//!     .add_file("Cargo.toml").unwrap()
-//!     .use_media(&PathBuf::from("tests").join("images").join("plain").join("carrier-image.png")).unwrap()
-//!     .save_as("image-with-a-file-inside.png")
-//!     .hide_and_save().unwrap();
+//! hide(
+//!     &PathBuf::from("tests").join("images").join("plain").join("carrier-image.png"),
+//!     &PathBuf::from("target").join("tmp").join("image-with-a-file-inside.png"),
+//!     Some(vec![PathBuf::from("Cargo.toml")]),
+//!     None,
+//!     None, // or a real password
+//!     CodecOptions::default(),
+//! ).unwrap();
 //!
 //! unveil(
-//!     &Path::new("image-with-a-file-inside.png"),
+//!     &PathBuf::from("target").join("tmp").join("image-with-a-file-inside.png"),
 //!     &Path::new("."),
-//!     &CodecOptions::default(),
 //!     None,
+//!     CodecOptions::default(),
 //! ).unwrap();
 //! ```
 //!
@@ -82,6 +85,7 @@ pub use message::*;
 pub mod raw_message;
 pub use raw_message::*;
 
+pub mod api;
 pub mod commands;
 pub mod error;
 pub mod media;
@@ -339,8 +343,8 @@ mod e2e_tests {
         unveil(
             secret_media_p.as_path(),
             out_dir.path(),
-            &CodecOptions::default(),
             None,
+            CodecOptions::default(),
         )?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
@@ -373,8 +377,8 @@ mod e2e_tests {
         unveil(
             image_with_secret_path.as_path(),
             out_dir.path(),
-            &CodecOptions::default(),
             None,
+            CodecOptions::default(),
         )?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
@@ -396,6 +400,7 @@ mod e2e_tests {
         unveil_raw(
             Path::new("tests/images/with_text/hello_world.png"),
             expected_file.as_path(),
+            None,
         )?;
 
         let l = fs::metadata(raw_decoded_secret)
@@ -430,8 +435,8 @@ mod e2e_tests {
         unveil(
             image_with_secret_path.as_path(),
             out_dir.path(),
-            &CodecOptions::default(),
             None,
+            CodecOptions::default(),
         )?;
         assert_eq_file_content(
             &expected_file,
@@ -461,8 +466,8 @@ mod e2e_tests {
         unveil(
             image_with_secret_path.as_path(),
             out_dir.path(),
-            &CodecOptions::default(),
             None,
+            CodecOptions::default(),
         )?;
 
         assert_eq_file_content(
@@ -482,8 +487,8 @@ mod e2e_tests {
         unveil(
             Path::new("tests/images/with_attachment/Blah.txt.png"),
             out_dir.path(),
-            &CodecOptions::default(),
             None,
+            CodecOptions::default(),
         )?;
 
         assert_eq_file_content(
@@ -504,8 +509,8 @@ mod e2e_tests {
         unveil(
             Path::new("tests/images/with_attachment/Blah.txt__and__Blah-2.txt.png"),
             out_dir.path(),
-            &CodecOptions::default(),
             None,
+            CodecOptions::default(),
         )?;
         assert_eq_file_content(
             &decoded_secret_1,
@@ -540,8 +545,8 @@ mod e2e_tests {
         unveil(
             image_with_secret_path.as_path(),
             out_dir.path(),
-            &CodecOptions::default(),
             None,
+            CodecOptions::default(),
         )?;
 
         let decoded_secret = out_dir.path().join("Blah.txt");

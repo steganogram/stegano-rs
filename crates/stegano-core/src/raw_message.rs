@@ -5,6 +5,9 @@ pub struct RawMessage {
 }
 
 impl RawMessage {
+    // TODO: implement password support as in the `Message` struct
+    //       By passing in the `codec_factory: &dyn PayloadCodecFactory` as parameter
+    //       Then using decipher the message data but keeping here the raw data only
     pub fn of(dec: &mut dyn Read) -> Self {
         let mut m = Self::new();
         dec.read_to_end(&mut m.content)
