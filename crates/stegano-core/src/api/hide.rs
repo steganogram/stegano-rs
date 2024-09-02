@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{CodecOptions, SteganoCore, SteganoError};
 
+/// Prepares the hide API for further configuration
 pub fn prepare() -> HideApi {
     HideApi::default()
 }
@@ -17,31 +18,41 @@ pub struct HideApi {
 }
 
 impl HideApi {
+    /// Use the given codec options
     pub fn with_options(mut self, options: CodecOptions) -> Self {
         self.options = options;
         self
     }
 
+    /// This is the message that will be hidden
     pub fn with_message(mut self, message: &str) -> Self {
         self.message = Some(message.to_string());
         self
     }
 
+    /// This is the message that will be hidden
+    /// If `None` is passed, no message will be hidden
     pub fn use_message<S: AsRef<str>>(mut self, message: Option<S>) -> Self {
         self.message = message.map(|s| s.as_ref().to_string());
         self
     }
 
+    /// This are the files that will be hidden
+    /// If `None` is passed, no files will be hidden
     pub fn use_files(mut self, data_files: Option<Vec<PathBuf>>) -> Self {
         self.files = data_files;
         self
     }
 
+    /// This are the files that will be hidden
+    /// Note: this will overwrite any previously set files
     pub fn with_files(mut self, data_files: Vec<PathBuf>) -> Self {
         self.files = Some(data_files);
         self
     }
 
+    /// This is the file that will be hidden
+    /// Note: this will add the file to the list of files to hide
     pub fn with_file<A: AsRef<Path>>(mut self, data_file: A) -> Self {
         let data_file = data_file.as_ref().to_path_buf();
         if let Some(files) = &mut self.files {
@@ -52,29 +63,32 @@ impl HideApi {
         self
     }
 
+    /// This is the carrier image
     pub fn with_image<A: AsRef<Path>>(mut self, image: A) -> Self {
         self.image = Some(image.as_ref().to_path_buf());
         self
     }
 
+    /// This is the output image/audio
     pub fn with_output<A: AsRef<Path>>(mut self, output: A) -> Self {
         self.output = Some(output.as_ref().to_path_buf());
         self
     }
 
-    /// Set the password
+    /// Set the password used for encrypting all data
     pub fn with_password(mut self, password: &str) -> Self {
         self.password = Some(password.to_string());
         self
     }
 
-    /// Set the password
+    /// Set the password used for encrypting all data
     /// If `None` is passed, no password will be used, leads to no de-/encryption used
     pub fn use_password<S: AsRef<str>>(mut self, password: Option<S>) -> Self {
         self.password = password.map(|s| s.as_ref().to_string());
         self
     }
 
+    /// Execute the hiding process and blocks until it is finished
     pub fn execute(self) -> Result<(), SteganoError> {
         self.validate()?;
         let Some(image) = self.image else {
