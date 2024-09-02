@@ -178,4 +178,21 @@ mod tests {
             crate::SteganoError::TargetNotSet
         ));
     }
+
+    // create some tests for the files methods
+    #[test]
+    fn test_adding_files() {
+        let api = crate::api::hide::prepare()
+            .with_message("foo")
+            .with_image("foo");
+
+        let api = api.with_file("x").with_file("y").with_file("z");
+        assert_eq!(api.files.as_ref().unwrap().len(), 3);
+
+        let api = api.with_files(vec!["a".into(), "b".into()]);
+        assert_eq!(api.files.as_ref().unwrap().len(), 2);
+
+        let api = api.use_files(None);
+        assert!(api.files.as_ref().is_none());
+    }
 }
