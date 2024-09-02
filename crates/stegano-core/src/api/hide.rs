@@ -42,12 +42,22 @@ impl HideApi {
         self
     }
 
-    pub fn with_image(mut self, image: impl AsRef<Path>) -> Self {
+    pub fn with_file<A: AsRef<Path>>(mut self, data_file: A) -> Self {
+        let data_file = data_file.as_ref().to_path_buf();
+        if let Some(files) = &mut self.files {
+            files.push(data_file);
+        } else {
+            self.files = Some(vec![data_file]);
+        }
+        self
+    }
+
+    pub fn with_image<A: AsRef<Path>>(mut self, image: A) -> Self {
         self.image = Some(image.as_ref().to_path_buf());
         self
     }
 
-    pub fn with_output(mut self, output: impl AsRef<Path>) -> Self {
+    pub fn with_output<A: AsRef<Path>>(mut self, output: A) -> Self {
         self.output = Some(output.as_ref().to_path_buf());
         self
     }

@@ -10,38 +10,33 @@
 //! ## Hide data inside an image
 //!
 //! ```rust
-//! use stegano_core::{SteganoCore, SteganoEncoder};
-//! use std::path::PathBuf;
+//! use tempfile::tempdir;
 //!
-//! SteganoCore::encoder()
-//!     .add_file("Cargo.toml").unwrap()
-//!     .use_media(&PathBuf::from("tests").join("images").join("plain").join("carrier-image.png")).unwrap()
-//!     .save_as("image-with-a-file-inside.png")
-//!     .hide_and_save().unwrap();
+//! let temp_dir = tempdir().expect("Failed to create temporary directory");
+//!
+//! stegano_core::api::hide::prepare()
+//!     .with_file("Cargo.toml")        // will hide this file inside the image
+//!     .with_message("Hello, World!")  // will hide this message inside the image too
+//!     .with_password("SuperSecret42") // will encrypt all the data with this password
+//!     .with_image("tests/images/plain/carrier-image.png")
+//!     .with_output(temp_dir.path().join("image-with-a-file-inside.png"))
+//!     .execute()
+//!     .expect("Failed to hide file in image");
 //! ```
 //!
 //! ## Unveil data from an image
 //!
 //! ```rust
-//! use stegano_core::{SteganoCore, SteganoEncoder, CodecOptions};
-//! use stegano_core::commands::{unveil, hide};
-//! use std::path::{PathBuf, Path};
+//! use tempfile::tempdir;
 //!
-//! hide(
-//!     &PathBuf::from("tests").join("images").join("plain").join("carrier-image.png"),
-//!     &PathBuf::from("target").join("tmp").join("image-with-a-file-inside.png"),
-//!     Some(vec![PathBuf::from("Cargo.toml")]),
-//!     None,
-//!     None, // or a real password
-//!     CodecOptions::default(),
-//! ).unwrap();
+//! let temp_dir = tempdir().expect("Failed to create temporary directory");
 //!
-//! unveil(
-//!     &PathBuf::from("target").join("tmp").join("image-with-a-file-inside.png"),
-//!     &Path::new("."),
-//!     None,
-//!     CodecOptions::default(),
-//! ).unwrap();
+//! stegano_core::api::unveil::prepare()
+//!     .with_secret_image("tests/images/encrypted/hello_world.png")
+//!     .with_password("Secret42")
+//!     .with_output_folder(temp_dir.path())
+//!     .execute()
+//!     .expect("Failed to unveil message from image");
 //! ```
 //!
 //! [core]: ./struct.SteganoCore.html
