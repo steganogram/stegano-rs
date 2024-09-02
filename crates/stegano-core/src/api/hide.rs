@@ -147,4 +147,35 @@ mod tests {
             .execute()
             .expect("Failed to hide message in image");
     }
+
+    #[test]
+    fn tests_validation_message_is_set() {
+        assert!(matches!(
+            crate::api::hide::prepare().execute().unwrap_err(),
+            crate::SteganoError::MissingMessage
+        ));
+    }
+
+    #[test]
+    fn tests_validation_carrier_is_set() {
+        assert!(matches!(
+            crate::api::hide::prepare()
+                .with_message("foo")
+                .execute()
+                .unwrap_err(),
+            crate::SteganoError::CarrierNotSet
+        ));
+    }
+
+    #[test]
+    fn tests_validation_target_is_set() {
+        assert!(matches!(
+            crate::api::hide::prepare()
+                .with_message("foo")
+                .with_image("foo")
+                .execute()
+                .unwrap_err(),
+            crate::SteganoError::TargetNotSet
+        ));
+    }
 }
