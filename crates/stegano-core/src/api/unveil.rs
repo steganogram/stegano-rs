@@ -28,39 +28,44 @@ pub struct UnveilApi {
 }
 
 impl UnveilApi {
+    /// Use the given codec options
     pub fn with_options(mut self, options: CodecOptions) -> Self {
         self.options = options;
         self
     }
 
+    /// This is the secret image that contains the data to be unveiled
     pub fn with_secret_image(mut self, secret_image: impl AsRef<Path>) -> Self {
         self.secret_media = Some(secret_image.as_ref().to_path_buf());
         self
     }
 
+    /// This is the secret audio that contains the data to be unveiled
     pub fn with_secret_audio(mut self, secret_audio: impl AsRef<Path>) -> Self {
         self.secret_media = Some(secret_audio.as_ref().to_path_buf());
         self
     }
 
+    /// This is the folder where the data will be saved to
     pub fn with_output_folder(mut self, output_folder: impl AsRef<Path>) -> Self {
         self.output_folder = Some(output_folder.as_ref().to_path_buf());
         self
     }
 
-    /// Set the password
+    /// Set the password used for encrypting all data
     pub fn with_password(mut self, password: &str) -> Self {
         self.password = Some(password.to_string());
         self
     }
 
-    /// Set the password
+    /// Set the password used for encrypting all data
     /// If `None` is passed, no password will be used, leads to no de-/encryption used
     pub fn use_password<S: AsRef<str>>(mut self, password: Option<S>) -> Self {
         self.password = password.map(|s| s.as_ref().to_string());
         self
     }
 
+    /// Execute the unveil process and blocks until it is finished
     pub fn execute(self) -> Result<(), SteganoError> {
         let Some(secret_media) = self.secret_media else {
             return Err(SteganoError::CarrierNotSet);
