@@ -10,6 +10,12 @@ pub struct RawMessage {
     pub content: Vec<u8>,
 }
 
+impl AsRef<[u8]> for RawMessage {
+    fn as_ref(&self) -> &[u8] {
+        &self.content
+    }
+}
+
 impl RawMessage {
     pub fn from_raw_data(
         dec: &mut dyn Read,
@@ -43,7 +49,7 @@ mod raw_message_tests {
             .expect("Failed to create RawMessage from buffer");
 
         assert_eq!(
-            m.content,
+            m.as_ref(),
             &[b'H', b'e'],
             "RawMessage.content should contain `He` ascii bytes"
         );
