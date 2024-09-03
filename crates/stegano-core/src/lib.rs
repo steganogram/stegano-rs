@@ -81,7 +81,6 @@ pub mod raw_message;
 pub use raw_message::*;
 
 pub mod api;
-pub mod commands;
 pub mod error;
 pub mod media;
 pub mod result;
@@ -260,7 +259,7 @@ impl SteganoEncoder {
 #[cfg(test)]
 mod e2e_tests {
     use super::*;
-    use crate::commands::unveil_raw;
+    use crate::api;
     use api::unveil;
     use std::fs;
     use std::io::Read;
@@ -387,11 +386,10 @@ mod e2e_tests {
         let expected_file = out_dir.path().join("hello_world.bin");
         let raw_decoded_secret = expected_file.to_str().unwrap();
 
-        unveil_raw(
-            Path::new("tests/images/with_text/hello_world.png"),
-            expected_file.as_path(),
-            None,
-        )?;
+        api::unveil_raw::prepare()
+            .from_secret_file("tests/images/with_text/hello_world.png")
+            .into_raw_file(&expected_file)
+            .execute()?;
 
         let l = fs::metadata(raw_decoded_secret)
             .expect("Output file was not written.")

@@ -1,5 +1,6 @@
 pub mod hide;
-mod shared;
 pub mod unveil;
+pub mod unveil_raw;
 
+mod shared;
 pub use shared::*;

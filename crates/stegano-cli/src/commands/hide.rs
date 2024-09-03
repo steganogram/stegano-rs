@@ -46,13 +46,13 @@ pub struct HideArgs {
 
 impl HideArgs {
     pub fn run(self, options: CodecOptions) -> CliResult<()> {
-        stegano_core::commands::hide(
-            &self.media,
-            &self.write_to_file,
-            self.data_files,
-            self.message,
-            self.password,
-            options,
-        )
+        stegano_core::api::hide::prepare()
+            .with_options(options)
+            .with_image(self.media)
+            .with_output(self.write_to_file)
+            .using_password(self.password)
+            .use_files(self.data_files)
+            .use_message(self.message)
+            .execute()
     }
 }
