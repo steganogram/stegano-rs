@@ -10,8 +10,8 @@ pub fn unveil(
 ) -> Result<(), SteganoError> {
     crate::api::unveil::prepare()
         .with_options(options)
-        .with_secret_image(secret_media)
-        .with_output_folder(output_folder)
-        .use_password(password)
+        .from_secret_file(secret_media)
+        .into_output_folder(output_folder)
+        .using_password(password)
         .execute()
 }

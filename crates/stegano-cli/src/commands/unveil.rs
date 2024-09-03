@@ -32,6 +32,11 @@ pub struct UnveilArgs {
 
 impl UnveilArgs {
     pub fn run(self, options: CodecOptions) -> CliResult<()> {
-        stegano_core::commands::unveil(&self.media, &self.output_folder, self.password, options)
+        stegano_core::api::unveil::prepare()
+            .with_options(options)
+            .from_secret_file(self.media)
+            .into_output_folder(self.output_folder)
+            .using_password(self.password)
+            .execute()
     }
 }

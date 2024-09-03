@@ -15,6 +15,8 @@ use crate::{
     CodecOptions, Message, SteganoError,
 };
 
+use super::Password;
+
 pub fn prepare() -> UnveilApi {
     UnveilApi::default()
 }
@@ -23,7 +25,7 @@ pub fn prepare() -> UnveilApi {
 pub struct UnveilApi {
     secret_media: Option<PathBuf>,
     output_folder: Option<PathBuf>,
-    password: Option<String>,
+    password: Password,
     options: CodecOptions,
 }
 
@@ -35,7 +37,7 @@ impl UnveilApi {
     }
 
     /// This is the secret image that contains the data to be unveiled
-    pub fn with_secret_image(mut self, secret_image: impl AsRef<Path>) -> Self {
+    pub fn from_secret_file(mut self, secret_image: impl AsRef<Path>) -> Self {
         self.secret_media = Some(secret_image.as_ref().to_path_buf());
         self
     }
@@ -47,21 +49,15 @@ impl UnveilApi {
     }
 
     /// This is the folder where the data will be saved to
-    pub fn with_output_folder(mut self, output_folder: impl AsRef<Path>) -> Self {
+    pub fn into_output_folder(mut self, output_folder: impl AsRef<Path>) -> Self {
         self.output_folder = Some(output_folder.as_ref().to_path_buf());
         self
     }
 
     /// Set the password used for encrypting all data
-    pub fn with_password(mut self, password: &str) -> Self {
-        self.password = Some(password.to_string());
-        self
-    }
-
-    /// Set the password used for encrypting all data
     /// If `None` is passed, no password will be used, leads to no de-/encryption used
-    pub fn use_password<S: AsRef<str>>(mut self, password: Option<S>) -> Self {
-        self.password = password.map(|s| s.as_ref().to_string());
+    pub fn using_password<P: Into<Password>>(mut self, password: P) -> Self {
+        self.password = password.into();
         self
     }
 
@@ -75,7 +71,7 @@ impl UnveilApi {
         };
 
         let media = Media::from_file(&secret_media)?;
-        let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password {
+        let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password.as_ref() {
             Box::new(FabS::new(password))
         } else {
             Box::new(FabA)
@@ -131,9 +127,9 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
         crate::api::unveil::prepare()
-            .with_secret_image("tests/images/encrypted/hello_world.png")
-            .with_password("Secret42")
-            .with_output_folder(temp_dir.path())
+            .from_secret_file("tests/images/encrypted/hello_world.png")
+            .using_password("Secret42")
+            .into_output_folder(temp_dir.path())
             .execute()
             .expect("Failed to unveil message from image");
 

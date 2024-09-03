@@ -15,9 +15,9 @@
 //! let temp_dir = tempdir().expect("Failed to create temporary directory");
 //!
 //! stegano_core::api::hide::prepare()
-//!     .with_file("Cargo.toml")        // will hide this file inside the image
-//!     .with_message("Hello, World!")  // will hide this message inside the image too
-//!     .with_password("SuperSecret42") // will encrypt all the data with this password
+//!     .with_message("Hello, World!")   // will hide this message inside the image too
+//!     .with_file("Cargo.toml")         // will hide this file inside the image
+//!     .using_password("SuperSecret42") // will encrypt all the data with this password
 //!     .with_image("tests/images/plain/carrier-image.png")
 //!     .with_output(temp_dir.path().join("image-with-a-file-inside.png"))
 //!     .execute()
@@ -32,9 +32,9 @@
 //! let temp_dir = tempdir().expect("Failed to create temporary directory");
 //!
 //! stegano_core::api::unveil::prepare()
-//!     .with_secret_image("tests/images/encrypted/hello_world.png")
-//!     .with_password("Secret42")
-//!     .with_output_folder(temp_dir.path())
+//!     .from_secret_file("tests/images/encrypted/hello_world.png")
+//!     .using_password("Secret42")
+//!     .into_output_folder(temp_dir.path())
 //!     .execute()
 //!     .expect("Failed to unveil message from image");
 //! ```
@@ -260,7 +260,8 @@ impl SteganoEncoder {
 #[cfg(test)]
 mod e2e_tests {
     use super::*;
-    use crate::commands::{unveil, unveil_raw};
+    use crate::commands::unveil_raw;
+    use api::unveil;
     use std::fs;
     use std::io::Read;
     use tempfile::TempDir;
@@ -322,25 +323,22 @@ mod e2e_tests {
     fn should_hide_and_unveil_one_text_file_in_wav() -> Result<()> {
         let out_dir = TempDir::new()?;
         let secret_media_p = out_dir.path().join("secret.wav");
-        let secret_media_f = secret_media_p.to_str().unwrap();
 
         SteganoEncoder::new()
             .add_file("Cargo.toml")?
             .use_media("tests/audio/plain/carrier-audio.wav")?
-            .save_as(secret_media_f)
+            .save_as(&secret_media_p)
             .hide_and_save()?;
 
-        let l = fs::metadata(secret_media_p.as_path())
+        let l = fs::metadata(&secret_media_p)
             .expect("Secret media was not written.")
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        unveil(
-            secret_media_p.as_path(),
-            out_dir.path(),
-            None,
-            CodecOptions::default(),
-        )?;
+        unveil::prepare()
+            .from_secret_file(&secret_media_p)
+            .into_output_folder(&out_dir)
+            .execute()?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
         assert_eq_file_content(
@@ -356,25 +354,22 @@ mod e2e_tests {
     fn should_hide_and_unveil_one_text_file() -> Result<()> {
         let out_dir = TempDir::new()?;
         let image_with_secret_path = out_dir.path().join("secret.png");
-        let image_with_secret = image_with_secret_path.to_str().unwrap();
 
         SteganoEncoder::new()
             .add_file("Cargo.toml")?
             .use_media("tests/images/with_text/hello_world.png")?
-            .save_as(image_with_secret)
+            .save_as(&image_with_secret_path)
             .hide_and_save()?;
 
-        let l = fs::metadata(image_with_secret)
+        let l = fs::metadata(&image_with_secret_path)
             .expect("Output image was not written.")
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        unveil(
-            image_with_secret_path.as_path(),
-            out_dir.path(),
-            None,
-            CodecOptions::default(),
-        )?;
+        unveil::prepare()
+            .from_secret_file(&image_with_secret_path)
+            .into_output_folder(&out_dir)
+            .execute()?;
 
         let given_decoded_secret = out_dir.path().join("Cargo.toml");
         assert_eq_file_content(
@@ -413,26 +408,24 @@ mod e2e_tests {
         let out_dir = TempDir::new()?;
         let secret_to_hide = "tests/images/secrets/random_1666_byte.bin";
         let image_with_secret_path = out_dir.path().join("random_1666_byte.bin.png");
-        let image_with_secret = image_with_secret_path.to_str().unwrap();
         let expected_file = out_dir.path().join("random_1666_byte.bin");
 
         SteganoEncoder::new()
             .add_file(secret_to_hide)?
             .use_media(BASE_IMAGE)?
-            .save_as(image_with_secret)
+            .save_as(&image_with_secret_path)
             .hide_and_save()?;
 
-        let l = fs::metadata(image_with_secret)
+        let l = fs::metadata(&image_with_secret_path)
             .expect("Output image was not written.")
             .len();
         assert!(l > 0, "File is not supposed to be empty");
 
-        unveil(
-            image_with_secret_path.as_path(),
-            out_dir.path(),
-            None,
-            CodecOptions::default(),
-        )?;
+        unveil::prepare()
+            .from_secret_file(&image_with_secret_path)
+            .into_output_folder(&out_dir)
+            .execute()?;
+
         assert_eq_file_content(
             &expected_file,
             secret_to_hide.as_ref(),
@@ -458,12 +451,10 @@ mod e2e_tests {
 
         assert_file_not_empty(image_with_secret);
 
-        unveil(
-            image_with_secret_path.as_path(),
-            out_dir.path(),
-            None,
-            CodecOptions::default(),
-        )?;
+        unveil::prepare()
+            .from_secret_file(&image_with_secret_path)
+            .into_output_folder(&out_dir)
+            .execute()?;
 
         assert_eq_file_content(
             &expected_file,
@@ -479,12 +470,10 @@ mod e2e_tests {
         let out_dir = TempDir::new()?;
         let decoded_secret = out_dir.path().join("Blah.txt");
 
-        unveil(
-            Path::new("tests/images/with_attachment/Blah.txt.png"),
-            out_dir.path(),
-            None,
-            CodecOptions::default(),
-        )?;
+        unveil::prepare()
+            .from_secret_file("tests/images/with_attachment/Blah.txt.png")
+            .into_output_folder(&out_dir)
+            .execute()?;
 
         assert_eq_file_content(
             &decoded_secret,
@@ -501,12 +490,11 @@ mod e2e_tests {
         let decoded_secret_1 = out_dir.path().join("Blah.txt");
         let decoded_secret_2 = out_dir.path().join("Blah-2.txt");
 
-        unveil(
-            Path::new("tests/images/with_attachment/Blah.txt__and__Blah-2.txt.png"),
-            out_dir.path(),
-            None,
-            CodecOptions::default(),
-        )?;
+        unveil::prepare()
+            .from_secret_file("tests/images/with_attachment/Blah.txt__and__Blah-2.txt.png")
+            .into_output_folder(&out_dir)
+            .execute()?;
+
         assert_eq_file_content(
             &decoded_secret_1,
             "tests/images/secrets/Blah.txt".as_ref(),
@@ -526,23 +514,20 @@ mod e2e_tests {
     fn should_ensure_content_v2_compatibility_with_2_files_writing() -> Result<()> {
         let out_dir = TempDir::new()?;
         let image_with_secret_path = out_dir.path().join("Blah.txt.png");
-        let image_with_secret = image_with_secret_path.to_str().unwrap();
         let secret_to_hide = "tests/images/secrets/Blah.txt";
 
         SteganoEncoder::new()
             .use_media(BASE_IMAGE)?
             .add_file(secret_to_hide)?
-            .save_as(image_with_secret)
+            .save_as(&image_with_secret_path)
             .hide_and_save()?;
 
-        assert_file_not_empty(image_with_secret);
+        assert_file_not_empty(&image_with_secret_path);
 
-        unveil(
-            image_with_secret_path.as_path(),
-            out_dir.path(),
-            None,
-            CodecOptions::default(),
-        )?;
+        unveil::prepare()
+            .from_secret_file(&image_with_secret_path)
+            .into_output_folder(&out_dir)
+            .execute()?;
 
         let decoded_secret = out_dir.path().join("Blah.txt");
         assert_eq_file_content(
@@ -572,8 +557,8 @@ mod e2e_tests {
         assert_eq!(content1, content2, "{}", msg);
     }
 
-    fn assert_file_not_empty(image_with_secret: &str) {
-        let l = fs::metadata(image_with_secret)
+    fn assert_file_not_empty(image_with_secret: impl AsRef<Path>) {
+        let l = fs::metadata(image_with_secret.as_ref())
             .expect("image was not written.")
             .len();
         assert!(l > 0, "File is not supposed to be empty");

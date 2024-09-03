@@ -14,7 +14,7 @@ pub fn hide(
         .with_options(options)
         .with_image(media)
         .with_output(write_to_file)
-        .use_password(password)
+        .using_password(password)
         .use_files(data_files)
         .use_message(message)
         .execute()

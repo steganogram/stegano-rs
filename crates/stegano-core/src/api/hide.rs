@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 
 use crate::{CodecOptions, SteganoCore, SteganoError};
 
+use super::Password;
+
 /// Prepares the hide API for further configuration
 pub fn prepare() -> HideApi {
     HideApi::default()
@@ -13,7 +15,7 @@ pub struct HideApi {
     files: Option<Vec<PathBuf>>,
     image: Option<PathBuf>,
     output: Option<PathBuf>,
-    password: Option<String>,
+    password: Password,
     options: CodecOptions,
 }
 
@@ -76,15 +78,9 @@ impl HideApi {
     }
 
     /// Set the password used for encrypting all data
-    pub fn with_password(mut self, password: &str) -> Self {
-        self.password = Some(password.to_string());
-        self
-    }
-
-    /// Set the password used for encrypting all data
     /// If `None` is passed, no password will be used, leads to no de-/encryption used
-    pub fn use_password<S: AsRef<str>>(mut self, password: Option<S>) -> Self {
-        self.password = password.map(|s| s.as_ref().to_string());
+    pub fn using_password<P: Into<Password>>(mut self, password: P) -> Self {
+        self.password = password.into();
         self
     }
 
@@ -101,7 +97,7 @@ impl HideApi {
         let mut s = SteganoCore::encoder_with_options(self.options);
         s.use_media(&image)?.save_as(&output);
 
-        if let Some(password) = self.password {
+        if let Some(password) = self.password.as_ref() {
             s.with_encryption(password);
         }
 
@@ -142,7 +138,7 @@ mod tests {
         crate::api::hide::prepare()
             .with_message("Hello, World!")
             .with_image("tests/images/plain/carrier-image.png")
-            .with_password("SuperSecret42")
+            .using_password("SuperSecret42")
             .with_output(temp_dir.path().join("image-with-secret.png"))
             .execute()
             .expect("Failed to hide message in image");
