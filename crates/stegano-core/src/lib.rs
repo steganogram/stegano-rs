@@ -1,30 +1,32 @@
 //! # Stegano Core API
 //!
-//! There are 3 main structures exposed via [`SteganoCore`][core] that is
-//! - [`SteganoEncoder`][enc] for writing data into an image
-//! - [`SteganoDecoder`][dec] for reading data from an image
-//! - [`SteganoRawDecoder`][raw] for reading the plain raw bytes from an image
+//! There are 3 main API entry points:
+//! - `hide`
+//! - `unveil`
+//! - `unveil_raw`
 //!
-//! # Usage Examples
+//! Each of these APIs offer a builder pattern to configure the operation.
 //!
-//! ## Hide data inside an image
+//! ## Usage Examples
+//!
+//! ### Hide data inside an image
 //!
 //! ```rust
 //! use tempfile::tempdir;
 //!
 //! let temp_dir = tempdir().expect("Failed to create temporary directory");
 //!
-//! stegano_core::api::hide::prepare()
-//!     .with_message("Hello, World!")   // will hide this message inside the image too
-//!     .with_file("Cargo.toml")         // will hide this file inside the image
-//!     .using_password("SuperSecret42") // will encrypt all the data with this password
-//!     .with_image("tests/images/plain/carrier-image.png")
-//!     .with_output(temp_dir.path().join("image-with-a-file-inside.png"))
+//! stegano_core::api::hide::prepare()   // prepares the hide operation with some default options
+//!     .with_message("Hello, World!")   // this message will be hidden inside the image
+//!     .with_file("Cargo.toml")         // this file will be hidden inside the image
+//!     .using_password("SuperSecret42") // encrypts all the data with this password
+//!     .with_image("tests/images/plain/carrier-image.png")     // this is the carrier image, it's read-only
+//!     .with_output(temp_dir.path().join("image-with-a-file-inside.png"))  // this is the output image
 //!     .execute()
 //!     .expect("Failed to hide file in image");
 //! ```
 //!
-//! ## Unveil data from an image
+//! ### Unveil data from an image
 //!
 //! ```rust
 //! use tempfile::tempdir;
@@ -38,11 +40,6 @@
 //!     .execute()
 //!     .expect("Failed to unveil message from image");
 //! ```
-//!
-//! [core]: ./struct.SteganoCore.html
-//! [enc]: ./struct.SteganoEncoder.html
-//! [dec]: ./struct.SteganoDecoder.html
-//! [raw]: ./struct.SteganoRawDecoder.html
 
 #![warn(
     // clippy::unwrap_used,
