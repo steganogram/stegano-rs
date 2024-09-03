@@ -1,10 +1,10 @@
 # Stegano
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Build Status](https://github.com/steganogram/stegano-rs/workflows/Build/badge.svg)](https://github.com/steganogram/stegano-rs/actions?query=branch%3Amain+workflow%3ABuild+)
-[![dependency status](https://deps.rs/repo/github/steganogram/stegano-rs/status.svg)](https://deps.rs/repo/github/steganogram/stegano-rs)
+
+[![Build](https://github.com/steganogram/stegano-rs/actions/workflows/build.yml/badge.svg)](https://github.com/steganogram/stegano-rs/actions/workflows/build.yml)
+
 [![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
-[![LOC](https://tokei.rs/b1/github/steganogram/stegano-rs?category=code)](https://github.com/Aaronepower/tokei)
 
 A cross-platform command line tool for steganography, focused on performance and simplicity.
 
@@ -19,13 +19,10 @@ A cross-platform command line tool for steganography, focused on performance and
 - Support PNG Images and WAV Audio as carrier media
 - Supports strong encryption with [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) and [Argon2id](https://en.wikipedia.org/wiki/Argon2)
 - Hides one or many files as well as simple messages
-- Based on [least significant bit steganography][lsb]
-- Backwards compatible to [stegano for windows for image en-/decoding][stegano/win]
+- Based on [least significant bit steganography](https://youtu.be/ARDhkujNXrY?t=705)
+- Backwards compatible with [stegano for windows for image en-/decoding](https://apps.microsoft.com/detail/9p6xh5xr280v?ocid=webpdpshare)
 - Memory safe by design
 - Written in [rust](https://www.rust-lang.org/)
-
-[lsb]: https://youtu.be/ARDhkujNXrY?t=705
-[stegano/win]: https://www.stegano.org/pages/downloads-en.html
 
 ## What is steganography?
 
@@ -252,9 +249,8 @@ Also every PR is welcome, just as a note of caution: at this very time the archi
 ## License
 
 - **[GNU GPL v3 license](https://www.gnu.org/licenses/gpl-3.0)**
-- Copyright 2019 - 2021 © [Sven Assmann][2].
+- Copyright 2019 - 2024 © [Sven Kanoldt](https://www.d34dl0ck.me).
 
-[2]: https://www.d34dl0ck.me
 [3]: https://en.wikipedia.org/wiki/Steganography
 [4]: https://github.com/steganogram/stegano-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22
 [5]: https://github.com/steganogram/stegano-rs/issues/new/choose

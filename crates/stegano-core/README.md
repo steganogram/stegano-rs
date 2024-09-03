@@ -1,24 +1,23 @@
 # Stegano Core Library
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Build Status](https://travis-ci.org/steganogram/stegano-rs.svg?branch=main)](https://travis-ci.org/steganogram/stegano-rs)
+
+[![Build](https://github.com/steganogram/stegano-rs/actions/workflows/build.yml/badge.svg)](https://github.com/steganogram/stegano-rs/actions/workflows/build.yml)
+
 [![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
-[![LOC](https://tokei.rs/b1/github/steganogram/stegano-rs?category=code)](https://github.com/Aaronepower/tokei)
 
-Implementation of [least significant bit steganography][lsb] for PNG images and WAV audio files in rust-lang.
+Implementation of [least significant bit steganography](https://youtu.be/ARDhkujNXrY?t=705) for PNG images and WAV audio files in rust-lang.
 
-Aims for compatibility to the [Stegano for windows version regarding image en-/decoding][1]
-Rewrite of the core of the [original stegano.net tool][1]
-
-[lsb]: https://youtu.be/ARDhkujNXrY?t=705
+Aims for compatibility with [stegano for windows for image en-/decoding](https://apps.microsoft.com/detail/9p6xh5xr280v?ocid=webpdpshare)
+Rewrite of the core of the [original stegano.net tool](http://web.archive.org/web/20160925025634/http://svenomenal.net/devel/steganoV2)
 
 ## Caution: No stable API yet
- 
+
 Changes on all API levels and the overall architecture can happen at any time.
 
 ## How to use it
 
-[Checkout the stegano command line interface documentation][3]
+[Checkout the stegano API docs](https://docs.rs/stegano-core/latest/stegano_core/)
 
 ## Architecture
 
@@ -27,8 +26,4 @@ Changes on all API levels and the overall architecture can happen at any time.
 ## License
 
 - **[GNU GPL v3 license](https://www.gnu.org/licenses/gpl-3.0)**
-- Copyright 2019 - 2020 © [Sven Assmann][2].
-
-[1]: http://www.stegano.org
-[2]: https://www.d34dl0ck.me
-[3]: https://crates.io/crates/stegano-cli
+- Copyright 2019 - 2024 © [Sven Kanoldt](https://www.d34dl0ck.me).
