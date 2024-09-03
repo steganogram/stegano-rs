@@ -24,10 +24,16 @@ pub struct UnveilRawArgs {
 
 impl UnveilRawArgs {
     pub fn run(self, _options: stegano_core::CodecOptions) -> crate::CliResult<()> {
+        let password = if self.password.is_none() {
+            crate::cli::ask_for_password()
+        } else {
+            self.password
+        };
+
         stegano_core::api::unveil_raw::prepare()
             .from_secret_file(self.media)
             .into_raw_file(self.output_file)
-            .using_password(self.password)
+            .using_password(password)
             .execute()
     }
 }

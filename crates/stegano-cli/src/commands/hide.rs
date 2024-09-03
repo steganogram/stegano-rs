@@ -9,7 +9,7 @@ use crate::CliResult;
 #[derive(Args, Debug)]
 pub struct HideArgs {
     /// Password used to encrypt the data
-    #[arg(short, long, value_name = "password")]
+    #[arg(long, value_name = "password")]
     pub password: Option<String>,
 
     /// Media file such as PNG image or WAV audio file, used readonly.
@@ -46,11 +46,17 @@ pub struct HideArgs {
 
 impl HideArgs {
     pub fn run(self, options: CodecOptions) -> CliResult<()> {
+        let password = if self.password.is_none() {
+            crate::cli::ask_for_password_twice()
+        } else {
+            self.password
+        };
+
         stegano_core::api::hide::prepare()
             .with_options(options)
             .with_image(self.media)
             .with_output(self.write_to_file)
-            .using_password(self.password)
+            .using_password(password)
             .use_files(self.data_files)
             .use_message(self.message)
             .execute()

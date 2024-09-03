@@ -23,6 +23,9 @@ stegano-core = { path = "../stegano-core", version = "0.6.0" }
 clap = { version = "4.5", features = ["cargo", "derive", "color"] }
 env_logger = "0.11"
 log = "0.4"
+dialoguer = { version = "0.11.0", default-features = false, features = [
+    "password",
+] }
 
 [[bin]]
 name = "stegano"
