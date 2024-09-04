@@ -63,7 +63,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - uses: cargo-bins/cargo-binstall@main
       - run: cargo binstall -y cargo-llvm-cov
-      - run: cargo llvm-cov --all-features --workspace --codecov --output-path codecov.json
+      - run: cargo coverage
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v4
         with:
