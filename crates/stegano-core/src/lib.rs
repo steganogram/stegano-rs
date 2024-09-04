@@ -76,6 +76,7 @@ mod raw_message;
 mod result;
 mod universal_decoder;
 mod universal_encoder;
+
 pub(crate) mod media;
 
 pub mod api;
