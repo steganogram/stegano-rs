@@ -1,0 +1,48 @@
+[package]
+name = "stegano-cli"
+description = "Hiding data with steganography in PNG images and WAV audio files"
+version = "0.6.0"
+authors = ["Sven Kanoldt <sven@d34dl0ck.me>"]
+edition = "2021"
+license.workspace = true
+homepage = "https://www.stegano.org"
+readme = "../../README.md"
+keywords = ["steganography", "image", "hiding", "unveil", "commandline"]
+categories = [
+    "encoding",
+    "multimedia::encoding",
+    "multimedia::images",
+    "command-line-utilities",
+]
+repository = "https://github.com/steganogram/stegano-rs"
+include = ["src/**/*", "LICENSE", "README.md", "../CHANGELOG.md"]
+
+[dependencies]
+stegano-core.workspace = true
+
+clap = { version = "4.5", features = ["cargo", "derive", "color"] }
+dialoguer = { version = "0.11", default-features = false, features = [
+    "password",
+] }
+log.workspace = true
+env_logger.workspace = true
+
+[[bin]]
+name = "stegano"
+path = "src/main.rs"
+
+[package.metadata.deb]
+section = "security"
+extended-description = """## Features
+
+- Simple and easy-to-use command line tool
+- Cross-platform support (Windows, macOS and Linux)
+- Support PNG Images and WAV Audio as carrier media
+- Supports strong encryption with [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) and [Argon2id](https://en.wikipedia.org/wiki/Argon2)
+- Hides one or many files as well as simple messages
+- Based on [least significant bit steganography](https://youtu.be/ARDhkujNXrY?t=705)
+- Backwards compatible with [stegano for windows for image en-/decoding](https://apps.microsoft.com/detail/9p6xh5xr280v?ocid=webpdpshare)
+- Memory safe by design
+- Written in [rust](https://www.rust-lang.org/)
+
+"""

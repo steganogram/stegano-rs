@@ -1,0 +1,21 @@
+[package]
+name = "stegano-seasmoke"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Providing cryptography functionality as library"
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+argon2 = "0.5"
+rand = "0.8"
+chacha20poly1305 = { version = "0.10" }
+zeroize = "1.8"
+thiserror.workspace = true
+
+[build-dependencies]
+csbindgen = "1.9"
+cbindgen = "0.27"

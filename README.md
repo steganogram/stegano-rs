@@ -1,38 +1,33 @@
 # Stegano
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Build Status](https://github.com/steganogram/stegano-rs/workflows/Build/badge.svg)](https://github.com/steganogram/stegano-rs/actions?query=branch%3Amain+workflow%3ABuild+)
-[![dependency status](https://deps.rs/repo/github/steganogram/stegano-rs/status.svg)](https://deps.rs/repo/github/steganogram/stegano-rs)
+
+[![Build](https://github.com/steganogram/stegano-rs/actions/workflows/build.yml/badge.svg)](https://github.com/steganogram/stegano-rs/actions/workflows/build.yml)
+
 [![codecov](https://codecov.io/gh/steganogram/stegano-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/steganogram/stegano-rs)
-[![LOC](https://tokei.rs/b1/github/steganogram/stegano-rs?category=code)](https://github.com/Aaronepower/tokei)
 
 A cross-platform command line tool for steganography, focused on performance and simplicity.
 
 ## Demo
 
-![demo](./stegano-cli/docs/demo.gif)
+![demo](crates/stegano-cli/docs/demo.gif)
 
 ## Features
 
 - Simple and easy-to-use command line tool
 - Cross-platform support (Windows, macOS and Linux)
-- Support Media formats like:
-  - PNG Images
-  - WAV Audio
-- Hides one or many files in a carrier media
-- Hides one-liner text messages in a carrier media
-- Based on [least significant bit steganography][lsb]
-- Backwards compatible to [stegano for windows for image en-/decoding][stegano/win]
+- Support PNG Images and WAV Audio as carrier media
+- Supports strong encryption with [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) and [Argon2id](https://en.wikipedia.org/wiki/Argon2)
+- Hides one or many files as well as simple messages
+- Based on [least significant bit steganography](https://youtu.be/ARDhkujNXrY?t=705)
+- Backwards compatible with [stegano for windows for image en-/decoding](https://apps.microsoft.com/detail/9p6xh5xr280v?ocid=webpdpshare)
 - Memory safe by design
 - Written in [rust](https://www.rust-lang.org/)
 
-[lsb]: https://youtu.be/ARDhkujNXrY?t=705
-[stegano/win]: https://www.stegano.org/pages/downloads-en.html
-
 ## What is steganography?
 
-In short, the art of hiding information in something (like a book, a image, a audio or even a video). 
-[![speakerdeck](resources/plain/stegano-in-rust.jpeg)][slides]
+In short, the art of hiding information in something (like a book, a image, a audio or even a video).
+[![speakerdeck](crates/stegano-core/tests/images/plain/stegano-in-rust.jpeg)][slides]
 You can find more information [on my slides][slides] or checkout [my talk on the rust meetup munich in june, 2020][meetup].
 
 [slides]: https://speakerdeck.com/sassman/steganography-in-rust
@@ -98,7 +93,7 @@ SUBCOMMANDS:
     hide          Hides data in PNG images and WAV audio files
     unveil        Unveils data from PNG images
     unveil-raw    Unveils raw data in PNG images
-``` 
+```
 
 ## Subcommands
 
@@ -106,22 +101,18 @@ SUBCOMMANDS:
 
 ```sh
 ❯ stegano hide --help
-stegano-hide
 Hides data in PNG images and WAV audio files
 
-USAGE:
-    stegano hide [FLAGS] [OPTIONS] --data <data file> --in <media file> --out <output image file>
+Usage: stegano hide [OPTIONS] --in <media file> --out <output image file>
 
-FLAGS:
-        --x-force-content-version-2    Experimental: enforce content version 2 encoding (for backwards compatibility)
-    -h, --help                         Prints help information
-    -V, --version                      Prints version information
-
-OPTIONS:
-    -d, --data <data file>           File(s) to hide in the image
-    -i, --in <media file>            Media file such as PNG image or WAV audio file, used readonly.
-    -m, --message <text message>     A text message that will be hidden
-    -o, --out <output image file>    Final image will be stored as file
+Options:
+  -p, --password <password>      Password used to encrypt the data
+  -i, --in <media file>          Media file such as PNG image or WAV audio file, used readonly
+  -o, --out <output image file>  Final image will be stored as file
+  -d, --data <data file>         File(s) to hide in the image
+  -m, --message <text message>   A text message that will be hidden
+  -h, --help                     Print help
+  -V, --version                  Print version
 ```
 
 #### Example with am Image PNG file
@@ -180,19 +171,14 @@ Now let's assume we want to hide just a little text message in `secret-text.png`
 
 ```sh
 ❯ stegano unveil --help
-stegano-unveil
-Unveils data from PNG images
+Usage: stegano unveil [OPTIONS] --in <media source file> --out <output folder>
 
-USAGE:
-    stegano unveil --in <image source file> --out <output folder>
-
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
-OPTIONS:
-    -i, --in <image source file>    Source image that contains secret data
-    -o, --out <output folder>       Final data will be stored in that folder
+Options:
+  -p, --password <password>     Password used to encrypt the data
+  -i, --in <media source file>  Source image that contains secret data
+  -o, --out <output folder>     Final data will be stored in that folder
+  -h, --help                    Print help
+  -V, --version                 Print version
 ```
 
 #### Example unveil from an Image PNG file
@@ -246,7 +232,7 @@ Let's unveil the raw data of the `README.md` that we've hidden just above in `RE
 ❯ stegano unveil-raw --in README.png --out README.bin
 ```
 
-The file `README.bin` contains all raw binary data unfiltered decoded by the LSB decoding algorithm. 
+The file `README.bin` contains all raw binary data unfiltered decoded by the LSB decoding algorithm.
 That is for the curious people, and not so much interesting for regular usage.
 
 ## stegano on the web
@@ -257,15 +243,14 @@ That is for the curious people, and not so much interesting for regular usage.
 
 To contribute to stegano-rs you can either checkout existing issues [labeled with `good first issue`][4] or [open a new issue][5]
  and describe your problem.
-  
-Also every PR is welcome, just as a note of caution: at this very time the architecture and the API are still in flux and might change, so in any case I recommend opening an issue first to discuss a code contribution. 
+
+Also every PR is welcome, just as a note of caution: at this very time the architecture and the API are still in flux and might change, so in any case I recommend opening an issue first to discuss a code contribution.
 
 ## License
 
 - **[GNU GPL v3 license](https://www.gnu.org/licenses/gpl-3.0)**
-- Copyright 2019 - 2021 © [Sven Assmann][2].
+- Copyright 2019 - 2024 © [Sven Kanoldt](https://www.d34dl0ck.me).
 
-[2]: https://www.d34dl0ck.me
 [3]: https://en.wikipedia.org/wiki/Steganography
 [4]: https://github.com/steganogram/stegano-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22
 [5]: https://github.com/steganogram/stegano-rs/issues/new/choose
