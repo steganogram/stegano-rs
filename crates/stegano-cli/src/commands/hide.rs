@@ -47,7 +47,7 @@ pub struct HideArgs {
 impl HideArgs {
     pub fn run(self, options: CodecOptions) -> CliResult<()> {
         let password = if self.password.is_none() {
-            crate::cli::ask_for_password_twice()
+            crate::cli::ask_for_password(true)
         } else {
             self.password
         };

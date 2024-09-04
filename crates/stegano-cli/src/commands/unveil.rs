@@ -33,7 +33,7 @@ pub struct UnveilArgs {
 impl UnveilArgs {
     pub fn run(self, options: CodecOptions) -> CliResult<()> {
         let password = if self.password.is_none() {
-            crate::cli::ask_for_password()
+            crate::cli::ask_for_password(false)
         } else {
             self.password
         };

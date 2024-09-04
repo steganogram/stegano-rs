@@ -22,31 +22,18 @@ pub enum Commands {
     UnveilRaw(unveil_raw::UnveilRawArgs),
 }
 
-pub fn ask_for_password() -> Option<String> {
+pub fn ask_for_password(with_confirmation: bool) -> Option<String> {
     eprintln!("Warning: No password provided. We recommend always using encryption.");
     eprintln!("         Skip on your own risk.");
-    let password = Password::new()
-        .with_prompt("Password")
-        .allow_empty_password(true)
-        .interact()
-        .expect("Failed to read password");
 
-    if password.is_empty() {
-        None
-    } else {
-        Some(password)
+    let mut prompt = Password::new()
+        .with_prompt("Password")
+        .allow_empty_password(true);
+    if with_confirmation {
+        prompt = prompt.with_confirmation("Confirm password", "Passwords mismatching");
     }
-}
 
-pub fn ask_for_password_twice() -> Option<String> {
-    eprintln!("Warning: No password provided. We recommend always using encryption.");
-    eprintln!("         Skip on your own risk.");
-    let password = Password::new()
-        .with_prompt("Password")
-        .with_confirmation("Confirm password", "Passwords mismatching")
-        .allow_empty_password(true)
-        .interact()
-        .expect("Failed to read password");
+    let password = prompt.interact().expect("Failed to read password");
 
     if password.is_empty() {
         None
