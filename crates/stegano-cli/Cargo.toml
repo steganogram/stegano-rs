@@ -18,14 +18,14 @@ repository = "https://github.com/steganogram/stegano-rs"
 include = ["src/**/*", "LICENSE", "README.md", "../CHANGELOG.md"]
 
 [dependencies]
-#stegano-core = "0.5.0"
-stegano-core = { path = "../stegano-core", version = "0.6.0" }
+stegano-core.workspace = true
+
 clap = { version = "4.5", features = ["cargo", "derive", "color"] }
-env_logger = "0.11"
-log = "0.4"
-dialoguer = { version = "0.11.0", default-features = false, features = [
+dialoguer = { version = "0.11", default-features = false, features = [
     "password",
 ] }
+log.workspace = true
+env_logger.workspace = true
 
 [[bin]]
 name = "stegano"
