@@ -42,6 +42,7 @@ impl Message {
     }
 
     /// Creates a new message with the given files.
+    #[cfg(test)]
     pub fn from_files<P: AsRef<Path>>(files: &[P]) -> Result<Self> {
         let mut m = Self::new();
 

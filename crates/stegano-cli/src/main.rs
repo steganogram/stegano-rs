@@ -1,6 +1,5 @@
 use clap::Parser;
 
-use stegano_core::media::image::lsb_codec::CodecOptions;
 use stegano_core::*;
 
 mod cli;

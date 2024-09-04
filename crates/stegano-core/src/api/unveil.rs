@@ -6,12 +6,10 @@ use std::{
 
 use crate::{
     media::{
-        audio::wav_iter::AudioWavIter,
-        image::LsbCodec,
+        audio, image,
         payload::{FabA, FabS, PayloadCodecFactory},
-        types::Media,
+        Media,
     },
-    universal_decoder::{Decoder, OneBitUnveil},
     CodecOptions, Message, SteganoError,
 };
 
@@ -79,12 +77,11 @@ impl UnveilApi {
 
         let msg = match media {
             Media::Image(image) => {
-                let mut decoder = LsbCodec::decoder(&image, &self.options);
+                let mut decoder = image::LsbCodec::decoder(&image, &self.options);
                 Message::from_raw_data(&mut decoder, &*fab)?
             }
             Media::Audio(audio) => {
-                let mut decoder =
-                    Decoder::new(AudioWavIter::new(audio.1.into_iter()), OneBitUnveil);
+                let mut decoder = audio::LsbCodec::decoder(&audio.1);
                 Message::from_raw_data(&mut decoder, &*fab)?
             }
         };

@@ -1,88 +1,89 @@
 use std::io::{Read, Write};
-use std::path::Path;
 
-use hound::{WavReader, WavSpec};
-
-use crate::media::audio::wav_iter::{AudioWavIter, AudioWavIterMut};
-use crate::universal_decoder::{Decoder, OneBitUnveil};
-use crate::universal_encoder::{Encoder, OneBitHide};
-
-/// convenient wrapper for `WavReader::open`
-pub fn read_samples(file: &Path) -> (Vec<i16>, WavSpec) {
-    let mut reader = WavReader::open(file).expect("Cannot create reader");
-    (
-        reader.samples().map(|s| s.unwrap()).collect(),
-        reader.spec(),
-    )
-}
+use super::wav_iter::AudioWavIterMut;
+use crate::media::MediaPrimitive;
+use crate::universal_decoder::{OneBitUnveil, UniversalDecoder};
+use crate::universal_encoder::{OneBitHide, UniversalEncoder};
 
 /// Factory for decoder and encoder
 pub struct LsbCodec;
 
 impl LsbCodec {
     /// builds a LSB Audio Decoder that implements Read
-    ///
-    /// ## Example how to retrieve a decoder:
-    /// ```rust
-    /// use std::path::Path;
-    /// use hound::WavReader;
-    /// use stegano_core::media::audio::LsbCodec;
-    ///
-    /// let audio_with_secret: &Path = "tests/audio/secrets/audio-with-secrets.wav".as_ref();
-    /// let mut reader = WavReader::open(audio_with_secret).expect("Cannot create reader");
-    ///
-    /// let mut buf = vec![0; 12];
-    /// LsbCodec::decoder(&mut reader)
-    ///     .read_exact(&mut buf[..])
-    ///     .expect("Cannot read 12 bytes from codec");
-    /// let msg = String::from_utf8(buf).expect("Cannot convert result to string");
-    /// assert_eq!("Hello World!", msg);
-    /// ```
-    pub fn decoder<'i, I: Read>(input: &'i mut WavReader<I>) -> Box<dyn Read + 'i> {
-        Box::new(Decoder::new(
-            AudioWavIter::new(input.samples::<i16>().map(|s| s.unwrap())),
+    pub fn decoder<'i>(input: &'i [i16]) -> Box<dyn Read + 'i> {
+        Box::new(UniversalDecoder::new(
+            input
+                .iter()
+                .map(Clone::clone)
+                .map(MediaPrimitive::AudioSample),
             OneBitUnveil,
         ))
     }
 
-    /// ## Example how to retrieve an encoder
     /// builds a LSB Audio Encoder that implements Write
-    ///
-    /// ```rust
-    /// use std::path::Path;
-    /// use tempfile::TempDir;
-    /// use hound::{WavReader, WavWriter};
-    /// use stegano_core::media::audio::LsbCodec;
-    /// use stegano_core::media::audio::read_samples;
-    ///
-    /// let input: &Path = "tests/audio/plain/carrier-audio.wav".as_ref();
-    /// let out_dir = TempDir::new().expect("Cannot create temp dir");
-    /// let audio_with_secret = out_dir.path().join("audio-with-secret.wav");
-    ///
-    /// let (mut samples, spec) = read_samples(input);
-    /// let mut writer = WavWriter::create(audio_with_secret.as_path(), spec)
-    ///     .expect("Cannot create writer");
-    /// let secret_message = "Hello World!".as_bytes();
-    ///
-    /// LsbCodec::encoder(&mut samples)
-    ///     .write_all(&secret_message[..])
-    ///     .expect("Cannot write to codec");
-    /// ```
     pub fn encoder<'i>(input: &'i mut [i16]) -> Box<dyn Write + 'i> {
-        Box::new(Encoder::new(
+        Box::new(UniversalEncoder::new(
             AudioWavIterMut::new(input.iter_mut()),
             OneBitHide,
         ))
     }
 }
 
+#[cfg(feature = "benchmarks")]
+#[allow(unused_imports)]    // clippy false positive
+mod benchmarks {
+    use super::LsbCodec;
+    use crate::media::WavReader;
+
+    /// Benchmark for audio decoding
+    #[bench]
+    pub fn audio_decoding(b: &mut test::Bencher) {
+        let mut reader = WavReader::open("tests/audio/secrets/audio-with-secrets.wav")
+            .expect("Cannot create reader");
+        let samples = reader.samples().map(|s| s.unwrap()).collect::<Vec<i16>>();
+        let mut buf = [0; 12];
+
+        b.iter(|| {
+            LsbCodec::decoder(&samples)
+                .read_exact(&mut buf)
+                .expect("Cannot read 12 bytes from decoder");
+        })
+    }
+
+    /// Benchmark for audio encoding
+    #[bench]
+    pub fn audio_encoding(b: &mut test::Bencher) {
+        let mut reader =
+            WavReader::open("tests/audio/plain/carrier-audio.wav").expect("Cannot create reader");
+        let mut samples = reader.samples().map(|s| s.unwrap()).collect::<Vec<i16>>();
+        let secret_message = b"Hello World!";
+
+        b.iter(|| {
+            LsbCodec::encoder(&mut samples)
+                .write_all(&secret_message[..])
+                .expect("Cannot write to codec");
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
-    use hound::WavWriter;
+    use hound::{WavReader, WavSpec, WavWriter};
     use tempfile::TempDir;
 
     const SOME_WAV: &str = "tests/audio/plain/carrier-audio.wav";
+
+    /// convenient wrapper for `WavReader::open`
+    fn read_samples(file: &Path) -> (Vec<i16>, WavSpec) {
+        let mut reader = WavReader::open(file).expect("Cannot create reader");
+        (
+            reader.samples().map(|s| s.unwrap()).collect(),
+            reader.spec(),
+        )
+    }
 
     #[test]
     fn it_should_encode_and_decode_in_chunks_by_using_read_to_end() {
@@ -114,7 +115,8 @@ mod tests {
 
         let mut reader =
             WavReader::open(audio_with_secret).expect("carrier audio file was not readable");
-        let mut codec = LsbCodec::decoder(&mut reader);
+        let samples: Vec<i16> = reader.samples().map(|s| s.unwrap()).collect();
+        let mut codec = LsbCodec::decoder(&samples);
         let mut unveiled_secret = Vec::new();
         let total_read = codec
             .read_to_end(&mut unveiled_secret)

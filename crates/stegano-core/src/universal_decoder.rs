@@ -2,7 +2,7 @@ use bitstream_io::{BitWrite, BitWriter, LittleEndian};
 use enum_dispatch::enum_dispatch;
 use std::io::{BufWriter, Read, Result};
 
-use crate::MediaPrimitive;
+use crate::media::MediaPrimitive;
 
 #[enum_dispatch]
 pub enum UnveilAlgorithms {
@@ -16,7 +16,7 @@ pub trait UnveilAlgorithm {
 }
 
 /// generic stegano decoder
-pub struct Decoder<I, A>
+pub struct UniversalDecoder<I, A>
 where
     I: Iterator<Item = MediaPrimitive>,
     A: UnveilAlgorithm,
@@ -27,13 +27,13 @@ where
 }
 
 /// generic stegano decoder constructor method
-impl<I, A> Decoder<I, A>
+impl<I, A> UniversalDecoder<I, A>
 where
     I: Iterator<Item = MediaPrimitive>,
     A: UnveilAlgorithm,
 {
     pub fn new(input: I, algorithm: A) -> Self {
-        Decoder {
+        UniversalDecoder {
             input,
             algorithm,
             position: 0,
@@ -41,7 +41,7 @@ where
     }
 }
 
-impl<I, A> Read for Decoder<I, A>
+impl<I, A> Read for UniversalDecoder<I, A>
 where
     I: Iterator<Item = MediaPrimitive>,
     A: UnveilAlgorithm,

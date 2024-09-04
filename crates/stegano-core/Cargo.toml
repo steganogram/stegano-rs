@@ -54,25 +54,6 @@ features = [
     "run-cargo-fmt",
 ]
 
-[lib]
-bench = false
-
-[[bench]]
-name = "image_decoding"
-path = "benches/image/decoding.rs"
-harness = false
-
-[[bench]]
-name = "image_encoding"
-path = "benches/image/encoding.rs"
-harness = false
-
-[[bench]]
-name = "audio_decoding"
-path = "benches/audio/decoding.rs"
-harness = false
-
-[[bench]]
-name = "audio_encoding"
-path = "benches/audio/encoding.rs"
-harness = false
+[features]
+default = []
+benchmarks = []

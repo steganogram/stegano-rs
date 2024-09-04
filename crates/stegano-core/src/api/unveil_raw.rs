@@ -9,9 +9,9 @@ use crate::{
         audio::wav_iter::AudioWavIter,
         image::LsbCodec,
         payload::{FabA, FabS, PayloadCodecFactory},
-        types::Media,
+        Media,
     },
-    universal_decoder::{Decoder, OneBitUnveil},
+    universal_decoder::{OneBitUnveil, UniversalDecoder},
     CodecOptions, RawMessage, SteganoError,
 };
 
@@ -84,7 +84,7 @@ impl UnveilRawApi {
             }
             Media::Audio(audio) => {
                 let mut decoder =
-                    Decoder::new(AudioWavIter::new(audio.1.into_iter()), OneBitUnveil);
+                    UniversalDecoder::new(AudioWavIter::new(audio.1.into_iter()), OneBitUnveil);
                 RawMessage::from_raw_data(&mut decoder, &*fab)?
             }
         };

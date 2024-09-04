@@ -1,32 +1,10 @@
-use crate::media::image::iterators::{ColorIter, Transpose};
-use crate::media::image::lsb_codec::CodecOptions;
-use crate::MediaPrimitive;
+use super::iterators::{ColorIter, Transpose};
+use super::lsb_codec::CodecOptions;
+use crate::media::MediaPrimitive;
+
 use image::{Rgba, RgbaImage};
 
 /// stegano source for image files, based on `RgbaImage` by `image` crate
-///
-/// ## Example of usage
-/// ```rust
-/// use std::path::Path;
-/// use std::io::Read;
-/// use image::{RgbaImage};
-/// use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
-/// use stegano_core::media::image::decoder::ImageRgbaColor;
-///
-/// // create a `RgbaImage` from a png image file
-/// let mut image = image::open("tests/images/with_text/hello_world.png")
-///     .expect("Cannot open secret image file")
-///     .to_rgba8();
-/// let mut secret = vec![0; 13];
-///
-/// // create a `Decoder` based on an `ImagePngSource` based on the `RgbaImage`
-/// Decoder::new(ImageRgbaColor::new(&mut image), OneBitUnveil)
-///     .read_exact(&mut secret)
-///     .expect("Cannot read 13 bytes from decoder");
-///
-/// let msg = String::from_utf8(secret).expect("Cannot convert result to string");
-/// assert_eq!("\u{1}Hello World!", msg);
-/// ```
 pub struct ImageRgbaColor<'i> {
     i: usize,
     steps: usize,
@@ -35,6 +13,7 @@ pub struct ImageRgbaColor<'i> {
 
 impl<'i> ImageRgbaColor<'i> {
     /// constructor for a given `RgbaImage` that lives somewhere
+    #[cfg(test)]
     pub fn new(input: &'i RgbaImage) -> Self {
         Self::new_with_options(input, &CodecOptions::default())
     }
@@ -73,6 +52,10 @@ impl<'i> Iterator for ImageRgbaColor<'i> {
 
 #[cfg(test)]
 mod decoder_tests {
+    use std::io::Read;
+
+    use crate::universal_decoder::{OneBitUnveil, UniversalDecoder};
+
     use super::*;
 
     const HELLO_WORLD_PNG: &str = "tests/images/with_text/hello_world.png";
@@ -104,5 +87,22 @@ mod decoder_tests {
         }
         // ensure iterator is exhausted
         assert!(media_primitive_iter.next().is_none());
+    }
+
+    #[test]
+    fn it() {
+        // create a `RgbaImage` from a png image file
+        let image = image::open("tests/images/with_text/hello_world.png")
+            .expect("Cannot open secret image file")
+            .to_rgba8();
+        let mut secret = vec![0; 13];
+
+        // create a `Decoder` based on an `ImagePngSource` based on the `RgbaImage`
+        UniversalDecoder::new(ImageRgbaColor::new(&image), OneBitUnveil)
+            .read_exact(&mut secret)
+            .expect("Cannot read 13 bytes from decoder");
+
+        let msg = String::from_utf8(secret).expect("Cannot convert result to string");
+        assert_eq!("\u{1}Hello World!", msg);
     }
 }

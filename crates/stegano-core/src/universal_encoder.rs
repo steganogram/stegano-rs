@@ -2,13 +2,7 @@ use bitstream_io::{BitRead, BitReader, LittleEndian};
 use enum_dispatch::enum_dispatch;
 use std::io::{Cursor, Result, Write};
 
-use crate::{MediaPrimitive, MediaPrimitiveMut};
-
-/// abstracting write back of a carrier item
-pub trait WriteCarrierItem {
-    fn write_carrier_item(&mut self, item: &MediaPrimitive) -> Result<usize>;
-    fn flush(&mut self) -> Result<()>;
-}
+use crate::media::MediaPrimitiveMut;
 
 #[enum_dispatch]
 pub enum HideAlgorithms {
@@ -24,7 +18,7 @@ pub trait HideAlgorithm {
 }
 
 /// generic stegano encoder
-pub struct Encoder<'c, C, A>
+pub struct UniversalEncoder<'c, C, A>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
     A: HideAlgorithm,
@@ -33,17 +27,17 @@ where
     pub algorithm: A,
 }
 
-impl<'c, C, A> Encoder<'c, C, A>
+impl<'c, C, A> UniversalEncoder<'c, C, A>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
     A: HideAlgorithm,
 {
     pub fn new(carrier: C, algorithm: A) -> Self {
-        Encoder { carrier, algorithm }
+        UniversalEncoder { carrier, algorithm }
     }
 }
 
-impl<'c, C, A> Write for Encoder<'c, C, A>
+impl<'c, C, A> Write for UniversalEncoder<'c, C, A>
 where
     C: Iterator<Item = MediaPrimitiveMut<'c>>,
     A: HideAlgorithm,
@@ -81,7 +75,6 @@ impl HideAlgorithm for OneBitHide {
                 MediaPrimitiveMut::AudioSample(b) => {
                     *b = ((*b) & (i16::MAX - 1)) | if *bit { 1 } else { 0 }
                 }
-                _ => {}
             }
         }
     }
@@ -101,7 +94,6 @@ impl HideAlgorithm for OneBitInLowFrequencyHide {
                 MediaPrimitiveMut::AudioSample(b) => {
                     *b = ((*b) & (0b11111111 << 8)) | if *bit { 0b000000011111111 } else { 0 }
                 }
-                _ => {}
             }
         }
     }

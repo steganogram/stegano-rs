@@ -1,35 +1,10 @@
 use image::{Rgba, RgbaImage};
 
-use crate::media::image::iterators::{ColorIterMut, TransposeMut};
-use crate::media::image::lsb_codec::CodecOptions;
-use crate::MediaPrimitiveMut;
+use super::iterators::{ColorIterMut, TransposeMut};
+use super::lsb_codec::CodecOptions;
+use crate::media::MediaPrimitiveMut;
 
 /// stegano source for image files, based on `RgbaImage` by `image` crate
-///
-/// ## Example of usage
-/// ```rust
-/// use std::path::Path;
-/// use std::io::{Read, Write};
-/// use image::{RgbaImage};
-/// use stegano_core::universal_decoder::{Decoder, OneBitUnveil};
-/// use stegano_core::media::image::encoder::ImageRgbaColorMut;
-/// use stegano_core::universal_encoder::{Encoder, OneBitHide};
-///
-/// // create a `RgbaImage` from a png image file
-/// let image_original = image::open("tests/images/plain/carrier-image.png")
-///     .expect("Cannot open carrier image")
-///     .to_rgba8();
-/// let mut image = image::open("tests/images/plain/carrier-image.png")
-///     .expect("Cannot open carrier image")
-///     .to_rgba8();
-/// let secret_message = "Hello World!".as_bytes();
-/// {
-///     let mut encoder = Encoder::new(ImageRgbaColorMut::new(&mut image).into_iter(), OneBitHide);
-///     encoder.write_all(secret_message)
-///         .expect("Cannot write secret message");
-/// }
-/// assert_ne!(image_original.get_pixel(0, 0), image.get_pixel(0, 0));
-/// ```
 pub struct ImageRgbaColorMut<'a> {
     i: usize,
     steps: usize,
@@ -38,6 +13,7 @@ pub struct ImageRgbaColorMut<'a> {
 
 impl<'a> ImageRgbaColorMut<'a> {
     /// constructor for a given `RgbaImage` that lives somewhere
+    #[cfg(test)]
     pub fn new(input: &'a mut RgbaImage) -> Self {
         Self::new_with_options(input, &CodecOptions::default())
     }

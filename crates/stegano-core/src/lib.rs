@@ -1,3 +1,29 @@
+#![cfg_attr(feature = "benchmarks", feature(test))]
+#![warn(
+// clippy::unwrap_used,
+// clippy::expect_used,
+// clippy::cargo_common_metadata,
+// clippy::branches_sharing_code,
+// clippy::cast_lossless,
+// clippy::cognitive_complexity,
+// clippy::get_unwrap,
+// clippy::if_then_some_else_none,
+// clippy::inefficient_to_string,
+// clippy::match_bool,
+// clippy::missing_const_for_fn,
+// clippy::missing_panics_doc,
+// clippy::option_if_let_else,
+// clippy::redundant_closure,
+    clippy::redundant_else,
+// clippy::redundant_pub_crate,
+// clippy::ref_binding_to_reference,
+// clippy::ref_option_ref,
+// clippy::same_functions_in_if_condition,
+// clippy::unneeded_field_pattern,
+// clippy::unnested_or_patterns,
+// clippy::use_self,
+)]
+
 //! # Stegano Core API
 //!
 //! There are 3 main API entry points:
@@ -41,114 +67,38 @@
 //!     .expect("Failed to unveil message from image");
 //! ```
 
-#![warn(
-    // clippy::unwrap_used,
-    // clippy::expect_used,
-// clippy::cargo_common_metadata,
-// clippy::branches_sharing_code,
-// clippy::cast_lossless,
-// clippy::cognitive_complexity,
-// clippy::get_unwrap,
-// clippy::if_then_some_else_none,
-// clippy::inefficient_to_string,
-// clippy::match_bool,
-// clippy::missing_const_for_fn,
-// clippy::missing_panics_doc,
-// clippy::option_if_let_else,
-// clippy::redundant_closure,
-    clippy::redundant_else,
-// clippy::redundant_pub_crate,
-// clippy::ref_binding_to_reference,
-// clippy::ref_option_ref,
-// clippy::same_functions_in_if_condition,
-// clippy::unneeded_field_pattern,
-// clippy::unnested_or_patterns,
-// clippy::use_self,
-)]
+#[cfg(feature = "benchmarks")]
+extern crate test;
 
-pub mod message;
-use media::payload::{FabA, FabS, PayloadCodecFactory};
-use media::types::Media;
-pub use message::*;
+mod error;
+mod message;
+mod raw_message;
+mod result;
+mod universal_decoder;
+mod universal_encoder;
 
-pub mod raw_message;
-pub use raw_message::*;
+pub(crate) mod media;
 
 pub mod api;
-pub mod error;
-pub mod media;
-pub mod result;
-pub mod universal_decoder;
-pub mod universal_encoder;
 
 use std::default::Default;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
+use media::Persist;
+
 pub use crate::error::SteganoError;
 pub use crate::media::image::CodecOptions;
 pub use crate::result::Result;
 
-/// wrap the low level data types that carries information
-#[derive(Debug, Eq, PartialEq)]
-pub enum MediaPrimitive {
-    ImageColorChannel(u8),
-    AudioSample(i16),
-}
-
-impl From<u8> for MediaPrimitive {
-    fn from(value: u8) -> Self {
-        MediaPrimitive::ImageColorChannel(value)
-    }
-}
-
-/// mutable primitive for storing stegano data
-#[derive(Debug, Eq, PartialEq)]
-pub enum MediaPrimitiveMut<'a> {
-    ImageColorChannel(&'a mut u8),
-    AudioSample(&'a mut i16),
-    None,
-}
-
-pub trait HideBit {
-    fn hide_bit(self, bit: bool) -> Result<()>;
-}
-
-impl HideBit for MediaPrimitiveMut<'_> {
-    fn hide_bit(self, bit: bool) -> Result<()> {
-        match self {
-            MediaPrimitiveMut::ImageColorChannel(c) => {
-                *c = (*c & (u8::MAX - 1)) | if bit { 1 } else { 0 };
-            }
-            MediaPrimitiveMut::AudioSample(s) => {
-                *s = (*s & (i16::MAX - 1)) | if bit { 1 } else { 0 };
-            }
-            MediaPrimitiveMut::None => {}
-        }
-        Ok(())
-    }
-}
-
-pub struct SteganoCore;
-
-impl SteganoCore {
-    pub fn encoder() -> SteganoEncoder {
-        SteganoEncoder::with_options(CodecOptions::default())
-    }
-
-    pub fn encoder_with_options(opts: CodecOptions) -> SteganoEncoder {
-        SteganoEncoder::with_options(opts)
-    }
-}
-
-pub trait Persist {
-    fn save_as(&mut self, _: &Path) -> Result<()>;
-}
+use crate::media::payload::{FabA, FabS, PayloadCodecFactory};
+use crate::media::Media;
+use crate::message::Message;
+use crate::raw_message::RawMessage;
 
 pub struct SteganoEncoder {
     options: CodecOptions,
     codec_factory: Box<dyn PayloadCodecFactory>,
-    // todo: change to Path
     target: Option<PathBuf>,
     carrier: Option<Media>,
     message: Message,
@@ -166,6 +116,7 @@ impl Default for SteganoEncoder {
     }
 }
 
+// todo: check if this layer of abstraction is necessary, the api::hide module could be the entry point
 impl SteganoEncoder {
     pub fn new() -> Self {
         Self::default()
@@ -255,6 +206,7 @@ mod e2e_tests {
     use super::*;
     use crate::api;
     use api::unveil;
+    use media::MediaPrimitiveMut;
     use std::fs;
     use std::io::Read;
     use tempfile::TempDir;

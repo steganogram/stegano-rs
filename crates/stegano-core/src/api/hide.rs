@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::{CodecOptions, SteganoCore, SteganoError};
+use crate::{CodecOptions, SteganoEncoder, SteganoError};
 
 use super::Password;
 
@@ -94,7 +94,7 @@ impl HideApi {
             return Err(SteganoError::TargetNotSet);
         };
 
-        let mut s = SteganoCore::encoder_with_options(self.options);
+        let mut s = SteganoEncoder::with_options(self.options);
         s.use_media(&image)?.save_as(&output);
 
         if let Some(password) = self.password.as_ref() {

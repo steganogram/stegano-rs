@@ -77,6 +77,17 @@ jobs:
           name: code-coverage-report
           path: codecov.json
 
+  benchmark:
+    name: benchmark
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup | rust
+        uses: dtolnay/rust-toolchain@nightly
+      - name: run benchmarks
+        run: cargo +nightly benchmarks
+
   # pkg-deb:
   #   name: binaray package .deb
   #   needs: check

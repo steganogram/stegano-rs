@@ -7,7 +7,8 @@ use log::error;
 use crate::error::SteganoError;
 use crate::media::image::CodecOptions;
 use crate::result::Result;
-use crate::Persist;
+
+use super::Persist;
 
 pub type WavAudio = (WavSpec, Vec<i16>);
 
