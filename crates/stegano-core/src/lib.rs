@@ -66,9 +66,6 @@
 // clippy::use_self,
 )]
 
-pub mod bit_iterator;
-pub use bit_iterator::BitIterator;
-
 pub mod message;
 use media::payload::{FabA, FabS, PayloadCodecFactory};
 use media::types::Media;
