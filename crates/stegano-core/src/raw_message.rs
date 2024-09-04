@@ -50,7 +50,7 @@ mod raw_message_tests {
 
         assert_eq!(
             m.as_ref(),
-            &[b'H', b'e'],
+            b"He",
             "RawMessage.content should contain `He` ascii bytes"
         );
     }

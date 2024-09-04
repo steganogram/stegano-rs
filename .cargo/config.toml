@@ -1,3 +1,6 @@
+
+
 [alias]
+lint = "clippy --all-targets"
 benchmarks = "bench --features benchmarks --locked"
 ntest = "nextest run --locked"

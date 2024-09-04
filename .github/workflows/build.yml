@@ -24,7 +24,7 @@ jobs:
         version: ["ubuntu-latest"]
         cargo-cmd:
           - fmt --all -- --check
-          - clippy --all-targets --all-features -- -D warnings
+          - lint
     runs-on: ${{ matrix.version }}
     steps:
       - uses: actions/checkout@v4
