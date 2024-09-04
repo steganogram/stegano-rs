@@ -76,23 +76,20 @@ mod raw_message;
 mod result;
 mod universal_decoder;
 mod universal_encoder;
-
 pub(crate) mod media;
 
 pub mod api;
-
-use std::default::Default;
-use std::fs::File;
-use std::path::{Path, PathBuf};
-
-use media::Persist;
 
 pub use crate::error::SteganoError;
 pub use crate::media::image::CodecOptions;
 pub use crate::result::Result;
 
+use std::default::Default;
+use std::fs::File;
+use std::path::{Path, PathBuf};
+
 use crate::media::payload::{FabA, FabS, PayloadCodecFactory};
-use crate::media::Media;
+use crate::media::{Media, Persist};
 use crate::message::Message;
 use crate::raw_message::RawMessage;
 
