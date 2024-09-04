@@ -89,7 +89,7 @@ impl LsbCodec {
 }
 
 #[cfg(feature = "benchmarks")]
-#[allow(unused_imports)]    // clippy false positive, on nightly when `cargo bench` is called
+#[allow(unused_imports)] // clippy false positive, on nightly when `cargo bench` is called
 mod benchmarks {
     use super::LsbCodec;
     use super::*;
