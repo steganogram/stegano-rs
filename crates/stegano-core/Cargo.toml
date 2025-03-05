@@ -27,7 +27,7 @@ image = { version = "0.25", default-features = false, features = [
     "png",
     "jpeg",
 ] }
-bitstream-io = { version = "2.5" }
+bitstream-io = { version = "2.6" }
 zip = { version = "2.2", default-features = false, features = ["deflate"] }
 byteorder = "1.5"
 hound = "3.5"
@@ -41,7 +41,7 @@ stegano-seasmoke.workspace = true
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
-tempfile = "3.12"
+tempfile = "3.14"
 coverage-helper = "0.2"
 
 [dev-dependencies.cargo-husky]
