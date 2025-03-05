@@ -341,9 +341,9 @@ dependencies = [
 
 [[package]]
 name = "coverage-helper"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8174551717bb3d1e75935e38d33f5f8ee8f680dd8dd42c90851e6c644faad14e"
+checksum = "4be1356c5ea94de25e41a9eec7748ab6a0eb011839573eb527e6f4acaa2fcd71"
 
 [[package]]
 name = "cpufeatures"
