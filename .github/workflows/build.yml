@@ -2,80 +2,23 @@ name: Build
 on:
   push:
     branches: ["*"]
-    paths-ignore:
-      - "**/docs/**"
-      - "**.md"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/docs/**"
-      - "**.md"
+  workflow_dispatch:  
   workflow_call:
     secrets:
       CODECOV_TOKEN:
         required: true
 
 jobs:
-  lint:
-    name: lint
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["ubuntu-latest"]
-        cargo-cmd:
-          - fmt --all -- --check
-          - lint
-    runs-on: ${{ matrix.version }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: setup | rust
-        uses: dtolnay/rust-toolchain@stable
-      - run: cargo ${{ matrix['cargo-cmd'] }}
-
-  tests:
-    name: test
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["macos-latest", "ubuntu-latest", "windows-latest"]
-        rust: [nightly, stable]
-    runs-on: ${{ matrix.version }}
-    continue-on-error: ${{ matrix.rust == 'nightly' }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: setup | rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ matrix.rust }}
-      - name: cargo test
-        run: cargo test --all --locked
+  build:
+    uses: steganogrom/.github/.github/workflows/build.yml@main
 
   coverage:
-    name: coverage report
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["ubuntu-latest"]
-    runs-on: ${{ matrix.version }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: setup | rust
-        uses: dtolnay/rust-toolchain@stable
-      - uses: cargo-bins/cargo-binstall@main
-      - run: cargo binstall -y cargo-llvm-cov
-      - run: cargo coverage
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v4
-        with:
-          file: codecov.json
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-coverage-report
-          path: codecov.json
+    name: code coverage
+    uses: steganogrom/.github/.github/workflows/coverage.yml@main
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   benchmark:
     name: benchmark
@@ -84,7 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: setup | rust
-        uses: dtolnay/rust-toolchain@nightly
+        uses: steganogrom/.github/.github/actions/rust-toolchain@main
+        with:
+          channel: nightly        
       - name: run benchmarks
         run: cargo +nightly benchmarks
 
@@ -103,10 +48,3 @@ jobs:
   #       with:
   #         name: stegano-cli-amd64-static.deb
   #         path: target/x86_64-unknown-linux-musl/debian/stegano-cli*.deb
-
-  audit:
-    name: security audit and license check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: EmbarkStudios/cargo-deny-action@v1
