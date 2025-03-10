@@ -12,11 +12,11 @@ on:
 
 jobs:
   build:
-    uses: steganogrom/.github/.github/workflows/build.yml@main
+    uses: steganogram/.github/.github/workflows/build.yml@main
 
   coverage:
     name: code coverage
-    uses: steganogrom/.github/.github/workflows/coverage.yml@main
+    uses: steganogram/.github/.github/workflows/coverage.yml@main
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: setup | rust
-        uses: steganogrom/.github/.github/actions/rust-toolchain@main
+        uses: steganogram/.github/.github/actions/rust-toolchain@main
         with:
           channel: nightly        
       - name: run benchmarks
