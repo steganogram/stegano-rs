@@ -189,8 +189,6 @@ pub(crate) fn decode_message(decoder: &dyn PayloadCodec, data: &mut dyn Read) ->
 
 #[cfg(test)]
 mod tests {
-    use coverage_helper::test;
-
     use crate::media::payload::{legacy, FabA, HasFeature, TEXT_ONLY};
 
     use super::*;
