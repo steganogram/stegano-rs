@@ -32,7 +32,7 @@ impl<'i> ImageRgbaColor<'i> {
 }
 
 /// iterates over the image and returns single color channels of each pixel wrapped into a `CarrierItem`
-impl<'i> Iterator for ImageRgbaColor<'i> {
+impl Iterator for ImageRgbaColor<'_> {
     type Item = MediaPrimitive;
 
     #[inline(always)]
