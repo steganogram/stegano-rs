@@ -71,9 +71,9 @@ impl Message {
         let file = file
             .as_ref()
             .file_name()
-            .ok_or_else(|| SteganoError::InvalidFileName)?
+            .ok_or(SteganoError::InvalidFileName)?
             .to_str()
-            .ok_or_else(|| SteganoError::InvalidFileName)?;
+            .ok_or(SteganoError::InvalidFileName)?;
 
         self.files.push((file.to_owned(), data));
 
@@ -189,8 +189,6 @@ pub(crate) fn decode_message(decoder: &dyn PayloadCodec, data: &mut dyn Read) ->
 
 #[cfg(test)]
 mod tests {
-    use coverage_helper::test;
-
     use crate::media::payload::{legacy, FabA, HasFeature, TEXT_ONLY};
 
     use super::*;

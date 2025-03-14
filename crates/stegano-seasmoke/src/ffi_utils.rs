@@ -1,4 +1,4 @@
-/// a wrapper for Vec<> taken from https://github.com/Cysharp/csbindgen
+/// a wrapper for `Vec<>` taken from <https://github.com/Cysharp/csbindgen>
 #[repr(C)]
 pub struct ByteBuffer {
     pub(crate) ptr: *mut u8,
