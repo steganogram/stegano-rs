@@ -28,7 +28,7 @@ image = { version = "0.25", default-features = false, features = [
     "jpeg",
 ] }
 bitstream-io = { version = "2.6" }
-zip = { version = "2.2", default-features = false, features = ["deflate"] }
+zip = { version = "2.3", default-features = false, features = ["deflate"] }
 byteorder = "1.5"
 hound = "3.5"
 thiserror.workspace = true
