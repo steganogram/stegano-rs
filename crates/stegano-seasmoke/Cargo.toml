@@ -18,4 +18,4 @@ thiserror.workspace = true
 
 [build-dependencies]
 csbindgen = "1.9"
-cbindgen = "0.27"
+cbindgen = "0.29"
