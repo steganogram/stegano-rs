@@ -27,7 +27,7 @@ image = { version = "0.25", default-features = false, features = [
     "png",
     "jpeg",
 ] }
-bitstream-io = { version = "4.1" }
+bitstream-io = { version = "4.5" }
 zip = { version = "4.0", default-features = false, features = ["deflate"] }
 byteorder = "1.5"
 hound = "3.5"
