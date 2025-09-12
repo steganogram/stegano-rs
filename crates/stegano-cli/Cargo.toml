@@ -1,7 +1,7 @@
 [package]
 name = "stegano-cli"
 description = "Hiding data with steganography in PNG images and WAV audio files"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Sven Kanoldt <sven@d34dl0ck.me>"]
 edition = "2021"
 license.workspace = true
