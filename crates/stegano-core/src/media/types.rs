@@ -89,7 +89,7 @@ impl Persist for Media {
     fn save_as(&mut self, file: &Path) -> Result<()> {
         match self {
             Media::Image(i) => i.save(file).map_err(|e| {
-                error!("Error saving image to file: {:?}: {e}", file);
+                error!("Error saving image to file: {file:?}: {e}");
                 SteganoError::ImageEncodingError
             }),
             Media::Audio((spec, samples)) => {
