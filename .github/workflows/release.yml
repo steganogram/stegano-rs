@@ -16,7 +16,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   publish:
-    name: post / cargo publish
+    name: cargo publish
     needs: doing-a-build
     runs-on: ubuntu-latest
     steps:
@@ -24,15 +24,17 @@ jobs:
       - name: setup | rust
         uses: dtolnay/rust-toolchain@stable
       - run: cargo publish --manifest-path crates/stegano-core/Cargo.toml
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       # without this sleep there was an error that the just published version is not available for stegano-cli as dependency
       - name: waiting for crates.io to get ready with stegano-core latest version
         run: sleep 60
-      - env:
+      - run: cargo publish --manifest-path crates/stegano-cli/Cargo.toml
+        env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish --manifest-path crates/stegano-cli/Cargo.toml
 
   release:
-    name: post / github release
+    name: github release
     needs: publish
     runs-on: ubuntu-latest
     steps:
