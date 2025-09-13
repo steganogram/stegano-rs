@@ -75,22 +75,23 @@ $HOME/.cargo/bin/stegano
 
 ```sh
 ❯ stegano --help
-Stegano CLI 0.4.0
-Sven Assmann <sven.assmann.it@gmail.com>
-Hiding secret data with steganography in PNG images and WAV audio files
+Hiding data with steganography in PNG images and WAV audio files
 
-USAGE:
-    stegano [SUBCOMMAND]
+Usage: stegano [OPTIONS] <COMMAND>
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+Commands:
+  hide        Hides data in PNG images and WAV audio files
+  unveil
+  unveil-raw
+  help        Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    help          Prints this message or the help of the given subcommand(s)
-    hide          Hides data in PNG images and WAV audio files
-    unveil        Unveils data from PNG images
-    unveil-raw    Unveils raw data in PNG images
+Options:
+      --x-color-step-increment <COLOR_STEP_INCREMENT>
+          Experimental: image color channel step increment [default: 1]
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 ```
 
 ## Subcommands
@@ -118,7 +119,10 @@ Options:
 Let's illustrate how to hide a file like `README.md`, inside an image `Base.png` and save it as `README.png`:
 
 ```sh
-❯ stegano hide --data README.md --in resources/plain/carrier-iamge.png --out README.png
+❯ stegano hide \
+    --data README.md \
+    --in crates/stegano-core/tests/images/plain/carrier-image.png \
+    --out README.png
 ```
 
 The final result is then contained in the image `README.png`.
@@ -129,18 +133,9 @@ here I'm using the shorthand parameters (--data, -d), (--in, -i), (--out, -o)
 
 ```sh
 ❯ stegano hide \
-  -i resources/plain/carrier-image.png \
+  -i crates/stegano-core/tests/images/plain/carrier-image.png \
   -d resources/secrets/Blah.txt \
      resources/secrets/Blah-2.txt \
-  -o secret.png
-```
-
-*Hidden Feature* you can use a `.jpg` for input and save it as `.png`
-
-```sh
-❯ stegano hide \
-  -i resources/NoSecret.jpg \
-  -d resources/secrets/Blah.txt \
   -o secret.png
 ```
 
@@ -148,7 +143,7 @@ here I'm using the shorthand parameters (--data, -d), (--in, -i), (--out, -o)
 
 ```sh
 ❯ stegano hide \
-  -i resources/plain/carrier-audio.wav \
+  -i crates/stegano-core/tests/audio/plain/carrier-audio.wav \
   -d resources/secrets/Blah.txt \
      resources/secrets/Blah-2.txt \
   -o secret.wav
@@ -160,7 +155,7 @@ Now let's assume we want to hide just a little text message in `secret-text.png`
 
 ```sh
 ❯ stegano hide \
-  -i resources/NoSecrets.jpg \
+  -i crates/stegano-core/tests/images/plain/carrier-image.png \
   -m 'This is a super secret message' \
   -o secret-text.png
 ```
@@ -207,19 +202,14 @@ This is a super secret message
 
 ```sh
 ❯ stegano unveil-raw --help
-stegano-unveil-raw
-Unveils raw data in PNG images
+Usage: stegano unveil-raw [OPTIONS] --in <media source file> --out <output file>
 
-USAGE:
-    stegano unveil-raw --in <image source file> --out <output file>
-
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
-OPTIONS:
-    -i, --in <image source file>    Source image that contains secret data
-    -o, --out <output file>         Raw data will be stored as binary file
+Options:
+  -p, --password <password>     Password used to encrypt the data
+  -i, --in <media source file>  Source media that contains secret data
+  -o, --out <output file>       Raw data will be stored as binary file
+  -h, --help                    Print help
+  -V, --version                 Print version
 ```
 
 #### Example unveil raw data

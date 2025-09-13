@@ -4,6 +4,7 @@ use std::io::{BufWriter, Read, Result};
 
 use crate::media::MediaPrimitive;
 
+#[allow(unused)]
 #[enum_dispatch]
 pub enum UnveilAlgorithms {
     OneBitUnveil,

@@ -1,7 +1,7 @@
 [package]
 name = "stegano-cli"
 description = "Hiding data with steganography in PNG images and WAV audio files"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Sven Kanoldt <sven@d34dl0ck.me>"]
 edition = "2021"
 license.workspace = true
@@ -21,7 +21,7 @@ include = ["src/**/*", "LICENSE", "README.md", "../CHANGELOG.md"]
 stegano-core.workspace = true
 
 clap = { version = "4.5", features = ["cargo", "derive", "color"] }
-dialoguer = { version = "0.11", default-features = false, features = [
+dialoguer = { version = "0.12", default-features = false, features = [
     "password",
 ] }
 log.workspace = true
