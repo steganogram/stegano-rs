@@ -119,10 +119,7 @@ Options:
 Let's illustrate how to hide a file like `README.md`, inside an image `Base.png` and save it as `README.png`:
 
 ```sh
-❯ stegano hide \
-    --data README.md \
-    --in crates/stegano-core/tests/images/plain/carrier-image.png \
-    --out README.png
+❯ stegano hide --data README.md --in resources/plain/carrier-iamge.png --out README.png
 ```
 
 The final result is then contained in the image `README.png`.
@@ -133,9 +130,18 @@ here I'm using the shorthand parameters (--data, -d), (--in, -i), (--out, -o)
 
 ```sh
 ❯ stegano hide \
-  -i crates/stegano-core/tests/images/plain/carrier-image.png \
+  -i resources/plain/carrier-image.png \
   -d resources/secrets/Blah.txt \
      resources/secrets/Blah-2.txt \
+  -o secret.png
+```
+
+*Hidden Feature* you can use a `.jpg` for input and save it as `.png`
+
+```sh
+❯ stegano hide \
+  -i resources/NoSecret.jpg \
+  -d resources/secrets/Blah.txt \
   -o secret.png
 ```
 
@@ -143,7 +149,7 @@ here I'm using the shorthand parameters (--data, -d), (--in, -i), (--out, -o)
 
 ```sh
 ❯ stegano hide \
-  -i crates/stegano-core/tests/audio/plain/carrier-audio.wav \
+  -i resources/plain/carrier-audio.wav \
   -d resources/secrets/Blah.txt \
      resources/secrets/Blah-2.txt \
   -o secret.wav
@@ -155,7 +161,7 @@ Now let's assume we want to hide just a little text message in `secret-text.png`
 
 ```sh
 ❯ stegano hide \
-  -i crates/stegano-core/tests/images/plain/carrier-image.png \
+  -i resources/NoSecrets.jpg \
   -m 'This is a super secret message' \
   -o secret-text.png
 ```
@@ -202,14 +208,19 @@ This is a super secret message
 
 ```sh
 ❯ stegano unveil-raw --help
-Usage: stegano unveil-raw [OPTIONS] --in <media source file> --out <output file>
+stegano-unveil-raw
+Unveils raw data in PNG images
 
-Options:
-  -p, --password <password>     Password used to encrypt the data
-  -i, --in <media source file>  Source media that contains secret data
-  -o, --out <output file>       Raw data will be stored as binary file
-  -h, --help                    Print help
-  -V, --version                 Print version
+USAGE:
+    stegano unveil-raw --in <image source file> --out <output file>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -i, --in <image source file>    Source image that contains secret data
+    -o, --out <output file>         Raw data will be stored as binary file
 ```
 
 #### Example unveil raw data

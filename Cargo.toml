@@ -16,4 +16,4 @@ log = "0.4"
 thiserror = "1.0"
 
 stegano-seasmoke = { path = "crates/stegano-seasmoke", version = "0.1" }
-stegano-core = { path = "crates/stegano-core", version = "0.7.0" }
+stegano-core = { path = "crates/stegano-core", version = "0.6.0" }
