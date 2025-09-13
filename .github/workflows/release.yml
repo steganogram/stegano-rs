@@ -19,6 +19,7 @@ jobs:
     name: cargo publish
     needs: doing-a-build
     strategy:
+      max-parallel: 1 # so that they run serialized in that order
       fail-fast: false
       matrix:
         crate: ["stegano-seasmoke", "stegano-core", "stegano-cli"]
