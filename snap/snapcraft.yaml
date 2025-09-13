@@ -1,5 +1,5 @@
 name: stegano
-base: core18
+base: core24
 adopt-info: stegano
 summary: Image and Audio Steganography
 description: |
@@ -8,14 +8,18 @@ description: |
 grade: stable
 confinement: strict
 
+architectures:
+  - build-on: amd64
+    build-for: arm64
+
 parts:
   stegano:
     plugin: rust
     source: .
-    source-subdir: stegano-cli
+    source-subdir: crates/stegano-cli
     override-pull: |
-      snapcraftctl pull
-      snapcraftctl set-version "$(git describe --tags)"
+      craftctl default
+      craftctl set version="$(git describe --tags)"
 
 apps:
   stegano:
