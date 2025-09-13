@@ -18,20 +18,21 @@ jobs:
   publish:
     name: cargo publish
     needs: doing-a-build
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: ["stegano-seasmoke", "stegano-core", "stegano-cli"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: setup | rust
         uses: dtolnay/rust-toolchain@stable
-      - run: cargo publish --manifest-path crates/stegano-core/Cargo.toml
+      - run: cargo publish --manifest-path crates/${{ matrix.crate }}/Cargo.toml
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       # without this sleep there was an error that the just published version is not available for stegano-cli as dependency
       - name: waiting for crates.io to get ready with stegano-core latest version
         run: sleep 60
-      - run: cargo publish --manifest-path crates/stegano-cli/Cargo.toml
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   release:
     name: github release

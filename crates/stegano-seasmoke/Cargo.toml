@@ -2,8 +2,7 @@
 name = "stegano-seasmoke"
 version = "0.1.0"
 edition = "2021"
-publish = false
-description = "Providing cryptography functionality as library"
+description = "Providing cryptography functionality as library for stegano-core"
 license.workspace = true
 
 [lib]
