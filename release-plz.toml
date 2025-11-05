@@ -1,0 +1,5 @@
+[workspace]
+changelog_config = "cliff.toml"
+changelog_update = true
+git_tag_enable = true
+publish = false
