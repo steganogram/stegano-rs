@@ -1,6 +1,6 @@
 [package]
 name = "stegano-seasmoke"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Providing cryptography functionality as library for stegano-core"
 license.workspace = true
