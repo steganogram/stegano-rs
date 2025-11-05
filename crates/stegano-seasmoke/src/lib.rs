@@ -1,11 +1,11 @@
 //! # Password Hashing
 //! This little lib explores on
 
+use argon2::password_hash::rand_core::{OsRng, RngCore};
 use argon2::{Argon2, ParamsBuilder};
 use chacha20poly1305::aead::{Aead, AeadCore};
 use chacha20poly1305::{KeyInit, XChaCha20Poly1305};
-use rand::rngs::OsRng;
-use rand::RngCore;
+// use rand::RngCore;
 use zeroize::Zeroize;
 
 pub mod error;
@@ -41,7 +41,9 @@ pub fn decrypt_data(password: &str, data: &[u8]) -> Result<Vec<u8>> {
 pub fn encrypt_data(password: &str, data: &[u8]) -> Result<Vec<u8>> {
     // https://kerkour.com/rust-file-encryption-chacha20poly1305-argon2
     let mut salt = [0u8; SALT_LEN];
-    OsRng.fill_bytes(&mut salt);
+    OsRng
+        .try_fill_bytes(&mut salt)
+        .map_err(SeasmokeError::RandomSaltError)?;
     let key = derive_key(password.as_bytes(), &salt)?;
 
     let mut nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
@@ -93,7 +95,9 @@ mod tests {
     #[test]
     fn test_kye_derivation() {
         let password = b"hunter42"; // Bad password; don't actually use!
-        let salt = rand::random::<[u8; 32]>();
+        let mut rnd = argon2::password_hash::rand_core::OsRng;
+        let mut salt = [0; 32];
+        rnd.try_fill_bytes(&mut salt).unwrap();
 
         let mut output_key_material = [0u8; 32]; // Can be any desired size
         Argon2::default()
@@ -123,7 +127,7 @@ mod tests {
     #[test]
     fn test_generate_a_password_hash() {
         let password = b"hunter42"; // Bad password; don't actually use!
-        let mut rnd = rand::rngs::OsRng;
+        let mut rnd = OsRng;
         let salt = SaltString::generate(&mut rnd);
         let password_hash = PasswordHash::generate(Argon2::default(), password, &salt).unwrap();
 
