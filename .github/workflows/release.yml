@@ -5,9 +5,12 @@ on:
       - "*-v[0-9]+.[0-9]+.[0-9]+"
       - "*-v[0-9]+.[0-9]+.[0-9]-alpha.[0-9]+"
       - "*-v[0-9]+.[0-9]+.[0-9]-beta.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]-alpha.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]-beta.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (must be a package-specific tag like stegano-cli-v0.6.1)"
+        required: true
+        default: ""
 
 jobs:
   doing-a-build:
@@ -15,56 +18,113 @@ jobs:
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  determine-crate:
+    name: Determine crate and version from tag
+    runs-on: ubuntu-latest
+    outputs:
+      crate: ${{ steps.parse.outputs.crate }}
+      version: ${{ steps.parse.outputs.version }}
+      tag: ${{ steps.parse.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - id: parse
+        name: Parse tag and validate crate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Choose tag source:
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            # For push on tag events
+            if [ -n "${GITHUB_REF:-}" ] && [[ "${GITHUB_REF}" =~ ^refs/tags/(.*)$ ]]; then
+              TAG="${BASH_REMATCH[1]}"
+            else
+              echo "Could not determine tag from event. Provide a tag when dispatching."
+              exit 1
+            fi
+          fi
+
+          echo "Resolved tag: ${TAG}"
+
+          # Expect tags of the form <crate>-v<version>, e.g. stegano-cli-v0.6.1
+          if [[ "${TAG}" =~ ^(.+)-v(.+)$ ]]; then
+            CRATE="${BASH_REMATCH[1]}"
+            VERSION="${BASH_REMATCH[2]}"
+          else
+            echo "Invalid tag format. This workflow only accepts crate-specific tags of the form <crate>-vX.Y.Z (e.g. stegano-cli-v0.6.1)."
+            exit 1
+          fi
+
+          # Validate crate directory exists
+          if [ ! -f "crates/${CRATE}/Cargo.toml" ]; then
+            echo "Crate 'crates/${CRATE}' does not exist in the repository."
+            exit 1
+          fi
+
+          # Export outputs
+          echo "crate=${CRATE}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
   publish:
     name: cargo publish
-    needs: doing-a-build
-    strategy:
-      max-parallel: 1 # so that they run serialized in that order
-      fail-fast: false
-      matrix:
-        crate: ["stegano-seasmoke", "stegano-core", "stegano-cli"]
+    needs: [doing-a-build, determine-crate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: setup | rust
         uses: dtolnay/rust-toolchain@stable
-      - run: cargo publish --manifest-path crates/${{ matrix.crate }}/Cargo.toml
+
+      - name: Publish crate
+        shell: bash
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      # without this sleep there was an error that the just published version is not available for stegano-cli as dependency
-      - name: waiting for crates.io to get ready with stegano-core latest version
-        run: sleep 60
+        run: |
+          CRATE="${{ needs.determine-crate.outputs.crate }}"
+          VERSION="${{ needs.determine-crate.outputs.version }}"
+          echo "Publishing crate: ${CRATE} version: ${VERSION}"
+          cargo publish --manifest-path crates/${CRATE}/Cargo.toml
 
   release:
-    name: github release
+    name: Create GitHub Release
     needs: publish
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: setup | rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Get version from tag
-        id: tag_name
-        run: echo ::set-output name=current_version::${GITHUB_REF#refs/tags/v}
+
+      - name: Resolve version and tag
+        id: tag_info
         shell: bash
+        run: |
+          TAG="${{ needs.determine-crate.outputs.tag }}"
+          VERSION="${{ needs.determine-crate.outputs.version }}"
+          echo "current_version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${TAG}" >> "$GITHUB_OUTPUT"
+
       - name: Get Changelog Entry
         id: changelog_reader
-        # https://github.com/marketplace/actions/changelog-reader
         uses: mindsers/changelog-reader-action@v2
         with:
           validation_depth: 10
-          version: ${{ steps.tag_name.outputs.current_version }}
-          path: ./CHANGELOG.md
+          version: ${{ steps.tag_info.outputs.current_version }}
+          path: crates/${{ needs.determine-crate.outputs.crate }}/CHANGELOG.md
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
-          # This pulls from the "Get Changelog Entry" step above, referencing it's ID to get its outputs object.
-          # See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ steps.changelog_reader.outputs.version }}
+          tag_name: ${{ steps.tag_info.outputs.release_tag }}
+          release_name: ${{ needs.determine-crate.outputs.crate }} v${{ steps.tag_info.outputs.current_version }}
           body: ${{ steps.changelog_reader.outputs.changes }}
           prerelease: ${{ steps.changelog_reader.outputs.status == 'prereleased' }}
           draft: ${{ steps.changelog_reader.outputs.status == 'unreleased' }}
