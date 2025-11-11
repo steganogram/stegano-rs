@@ -14,9 +14,22 @@ on:
 
 jobs:
   doing-a-build:
-    uses: steganogram/stegano-rs/.github/workflows/build.yml@main
-    secrets:
+    needs: determine-crate
+    runs-on: ubuntu-latest
+    env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - name: Checkout release tag for build
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refs/tags/${{ needs.determine-crate.outputs.tag }}
+      - name: setup | rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: cargo build
+        run: cargo build --workspace --verbose
+      - name: cargo test
+        run: cargo test --workspace --verbose
 
   determine-crate:
     name: Determine crate and version from tag
@@ -26,10 +39,11 @@ jobs:
       version: ${{ steps.parse.outputs.version }}
       tag: ${{ steps.parse.outputs.tag }}
     steps:
-      - name: Checkout
+      - name: Checkout (fetch tags)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          # Fetch tags so we can checkout the tagged ref later
+          fetch-depth: 0
 
       - id: parse
         name: Parse tag and validate crate
@@ -52,6 +66,28 @@ jobs:
 
           echo "Resolved tag: ${TAG}"
 
+          # Ensure the tag exists locally and check it out so validation matches the released source
+          # Fetch tags from origin and try to checkout the tag ref.
+          git fetch --prune --tags origin || true
+
+          # Try to checkout the annotated/tag ref directly; fall back to tag name
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            git checkout -f "refs/tags/${TAG}"
+          else
+            # attempt shallow fetch of the specific tag and checkout by tag name
+            git fetch --depth=1 origin "refs/tags/${TAG}:refs/tags/${TAG}" || true
+            git checkout -f "${TAG}" || true
+          fi
+
+          # After checking out the tag, confirm the working tree matches the requested tag
+          CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+          if [ -n "${CURRENT_TAG}" ]; then
+            echo "Checked out tag: ${CURRENT_TAG}"
+          else
+            # best-effort warning but continue; subsequent validations will fail if files missing
+            echo "Warning: could not verify that the tag was checked out exactly. Proceeding with repository state."
+          fi
+
           # Expect tags of the form <crate>-v<version>, e.g. stegano-cli-v0.6.1
           if [[ "${TAG}" =~ ^(.+)-v(.+)$ ]]; then
             CRATE="${BASH_REMATCH[1]}"
@@ -61,9 +97,9 @@ jobs:
             exit 1
           fi
 
-          # Validate crate directory exists
+          # Validate crate directory exists (now using the checked-out tag)
           if [ ! -f "crates/${CRATE}/Cargo.toml" ]; then
-            echo "Crate 'crates/${CRATE}' does not exist in the repository."
+            echo "Crate 'crates/${CRATE}' does not exist in the repository at tag ${TAG}."
             exit 1
           fi
 
@@ -77,7 +113,11 @@ jobs:
     needs: [doing-a-build, determine-crate]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refs/tags/${{ needs.determine-crate.outputs.tag }}
       - name: setup | rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -97,6 +137,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.determine-crate.outputs.tag }}
       - name: setup | rust
         uses: dtolnay/rust-toolchain@stable
 
