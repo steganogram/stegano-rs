@@ -40,7 +40,7 @@ env_logger.workspace = true
 stegano-seasmoke.workspace = true
 
 [dev-dependencies]
-criterion = { version = "0.7", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 tempfile = "3.23"
 
 [dev-dependencies.cargo-husky]
