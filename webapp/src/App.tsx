@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import init, { hide_data, unveil_data } from './pkg/stegano_wasm';
+import SplatViewer from './components/SplatViewer';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'hide' | 'unveil'>('hide');
@@ -39,6 +40,9 @@ function App() {
   const [unveilImage, setUnveilImage] = useState<File | null>(null);
   const [unveilPassword, setUnveilPassword] = useState('');
   const [unveiledFiles, setUnveiledFiles] = useState<{ name: string; data: Uint8Array }[]>([]);
+
+  // Viewer State
+  const [viewingFile, setViewingFile] = useState<{ name: string; data: Uint8Array } | null>(null);
 
   useEffect(() => {
     init().then(() => {
@@ -297,17 +301,37 @@ function App() {
                 {unveiledFiles.map((f, i) => (
                   <div key={i} style={{ marginBottom: '0.5rem' }}>
                     <span>{f.name} ({(f.data.length / 1024).toFixed(2)} KB)</span>
-                    <button
-                      className="btn"
-                      style={{ width: 'auto', marginLeft: '1rem', padding: '0.5rem' }}
-                      onClick={() => downloadFile(f.name, f.data)}
-                    >
-                      Download
-                    </button>
+                    <div style={{ display: 'inline-flex', gap: '0.5rem', marginLeft: '1rem' }}>
+                      <button
+                        className="btn"
+                        style={{ width: 'auto', padding: '0.5rem' }}
+                        onClick={() => downloadFile(f.name, f.data)}
+                      >
+                        Download
+                      </button>
+                      {f.name.toLowerCase().endsWith('.zip') && (
+                        <button
+                          className="btn btn-primary"
+                          style={{ width: 'auto', padding: '0.5rem', background: 'var(--secondary-color)', color: '#000' }}
+                          onClick={() => setViewingFile(f)}
+                        >
+                          View Content
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+
+            {viewingFile && (
+              <SplatViewer
+                fileData={viewingFile.data}
+                fileName={viewingFile.name}
+                onClose={() => setViewingFile(null)}
+              />
+            )}
+
           </div>
         )}
       </div>

@@ -12,3 +12,6 @@ console_error_panic_hook = "0.1"
 image = { version = "0.25", default-features = false, features = ["png"] }
 stegano-core = { path = "../stegano-core", version = "0.6.1" }
 getrandom = { version = "0.2", features = ["js"] }
+
+
+
