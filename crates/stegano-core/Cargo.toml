@@ -1,6 +1,6 @@
 [package]
 name = "stegano-core"
-description = "Steganography core library for stegano-cli. Supports hiding data in PNG images via LSB Encoding."
+description = "Steganography core library. Supports hiding data in PNG images via LSB Encoding."
 version = "0.6.1"
 authors = ["Sven Kanoldt <sven@d34dl0ck.me>"]
 edition = "2021"

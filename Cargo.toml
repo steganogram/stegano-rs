@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "crates/stegano-core",
-    "crates/stegano-cli",
     "crates/stegano-seasmoke",
     "crates/stegano-wasm",
 ]
