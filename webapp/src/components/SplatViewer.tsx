@@ -16,6 +16,7 @@ interface ExtractedFile {
 const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }) => {
     const [loading, setLoading] = useState(true);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [htmlContent, setHtmlContent] = useState<string | null>(null); // Store string for document.write
     const [mediaFiles, setMediaFiles] = useState<ExtractedFile[]>([]);
     const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +30,6 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                 let splatHtmlFile: JSZip.JSZipObject | null = null;
                 const images: ExtractedFile[] = [];
 
-                // 1. Scan files
                 const filePromises: Promise<void>[] = [];
 
                 loadedZip.forEach((relativePath, zipEntry) => {
@@ -38,10 +38,8 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
 
                         const lowerName = zipEntry.name.toLowerCase();
 
-                        // Check for SPLAT html inside zip
                         if (lowerName.endsWith('.html')) {
                             const text = await zipEntry.async('string');
-                            // Relaxed detection
                             if (text.includes('<title>SuperSplat') || text.includes('SuperSplat Viewer') || text.includes('<!DOCTYPE html>')) {
                                 splatHtmlFile = zipEntry;
                             }
@@ -61,7 +59,11 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
 
                 if (splatHtmlFile) {
                     const entry = splatHtmlFile as JSZip.JSZipObject;
-                    const blob = await entry.async('blob'); // Get as Blob
+                    const text = await entry.async('string');
+                    setHtmlContent(text);
+
+                    // Create Blob with explicit charset for iframe backup
+                    const blob = new Blob([text], { type: 'text/html; charset=utf-8' });
                     const url = URL.createObjectURL(blob);
                     setViewerUrl(url);
                 }
@@ -71,7 +73,7 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
 
             } catch (err) {
                 console.error("Failed to unzip:", err);
-                setError("Failed to extract Zip file. It might be corrupt or not a Zip.");
+                setError("Failed to extract Zip file.");
                 setLoading(false);
             }
         };
@@ -79,7 +81,11 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
         const processHtml = () => {
             try {
                 setLoading(true);
-                const blob = new Blob([fileData], { type: 'text/html' });
+                const decoder = new TextDecoder('utf-8');
+                const text = decoder.decode(fileData);
+                setHtmlContent(text);
+
+                const blob = new Blob([fileData], { type: 'text/html; charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 setViewerUrl(url);
                 setLoading(false);
@@ -99,16 +105,44 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
         }
 
         return () => {
-            // Cleanup URLs
             if (viewerUrl) URL.revokeObjectURL(viewerUrl);
             mediaFiles.forEach(f => URL.revokeObjectURL(f.url));
         };
     }, [fileData, fileName]);
 
+    // Robust "New Tab" specifically using document.write
+    // This avoids Blob URL Origin issues by writing directly to the same-origin window
     const openInNewTab = () => {
-        if (viewerUrl) {
+        if (htmlContent) {
+            const win = window.open('', '_blank');
+            if (win) {
+                win.document.open();
+                win.document.write(htmlContent);
+                win.document.close();
+            } else {
+                alert("Pop-up blocked! Please allow pop-ups for this site.");
+            }
+        } else if (viewerUrl) {
             window.open(viewerUrl, '_blank');
         }
+    };
+
+    const downloadExtracted = () => {
+        if (htmlContent) {
+            const blob = new Blob([htmlContent], { type: 'text/html; charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "extracted_viewer.html";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        mediaFiles.forEach(f => {
+            const a = document.createElement('a');
+            a.href = f.url;
+            a.download = f.name;
+            a.click();
+        });
     };
 
     if (loading) return <div className="loading-spinner">Loading Content...</div>;
@@ -120,11 +154,14 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0 }}>Content Viewer</h3>
                     <div>
-                        {viewerUrl && (
-                            <button className="btn" onClick={openInNewTab} style={{ marginRight: '1rem', width: 'auto', padding: '0.5rem 1rem' }}>
-                                ↗ Open in New Tab
+                        {(htmlContent || viewerUrl) && (
+                            <button className="btn" onClick={openInNewTab} style={{ marginRight: '0.5rem', width: 'auto', padding: '0.5rem 1rem', background: '#03dac6', color: '#000' }}>
+                                ↗ Open Fullscreen
                             </button>
                         )}
+                        <button className="btn" onClick={downloadExtracted} style={{ marginRight: '1rem', width: 'auto', padding: '0.5rem 1rem' }}>
+                            Download
+                        </button>
                         <button className="close-btn" onClick={onClose} style={{ position: 'static' }}>
                             Close
                         </button>
@@ -137,7 +174,6 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                             src={viewerUrl}
                             title="Splat Viewer"
                             className="splat-iframe"
-                        // No sandbox, standard Blob URL
                         />
                     </div>
                 )}
@@ -162,10 +198,7 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
 
                 {!viewerUrl && mediaFiles.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '2rem' }}>
-                        <p>No previewable content found in archive.</p>
-                        <p style={{ fontSize: '0.8rem', color: '#888' }}>
-                            Ensure the Zip contains images or an HTML viewer (e.g. SuperSplat).
-                        </p>
+                        <p>No previewable content found.</p>
                     </div>
                 )}
             </div>
