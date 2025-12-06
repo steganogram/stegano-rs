@@ -309,15 +309,17 @@ function App() {
                       >
                         Download
                       </button>
-                      {(f.name.toLowerCase().endsWith('.zip') || f.name.toLowerCase().endsWith('.html')) && (
-                        <button
-                          className="btn btn-primary"
-                          style={{ width: 'auto', padding: '0.5rem', background: 'var(--secondary-color)', color: '#000' }}
-                          onClick={() => setViewingFile(f)}
-                        >
-                          View Content
-                        </button>
-                      )}
+                      {(f.name.toLowerCase().endsWith('.zip') ||
+                        f.name.toLowerCase().endsWith('.html') ||
+                        f.name.toLowerCase().match(/\.(png|jpg|jpeg|gif|webp|avif|bmp|svg)$/)) && (
+                          <button
+                            className="btn btn-primary"
+                            style={{ width: 'auto', padding: '0.5rem', background: 'var(--secondary-color)', color: '#000' }}
+                            onClick={() => setViewingFile(f)}
+                          >
+                            View Content
+                          </button>
+                        )}
 
                     </div>
                   </div>

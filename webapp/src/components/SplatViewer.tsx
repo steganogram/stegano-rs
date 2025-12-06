@@ -16,9 +16,10 @@ interface ExtractedFile {
 const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }) => {
     const [loading, setLoading] = useState(true);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
-    const [htmlContent, setHtmlContent] = useState<string | null>(null); // Store string for document.write
+    const [htmlContent, setHtmlContent] = useState<string | null>(null);
     const [mediaFiles, setMediaFiles] = useState<ExtractedFile[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [singleImage, setSingleImage] = useState<ExtractedFile | null>(null);
 
     useEffect(() => {
         const processZip = async () => {
@@ -43,7 +44,7 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                             if (text.includes('<title>SuperSplat') || text.includes('SuperSplat Viewer') || text.includes('<!DOCTYPE html>')) {
                                 splatHtmlFile = zipEntry;
                             }
-                        } else if (lowerName.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+                        } else if (lowerName.match(/\.(jpg|jpeg|png|gif|webp|avif|bmp|svg)$/)) {
                             const blob = await zipEntry.async('blob');
                             const url = URL.createObjectURL(blob);
                             images.push({ name: zipEntry.name, url, type: 'image' });
@@ -61,11 +62,6 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                     const entry = splatHtmlFile as JSZip.JSZipObject;
                     const text = await entry.async('string');
                     setHtmlContent(text);
-
-                    // Create Blob with explicit charset for iframe backup
-                    const blob = new Blob([text], { type: 'text/html; charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    setViewerUrl(url);
                 }
 
                 setMediaFiles(images);
@@ -84,10 +80,6 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                 const decoder = new TextDecoder('utf-8');
                 const text = decoder.decode(fileData);
                 setHtmlContent(text);
-
-                const blob = new Blob([fileData], { type: 'text/html; charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                setViewerUrl(url);
                 setLoading(false);
             } catch (err) {
                 setError("Failed to load HTML file.");
@@ -95,23 +87,38 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
             }
         };
 
-        if (fileName.toLowerCase().endsWith('.zip')) {
+        const processImage = () => {
+            try {
+                setLoading(true);
+                const blob = new Blob([fileData]);
+                const url = URL.createObjectURL(blob);
+                setSingleImage({ name: fileName, url, type: 'image' });
+                setLoading(false);
+            } catch (err) {
+                setError("Failed to load image file.");
+                setLoading(false);
+            }
+        };
+
+        const lowerName = fileName.toLowerCase();
+        if (lowerName.endsWith('.zip')) {
             processZip();
-        } else if (fileName.toLowerCase().endsWith('.html')) {
+        } else if (lowerName.endsWith('.html')) {
             processHtml();
+        } else if (lowerName.match(/\.(png|jpg|jpeg|gif|webp|avif|bmp|svg)$/)) {
+            processImage();
         } else {
-            setError("Not a recognized archive format for Viewer.");
+            setError("Format not supported for preview.");
             setLoading(false);
         }
 
         return () => {
             if (viewerUrl) URL.revokeObjectURL(viewerUrl);
             mediaFiles.forEach(f => URL.revokeObjectURL(f.url));
+            if (singleImage) URL.revokeObjectURL(singleImage.url);
         };
     }, [fileData, fileName]);
 
-    // Robust "New Tab" specifically using document.write
-    // This avoids Blob URL Origin issues by writing directly to the same-origin window
     const openInNewTab = () => {
         if (htmlContent) {
             const win = window.open('', '_blank');
@@ -122,8 +129,6 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
             } else {
                 alert("Pop-up blocked! Please allow pop-ups for this site.");
             }
-        } else if (viewerUrl) {
-            window.open(viewerUrl, '_blank');
         }
     };
 
@@ -143,6 +148,12 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
             a.download = f.name;
             a.click();
         });
+        if (singleImage) {
+            const a = document.createElement('a');
+            a.href = singleImage.url;
+            a.download = singleImage.name;
+            a.click();
+        }
     };
 
     if (loading) return <div className="loading-spinner">Loading Content...</div>;
@@ -152,11 +163,11 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
         <div className="splat-viewer-overlay">
             <div className="splat-viewer-content">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3 style={{ margin: 0 }}>Content Viewer</h3>
+                    <h3 style={{ margin: 0 }}>Content Preview</h3>
                     <div>
-                        {(htmlContent || viewerUrl) && (
+                        {htmlContent && (
                             <button className="btn" onClick={openInNewTab} style={{ marginRight: '0.5rem', width: 'auto', padding: '0.5rem 1rem', background: '#03dac6', color: '#000' }}>
-                                ↗ Open Fullscreen
+                                ↗ Open in new tab
                             </button>
                         )}
                         <button className="btn" onClick={downloadExtracted} style={{ marginRight: '1rem', width: 'auto', padding: '0.5rem 1rem' }}>
@@ -168,16 +179,25 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                     </div>
                 </div>
 
-                {viewerUrl && (
-                    <div className="iframe-container" style={{ position: 'relative' }}>
-                        <iframe
-                            src={viewerUrl}
-                            title="Splat Viewer"
-                            className="splat-iframe"
-                        />
+                {/* Single Image View */}
+                {singleImage && (
+                    <div className="iframe-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
+                        <img src={singleImage.url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                     </div>
                 )}
 
+                {/* HTML Placeholder (if user hasn't clicked open yet) */}
+                {htmlContent && !singleImage && (
+                    <div style={{ padding: '2rem', textAlign: 'center', background: '#1a1a1a', borderRadius: '8px' }}>
+                        <p>HTML Content Ready</p>
+                        <p style={{ fontSize: '0.9rem', color: '#aaa' }}>This file cannot be previewed securely inside this window.</p>
+                        <button className="btn" onClick={openInNewTab} style={{ marginTop: '1rem', background: '#03dac6', color: '#000' }}>
+                            Open in new tab
+                        </button>
+                    </div>
+                )}
+
+                {/* Zip extracted media */}
                 {mediaFiles.length > 0 && (
                     <div className="media-gallery">
                         <h3>Extracted Media</h3>
@@ -196,7 +216,7 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                     </div>
                 )}
 
-                {!viewerUrl && mediaFiles.length === 0 && (
+                {!htmlContent && !singleImage && mediaFiles.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '2rem' }}>
                         <p>No previewable content found.</p>
                     </div>
