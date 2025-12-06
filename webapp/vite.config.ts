@@ -30,4 +30,10 @@ export default defineConfig({
     })
   ],
   base: './', // Essential for GitHub Pages relative path handling
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
 })
