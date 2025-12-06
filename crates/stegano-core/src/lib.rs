@@ -77,7 +77,7 @@ mod result;
 mod universal_decoder;
 mod universal_encoder;
 
-pub(crate) mod media;
+pub mod media;
 
 pub mod api;
 
@@ -133,6 +133,11 @@ impl SteganoEncoder {
         Ok(self)
     }
 
+    pub fn use_media_from_media(&mut self, media: Media) -> &mut Self {
+        self.carrier = Some(media);
+        self
+    }
+
     pub fn save_as(&mut self, output_file: impl AsRef<Path>) -> &mut Self {
         self.target = Some(output_file.as_ref().to_owned());
         self
@@ -168,6 +173,11 @@ impl SteganoEncoder {
         Ok(self)
     }
 
+    pub fn add_file_from_memory(&mut self, name: &str, data: &[u8]) -> Result<&mut Self> {
+        self.message.add_file_data(name, data.to_vec())?;
+        Ok(self)
+    }
+
     pub fn hide_and_save(&mut self) -> Result<&mut Self> {
         {
             // TODO this hack needs to be implemented as well :(
@@ -197,6 +207,24 @@ impl SteganoEncoder {
 
         Ok(self)
     }
+
+    pub fn hide_to_vec(&mut self) -> Result<Vec<u8>> {
+         if self.carrier.is_none() {
+            return Err(SteganoError::CarrierNotSet);
+        }
+
+        if let Some(media) = self.carrier.as_mut() {
+            let data = self.message.to_raw_data(&*self.codec_factory)?;
+            let mut buf = std::io::Cursor::new(Vec::new());
+             media
+                .hide_data(data, &self.options)?
+                .save_to_writer(&mut buf)?;
+            return Ok(buf.into_inner());
+        }
+
+        Ok(Vec::new())
+    }
+
 }
 
 #[cfg(test)]

@@ -4,6 +4,7 @@ members = [
     "crates/stegano-core",
     "crates/stegano-cli",
     "crates/stegano-seasmoke",
+    "crates/stegano-wasm",
 ]
 package.license = "GPL-3.0-only"
 

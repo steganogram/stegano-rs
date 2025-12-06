@@ -22,6 +22,7 @@ pub fn prepare() -> UnveilApi {
 #[derive(Default, Debug)]
 pub struct UnveilApi {
     secret_media: Option<PathBuf>,
+    secret_buffer: Option<Media>,
     output_folder: Option<PathBuf>,
     password: Password,
     options: CodecOptions,
@@ -37,6 +38,12 @@ impl UnveilApi {
     /// This is the secret image that contains the data to be unveiled
     pub fn from_secret_file(mut self, secret_image: impl AsRef<Path>) -> Self {
         self.secret_media = Some(secret_image.as_ref().to_path_buf());
+        self
+    }
+    
+    /// This is the secret media (image or audio) to be unveiled
+    pub fn from_media(mut self, media: Media) -> Self {
+        self.secret_buffer = Some(media);
         self
     }
 
@@ -61,14 +68,51 @@ impl UnveilApi {
 
     /// Execute the unveil process and blocks until it is finished
     pub fn execute(self) -> Result<(), SteganoError> {
-        let Some(secret_media) = self.secret_media else {
+        let Some(secret_media) = self.secret_media.as_ref() else {
             return Err(SteganoError::CarrierNotSet);
         };
-        let Some(output_folder) = self.output_folder else {
+        let Some(output_folder) = self.output_folder.as_ref() else {
             return Err(SteganoError::TargetNotSet);
         };
 
-        let media = Media::from_file(&secret_media)?;
+        let media = Media::from_file(secret_media)?;
+        let files = self.unveil_files(media)?;
+
+        if files.is_empty() {
+            return Err(SteganoError::NoSecretData);
+        }
+
+        for (file_name, buf) in files.iter().map(|(file_name, buf)| {
+            let file = Path::new(file_name).file_name().unwrap().to_str().unwrap();
+
+            (file, buf)
+        }) {
+            let target_file = output_folder.join(file_name);
+            let mut target_file =
+                File::create(target_file).map_err(|source| SteganoError::WriteError { source })?;
+
+            target_file
+                .write_all(buf.as_slice())
+                .map_err(|source| SteganoError::WriteError { source })?;
+        }
+
+        Ok(())
+    }
+    
+    pub fn execute_to_memory(mut self) -> Result<Vec<(String, Vec<u8>)>, SteganoError> {
+        if let Some(media) = self.secret_buffer.take() {
+            return self.unveil_files(media);
+        }
+        
+        let Some(secret_media) = self.secret_media.as_ref() else {
+            return Err(SteganoError::CarrierNotSet);
+        };
+        
+        let media = Media::from_file(secret_media)?;
+        self.unveil_files(media)
+    }
+    
+    fn unveil_files(&self, media: Media) -> Result<Vec<(String, Vec<u8>)>, SteganoError> {
         let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password.as_ref() {
             Box::new(FabS::new(password))
         } else {
@@ -90,26 +134,8 @@ impl UnveilApi {
         if let Some(text) = msg.text {
             files.push(("secret-message.txt".to_owned(), text.as_bytes().to_vec()));
         }
-
-        if files.is_empty() {
-            return Err(SteganoError::NoSecretData);
-        }
-
-        for (file_name, buf) in files.iter().map(|(file_name, buf)| {
-            let file = Path::new(file_name).file_name().unwrap().to_str().unwrap();
-
-            (file, buf)
-        }) {
-            let target_file = output_folder.join(file_name);
-            let mut target_file =
-                File::create(target_file).map_err(|source| SteganoError::WriteError { source })?;
-
-            target_file
-                .write_all(buf.as_slice())
-                .map_err(|source| SteganoError::WriteError { source })?;
-        }
-
-        Ok(())
+        
+        Ok(files)
     }
 }
 

@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::fs::File;
 
 pub use hound::{WavReader, WavSpec, WavWriter};
 pub use image::RgbaImage;
@@ -13,12 +14,22 @@ use super::Persist;
 pub type WavAudio = (WavSpec, Vec<i16>);
 
 /// a media container for steganography
+#[derive(Debug)]
 pub enum Media {
     Image(RgbaImage),
     Audio(WavAudio),
 }
 
+
 impl Media {
+    pub fn from_image(img: RgbaImage) -> Self {
+        Self::Image(img)
+    }
+
+    pub fn from_audio(audio: WavAudio) -> Self {
+        Self::Audio(audio)
+    }
+
     pub fn from_file(f: &Path) -> Result<Self> {
         if let Some(ext) = f.extension() {
             let ext = ext.to_str().unwrap().to_lowercase();
@@ -87,18 +98,28 @@ impl Media {
 
 impl Persist for Media {
     fn save_as(&mut self, file: &Path) -> Result<()> {
+        let f = File::create(file).map_err(|e| {
+            error!("Error creating file {file:?}: {e}");
+            SteganoError::WriteError { source: e }
+        })?;
+        self.save_to_writer(f)
+    }
+}
+
+impl Media {
+    pub fn save_to_writer<W: std::io::Write + std::io::Seek>(&mut self, mut writer: W) -> Result<()> {
         match self {
-            Media::Image(i) => i.save(file).map_err(|e| {
-                error!("Error saving image to file: {file:?}: {e}");
+            Media::Image(i) => i.write_to(&mut writer, image::ImageFormat::Png).map_err(|e| {
+                error!("Error saving image: {e}");
                 SteganoError::ImageEncodingError
             }),
             Media::Audio((spec, samples)) => {
-                let mut writer =
-                    WavWriter::create(file, *spec).map_err(|_| SteganoError::AudioCreationError)?;
+                let mut wav_writer =
+                    WavWriter::new(writer, *spec).map_err(|_| SteganoError::AudioCreationError)?;
                 if let Some(error) = samples
                     .iter()
                     .map(|s| {
-                        writer
+                        wav_writer
                             .write_sample(*s)
                             .map_err(|_| SteganoError::AudioEncodingError)
                     })
@@ -107,6 +128,7 @@ impl Persist for Media {
                 {
                     return Err(error);
                 }
+                wav_writer.finalize().map_err(|_| SteganoError::AudioEncodingError)?;
 
                 Ok(())
             }
