@@ -38,11 +38,12 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
 
                         const lowerName = zipEntry.name.toLowerCase();
 
-                        // Check for SPLAT html
+                        // Check for SPLAT html inside zip
                         if (lowerName.endsWith('.html')) {
-                            // Check for SuperSplat metadata
                             const text = await zipEntry.async('string');
-                            if (text.includes('<title>SuperSplat') || text.includes('SuperSplat Viewer')) {
+                            // Relaxed detection: if it's an HTML file in a zip, it might be the viewer
+                            // Check for common viewer markers or just generic HTML structure
+                            if (text.includes('<title>SuperSplat') || text.includes('SuperSplat Viewer') || text.includes('<!DOCTYPE html>')) {
                                 splatHtmlFile = zipEntry;
                             }
                         } else if (lowerName.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
@@ -76,8 +77,23 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
             }
         };
 
+        const processHtml = () => {
+            try {
+                setLoading(true);
+                const blob = new Blob([fileData], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                setViewerUrl(url);
+                setLoading(false);
+            } catch (err) {
+                setError("Failed to load HTML file.");
+                setLoading(false);
+            }
+        };
+
         if (fileName.toLowerCase().endsWith('.zip')) {
             processZip();
+        } else if (fileName.toLowerCase().endsWith('.html')) {
+            processHtml();
         } else {
             setError("Not a recognized archive format for Viewer.");
             setLoading(false);
@@ -90,7 +106,7 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
         };
     }, [fileData, fileName]);
 
-    if (loading) return <div className="loading-spinner">Extracting Archive...</div>;
+    if (loading) return <div className="loading-spinner">Loading Content...</div>;
     if (error) return <div className="error-msg">{error}</div>;
 
     return (
@@ -104,7 +120,8 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                         <iframe
                             src={viewerUrl}
                             title="Splat Viewer"
-                            sandbox="allow-scripts allow-same-origin"
+                            // Relaxed sandbox for WebGL and scripts
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
                             className="splat-iframe"
                         />
                     </div>
@@ -129,7 +146,12 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                 )}
 
                 {!viewerUrl && mediaFiles.length === 0 && (
-                    <p>No previewable content found in archive.</p>
+                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                        <p>No previewable content found in archive.</p>
+                        <p style={{ fontSize: '0.8rem', color: '#888' }}>
+                            Ensure the Zip contains images or an HTML viewer (e.g. SuperSplat).
+                        </p>
+                    </div>
                 )}
             </div>
         </div>

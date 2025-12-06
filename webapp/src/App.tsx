@@ -309,7 +309,7 @@ function App() {
                       >
                         Download
                       </button>
-                      {f.name.toLowerCase().endsWith('.zip') && (
+                      {f.name.toLowerCase().endsWith('.zip') || f.name.toLowerCase().endsWith('.html') && (
                         <button
                           className="btn btn-primary"
                           style={{ width: 'auto', padding: '0.5rem', background: 'var(--secondary-color)', color: '#000' }}
