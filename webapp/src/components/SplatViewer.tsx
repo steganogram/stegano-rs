@@ -16,7 +16,6 @@ interface ExtractedFile {
 const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }) => {
     const [loading, setLoading] = useState(true);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
-    const [srcDoc, setSrcDoc] = useState<string | null>(null);
     const [mediaFiles, setMediaFiles] = useState<ExtractedFile[]>([]);
     const [error, setError] = useState<string | null>(null);
 
@@ -62,9 +61,9 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
 
                 if (splatHtmlFile) {
                     const entry = splatHtmlFile as JSZip.JSZipObject;
-                    const text = await entry.async('string');
-                    setSrcDoc(text); // Use srcDoc for text content
-                    setViewerUrl(null);
+                    const blob = await entry.async('blob'); // Get as Blob
+                    const url = URL.createObjectURL(blob);
+                    setViewerUrl(url);
                 }
 
                 setMediaFiles(images);
@@ -80,11 +79,9 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
         const processHtml = () => {
             try {
                 setLoading(true);
-                // Convert Uint8Array to string manually
-                const decoder = new TextDecoder('utf-8');
-                const text = decoder.decode(fileData);
-                setSrcDoc(text);
-                setViewerUrl(null);
+                const blob = new Blob([fileData], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                setViewerUrl(url);
                 setLoading(false);
             } catch (err) {
                 setError("Failed to load HTML file.");
@@ -108,69 +105,39 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
         };
     }, [fileData, fileName]);
 
-    // Helper to download extracting files if viewer fails
-    const downloadExtracted = () => {
-        if (srcDoc) {
-            const blob = new Blob([srcDoc], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "extracted_viewer.html";
-            a.click();
-            URL.revokeObjectURL(url);
+    const openInNewTab = () => {
+        if (viewerUrl) {
+            window.open(viewerUrl, '_blank');
         }
-        mediaFiles.forEach(f => {
-            const a = document.createElement('a');
-            a.href = f.url;
-            a.download = f.name;
-            a.click();
-        });
     };
 
     if (loading) return <div className="loading-spinner">Loading Content...</div>;
     if (error) return <div className="error-msg">{error}</div>;
 
-    // Inject a script to capture errors in the iframe and show them on screen
-    const debugScript = `
-      <script>
-        window.onerror = function(msg, url, line) {
-          const div = document.createElement('div');
-          div.style.cssText = 'color:red; background:white; padding:10px; z-index:9999; position:fixed; top:0; left:0; border: 2px solid red; font-family: monospace;';
-          div.textContent = 'JS Error: ' + msg;
-          document.body.appendChild(div);
-          return false;
-        };
-        console.log("Viewer Initialized via AntiGravity Debugger");
-      </script>
-    `;
-
-    // Prepend debug script to srcDoc if it exists
-    const finalSrcDoc = srcDoc ? debugScript + srcDoc : null;
-
     return (
         <div className="splat-viewer-overlay">
             <div className="splat-viewer-content">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0 }}>Content Viewer</h3>
                     <div>
-                        <button className="btn" onClick={downloadExtracted} style={{ marginRight: '1rem', width: 'auto', padding: '0.5rem 1rem' }}>
-                            Download Extracted
-                        </button>
+                        {viewerUrl && (
+                            <button className="btn" onClick={openInNewTab} style={{ marginRight: '1rem', width: 'auto', padding: '0.5rem 1rem' }}>
+                                ↗ Open in New Tab
+                            </button>
+                        )}
                         <button className="close-btn" onClick={onClose} style={{ position: 'static' }}>
                             Close
                         </button>
                     </div>
                 </div>
 
-                {(viewerUrl || finalSrcDoc) && (
+                {viewerUrl && (
                     <div className="iframe-container" style={{ position: 'relative' }}>
                         <iframe
-                            src={viewerUrl || undefined}
-                            srcDoc={finalSrcDoc || undefined}
+                            src={viewerUrl}
                             title="Splat Viewer"
                             className="splat-iframe"
-                        // Removed sandbox entirely to test if it's blocking WebGL or scripts
-                        // sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                        // No sandbox, standard Blob URL
                         />
                     </div>
                 )}
@@ -193,7 +160,7 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                     </div>
                 )}
 
-                {!viewerUrl && !finalSrcDoc && mediaFiles.length === 0 && (
+                {!viewerUrl && mediaFiles.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '2rem' }}>
                         <p>No previewable content found in archive.</p>
                         <p style={{ fontSize: '0.8rem', color: '#888' }}>
