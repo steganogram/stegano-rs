@@ -16,6 +16,7 @@ interface ExtractedFile {
 const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }) => {
     const [loading, setLoading] = useState(true);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [srcDoc, setSrcDoc] = useState<string | null>(null);
     const [mediaFiles, setMediaFiles] = useState<ExtractedFile[]>([]);
     const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +43,6 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                         if (lowerName.endsWith('.html')) {
                             const text = await zipEntry.async('string');
                             // Relaxed detection: if it's an HTML file in a zip, it might be the viewer
-                            // Check for common viewer markers or just generic HTML structure
                             if (text.includes('<title>SuperSplat') || text.includes('SuperSplat Viewer') || text.includes('<!DOCTYPE html>')) {
                                 splatHtmlFile = zipEntry;
                             }
@@ -62,9 +62,9 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
 
                 if (splatHtmlFile) {
                     const entry = splatHtmlFile as JSZip.JSZipObject;
-                    const blob = await entry.async('blob');
-                    const url = URL.createObjectURL(blob);
-                    setViewerUrl(url);
+                    const text = await entry.async('string');
+                    setSrcDoc(text);
+                    setViewerUrl(null);
                 }
 
                 setMediaFiles(images);
@@ -80,9 +80,11 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
         const processHtml = () => {
             try {
                 setLoading(true);
-                const blob = new Blob([fileData], { type: 'text/html' });
-                const url = URL.createObjectURL(blob);
-                setViewerUrl(url);
+                // Convert Uint8Array to string manually to avoid type issues with Blob
+                const decoder = new TextDecoder('utf-8');
+                const text = decoder.decode(fileData);
+                setSrcDoc(text);
+                setViewerUrl(null);
                 setLoading(false);
             } catch (err) {
                 setError("Failed to load HTML file.");
@@ -114,11 +116,12 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
             <div className="splat-viewer-content">
                 <button className="close-btn" onClick={onClose}>&times; Close Viewer</button>
 
-                {viewerUrl && (
+                {(viewerUrl || srcDoc) && (
                     <div className="iframe-container">
                         <h3>Gaussian Splat Viewer</h3>
                         <iframe
-                            src={viewerUrl}
+                            src={viewerUrl || undefined}
+                            srcDoc={srcDoc || undefined}
                             title="Splat Viewer"
                             // Relaxed sandbox for WebGL and scripts
                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
@@ -145,7 +148,7 @@ const SplatViewer: React.FC<SplatViewerProps> = ({ fileData, fileName, onClose }
                     </div>
                 )}
 
-                {!viewerUrl && mediaFiles.length === 0 && (
+                {!viewerUrl && !srcDoc && mediaFiles.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '2rem' }}>
                         <p>No previewable content found in archive.</p>
                         <p style={{ fontSize: '0.8rem', color: '#888' }}>
