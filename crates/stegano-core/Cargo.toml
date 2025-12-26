@@ -41,7 +41,7 @@ stegano-seasmoke.workspace = true
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }
-tempfile = "3.23"
+tempfile = "3.24"
 
 [dev-dependencies.cargo-husky]
 version = "1"
