@@ -28,49 +28,45 @@ fn jpeg_introspection_origin_format() {
     assert_eq!(info.pixel_format, PixelFormat::RGB24);
 }
 
-fn prepare_chess_image<const H: usize, const W: usize, const C: usize, const S: usize>() -> [u8; S]
-{
-    let stride: usize = W * C;
-    let color = [255_u8; C];
-    let mut img = [0_u8; S];
-    for (x, y) in (0..W).into_iter().cartesian_product((0..H).into_iter()) {
+fn prepare_chess_image(width: usize, height: usize, channels: usize) -> Vec<u8> {
+    let stride = width * channels;
+    let color = 255_u8;
+    let mut img = vec![0_u8; width * height * channels];
+    for (x, y) in (0..width).into_iter().cartesian_product(0..height) {
         if (x + y) % 2 == 0 {
-            // let color = rgb_to_ycbcr(200_u8, 200, 200);
-            let px = x * C;
+            let px = x * channels;
             let py = y * stride;
-            for c in 0..C {
-                img[px + py + c] = color[c];
+            for c in 0..channels {
+                img[px + py + c] = color;
             }
         }
     }
-
     img
 }
 
-#[test]
-fn should_prepare_some_images() {
-    let img = prepare_chess_image::<8, 8, 4, { 8 * 8 * 4 }>();
+fn prepare_fixture_image(w: usize, h: usize) {
+    let img = prepare_chess_image(w, h, 4);
 
     for q in (0..101).step_by(10) {
         let encoder = jpeg_encoder::Encoder::new_file(
-            format!("resources/samples/test_8x8_255_{q}.jpg", q = q),
+            format!("resources/samples/test_{w}x{h}_255_{q}.jpg"),
             q,
         )
         .unwrap();
-        encoder.encode(&img, 8, 8, ColorType::Rgba).unwrap();
+        encoder
+            .encode(&img, w as _, h as _, ColorType::Rgba)
+            .unwrap();
     }
 }
 
 #[test]
-fn should_prepare_some_bigger_images() {
-    let img = prepare_chess_image::<512, 512, 4, { 512 * 512 * 4 }>();
+#[ignore] // Fixture generator - run manually when needed
+fn generate_8x8_fixtures() {
+    prepare_fixture_image(8, 8);
+}
 
-    for q in (0..101).step_by(10) {
-        let encoder = jpeg_encoder::Encoder::new_file(
-            format!("resources/samples/test_512x512_255_{q}.jpg", q = q),
-            q,
-        )
-        .unwrap();
-        encoder.encode(&img, 512, 512, ColorType::Rgba).unwrap();
-    }
+#[test]
+#[ignore] // Fixture generator - run manually when needed
+fn generate_512x512_fixtures() {
+    prepare_fixture_image(512, 512);
 }

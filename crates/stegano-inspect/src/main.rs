@@ -2,6 +2,7 @@ use argh::FromArgs;
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
+use stegano_f5::parse_quantization_tables;
 
 #[derive(FromArgs)]
 /// Inspecting jpeg image files
@@ -14,13 +15,13 @@ struct SteganoInspectArgs {
 #[derive(FromArgs, PartialEq, Debug)]
 #[argh(subcommand)]
 enum Command {
-    Quantization(QantizationArgs),
+    Quantization(QuantizationArgs),
 }
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Shows the quantization tables of jpeg files
 #[argh(subcommand, name = "quantization")]
-struct QantizationArgs {
+struct QuantizationArgs {
     /// the jpeg image file to inspect
     #[argh(positional)]
     jpeg_files: Vec<String>,
@@ -33,11 +34,13 @@ fn main() {
         Command::Quantization(args) => {
             for file_name in args.jpeg_files.iter() {
                 let file = File::open(file_name.as_str()).expect("cannot open file");
-                let mut decoder = jpeg_decoder::Decoder::new(BufReader::new(file));
-                decoder.decode().expect("Decoding failed. If other software can successfully decode the specified JPEG image, then it's likely that there is a bug in jpeg-decoder");
+                let mut reader = BufReader::new(file);
+
+                let tables = parse_quantization_tables(&mut reader)
+                    .expect("Failed to parse quantization tables");
 
                 println!(
-                    "# Quantization Tables of {}",
+                    "# Quantization Tables of `{}`",
                     fs::canonicalize(file_name.as_str())
                         .unwrap()
                         .file_name()
@@ -46,35 +49,16 @@ fn main() {
                         .unwrap()
                 );
                 println!();
-                for table in decoder.quantization_tables.iter().flatten() {
-                    print_quantization_table(table);
+                for table in &tables {
+                    println!(
+                        "## Table {} (precision: {}-bit)",
+                        table.id,
+                        if table.precision == 0 { 8 } else { 16 }
+                    );
+                    print!("{}", table.to_ascii_table());
+                    println!();
                 }
             }
         }
     }
-}
-
-fn print_quantization_table(table: &[u16; 64]) {
-    const W: usize = 8;
-    print!("|    |");
-    for x in 0..W {
-        print!("   x{x} |", x = x);
-    }
-    println!();
-    print!("|----");
-    for _ in 0..W {
-        print!("|------");
-    }
-    println!("|");
-    for y in 0..W {
-        print!("| y{y} ", y = y);
-        for x in 0..W {
-            let px = x;
-            let py = y * W;
-
-            print!("| {:4} ", table[px + py]);
-        }
-        println!("|");
-    }
-    println!();
 }
