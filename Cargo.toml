@@ -1,8 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/stegano-core",
     "crates/stegano-cli",
+    "crates/stegano-core",
+    "crates/stegano-f5",
+    "crates/stegano-inspect",
     "crates/stegano-seasmoke",
 ]
 package.license = "GPL-3.0-only"
@@ -15,5 +17,6 @@ env_logger = "0.11"
 log = "0.4"
 thiserror = "2.0"
 
-stegano-seasmoke = { path = "crates/stegano-seasmoke", version = "0.1" }
 stegano-core = { path = "crates/stegano-core", version = "0.6.1" }
+stegano-f5 = { path = "crates/stegano-f5", versoin = "0.1" }
+stegano-seasmoke = { path = "crates/stegano-seasmoke", version = "0.1" }

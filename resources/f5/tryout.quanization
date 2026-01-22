@@ -1,0 +1,75 @@
+Define Quantization Table 0  precision 0
+           3    2    2    3    4    6    8   10
+           2    2    2    3    4    9   10    9
+           2    2    3    4    6    9   11    9
+           2    3    4    5    8   14   13   10
+           3    4    6    9   11   17   16   12
+           4    6    9   10   13   17   18   15
+           8   10   12   14   16   19   19   16
+          12   15   15   16   18   16   16   16
+Define Quantization Table 1  precision 0
+           3    3    4    8   16   16   16   16
+           3    3    4   11   16   16   16   16
+           4    4    9   16   16   16   16   16
+           8   11   16   16   16   16   16   16
+          16   16   16   16   16   16   16   16
+          16   16   16   16   16   16   16   16
+          16   16   16   16   16   16   16   16
+          16   16   16   16   16   16   16   16
+Start Of Frame 0xc2: width=3894, height=2966, components=3
+    Component 1: 2hx2v q=0
+    Component 2: 1hx1v q=1
+    Component 3: 1hx1v q=1
+Define Huffman Table 0x00
+          1   0   1   5   1   1   0   0
+          0   0   0   0   0   0   0   0
+Define Huffman Table 0x01
+          1   1   1   1   1   1   1   0
+          0   0   0   0   0   0   0   0
+Start Of Scan: 3 components
+    Component 1: dc=0 ac=0
+    Component 2: dc=1 ac=0
+    Component 3: dc=1 ac=0
+  Ss=0, Se=0, Ah=0, Al=1
+Define Huffman Table 0x10
+          0   0   6   1   2   4   4   6
+          0   5   5   1   1   1   1   1
+Start Of Scan: 1 components
+    Component 1: dc=0 ac=0
+  Ss=1, Se=5, Ah=0, Al=2
+Define Huffman Table 0x11
+          0   1   4   1   3   3   3   3
+          2   5   3   3   5   0   0   0
+Start Of Scan: 1 components
+    Component 3: dc=0 ac=1
+  Ss=1, Se=63, Ah=0, Al=1
+Define Huffman Table 0x11
+          0   2   2   1   3   2   5   3
+          3   2   5   2   7   0   0   0
+Start Of Scan: 1 components
+    Component 2: dc=0 ac=1
+  Ss=1, Se=63, Ah=0, Al=1
+Define Huffman Table 0x10
+          0   0   5   1   4   6   4  11
+          5   5   7   2   6   2   0   7
+Start Of Scan: 1 components
+    Component 1: dc=0 ac=0
+  Ss=6, Se=63, Ah=0, Al=2
+Define Huffman Table 0x10
+          1   0   2   1   2   5   3   5
+          0   2   3   1   1   0   0   0
+Start Of Scan: 1 components
+    Component 1: dc=0 ac=0
+  Ss=1, Se=63, Ah=2, Al=1
+Start Of Scan: 3 components
+    Component 1: dc=0 ac=0
+    Component 2: dc=0 ac=0
+    Component 3: dc=0 ac=0
+  Ss=0, Se=0, Ah=1, Al=0
+Define Huffman Table 0x11
+          0   3   0   1   1   6   4   5
+          5   1   1   1   0   0   0   0
+Start Of Scan: 1 components
+    Component 3: dc=0 ac=1
+  Ss=1, Se=63, Ah=1, Al=0
+Define Huffman Table 0x11
