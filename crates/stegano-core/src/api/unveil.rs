@@ -61,29 +61,17 @@ impl UnveilApi {
 
     /// Execute the unveil process and blocks until it is finished
     pub fn execute(self) -> Result<(), SteganoError> {
-        let Some(secret_media) = self.secret_media else {
+        let Some(ref secret_media) = self.secret_media else {
             return Err(SteganoError::CarrierNotSet);
         };
-        let Some(output_folder) = self.output_folder else {
+        let Some(ref output_folder) = self.output_folder else {
             return Err(SteganoError::TargetNotSet);
         };
 
-        let media = Media::from_file(&secret_media)?;
-        let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password.as_ref() {
-            Box::new(FabS::new(password))
+        let msg = if super::shared::is_jpeg_extension(secret_media) {
+            self.unveil_jpeg(secret_media)?
         } else {
-            Box::new(FabA)
-        };
-
-        let msg = match media {
-            Media::Image(image) => {
-                let mut decoder = image::LsbCodec::decoder(&image, &self.options);
-                Message::from_raw_data(&mut decoder, &*fab)?
-            }
-            Media::Audio(audio) => {
-                let mut decoder = audio::LsbCodec::decoder(&audio.1);
-                Message::from_raw_data(&mut decoder, &*fab)?
-            }
+            self.unveil_standard(secret_media)?
         };
 
         let mut files = msg.files;
@@ -111,6 +99,53 @@ impl UnveilApi {
 
         Ok(())
     }
+
+    fn unveil_standard(&self, secret_media: &Path) -> Result<Message, SteganoError> {
+        let media = Media::from_file(secret_media)?;
+        let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password.as_ref() {
+            Box::new(FabS::new(password))
+        } else {
+            Box::new(FabA)
+        };
+
+        match media {
+            Media::Image(img) => {
+                let mut decoder = image::LsbCodec::decoder(&img, &self.options);
+                Message::from_raw_data(&mut decoder, &*fab)
+            }
+            Media::Audio(audio) => {
+                let mut decoder = audio::LsbCodec::decoder(&audio.1);
+                Message::from_raw_data(&mut decoder, &*fab)
+            }
+        }
+    }
+
+    fn unveil_jpeg(&self, secret_media: &Path) -> Result<Message, SteganoError> {
+        // Derive F5 seed from password
+        let seed: Option<Vec<u8>> = self
+            .password
+            .as_ref()
+            .as_ref()
+            .map(|p| p.as_bytes().to_vec());
+
+        let jpeg_data = std::fs::read(secret_media)
+            .map_err(|source| SteganoError::ReadError { source })?;
+
+        let extracted = stegano_f5::extract_from_jpeg(&jpeg_data, seed.as_deref())
+            .map_err(|e| SteganoError::JpegError {
+                reason: e.to_string(),
+            })?;
+
+        // Parse extracted bytes using the codec factory (handles decryption if password was used)
+        let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password.as_ref() {
+            Box::new(FabS::new(password))
+        } else {
+            Box::new(FabA)
+        };
+
+        let mut cursor = std::io::Cursor::new(extracted);
+        Message::from_raw_data(&mut cursor, &*fab)
+    }
 }
 
 #[cfg(test)]
@@ -118,6 +153,75 @@ mod tests {
     use std::io::read_to_string;
 
     use tempfile::tempdir;
+
+    #[test]
+    fn should_hide_and_unveil_text_in_jpeg_without_password() {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let output = temp_dir.path().join("secret.jpg");
+
+        crate::api::hide::prepare()
+            .with_message("Hello JPEG!")
+            .with_image("tests/images/NoSecrets.jpg")
+            .with_output(&output)
+            .execute()
+            .expect("Failed to hide");
+
+        crate::api::unveil::prepare()
+            .from_secret_file(&output)
+            .into_output_folder(temp_dir.path())
+            .execute()
+            .expect("Failed to unveil");
+
+        let msg = std::fs::read_to_string(temp_dir.path().join("secret-message.txt")).unwrap();
+        assert_eq!(msg, "Hello JPEG!");
+    }
+
+    #[test]
+    fn should_hide_and_unveil_text_in_jpeg_with_password() {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let output = temp_dir.path().join("secret.jpg");
+
+        crate::api::hide::prepare()
+            .with_message("Encrypted JPEG!")
+            .with_image("tests/images/NoSecrets.jpg")
+            .using_password("TestPass123")
+            .with_output(&output)
+            .execute()
+            .expect("Failed to hide");
+
+        crate::api::unveil::prepare()
+            .from_secret_file(&output)
+            .using_password("TestPass123")
+            .into_output_folder(temp_dir.path())
+            .execute()
+            .expect("Failed to unveil");
+
+        let msg = std::fs::read_to_string(temp_dir.path().join("secret-message.txt")).unwrap();
+        assert_eq!(msg, "Encrypted JPEG!");
+    }
+
+    #[test]
+    fn should_fail_unveil_jpeg_with_wrong_password() {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let output = temp_dir.path().join("secret.jpg");
+
+        crate::api::hide::prepare()
+            .with_message("Secret!")
+            .with_image("tests/images/NoSecrets.jpg")
+            .using_password("CorrectPassword")
+            .with_output(&output)
+            .execute()
+            .expect("Failed to hide");
+
+        let result = crate::api::unveil::prepare()
+            .from_secret_file(&output)
+            .using_password("WrongPassword")
+            .into_output_folder(temp_dir.path())
+            .execute();
+
+        // Should fail: wrong seed produces wrong coefficient order, wrong password fails decryption
+        assert!(result.is_err());
+    }
 
     #[test]
     fn illustrate_api_usage() {
