@@ -1,0 +1,6 @@
+[submodule "crates/stegano-f5-jpeg-decoder"]
+	path = crates/stegano-f5-jpeg-decoder
+	url = git@github.com:steganogram/stegano-f5-jpeg-decoder.git
+[submodule "crates/stegano-f5-jpeg-encoder"]
+	path = crates/stegano-f5-jpeg-encoder
+	url = git@github.com:steganogram/stegano-f5-jpeg-encoder.git

@@ -15,5 +15,8 @@ thiserror = "1.0"
 fastrand = "2"
 log = "0.4"
 
+stegano-f5-jpeg-decoder.workspace = true
+stegano-f5-jpeg-encoder.workspace = true
+
 [dev-dependencies]
 tempfile = "3.0"

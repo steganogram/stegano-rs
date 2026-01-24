@@ -16,7 +16,7 @@
 //! let capacity = jpeg_capacity(&cover)?;
 //! println!("Can embed up to {} bytes", capacity);
 //!
-//! // Embed a message
+//! // Embed a message (transcode existing JPEG)
 //! let message = b"Secret message";
 //! let seed = b"optional_seed";
 //! let stego = embed_in_jpeg(&cover, message, Some(seed))?;
@@ -29,37 +29,30 @@
 //!
 //! # Low-Level API
 //!
-//! For more control, use the F5Encoder/F5Decoder directly with coefficient access:
+//! For more control, use the F5Encoder/F5Decoder directly on coefficient slices:
 //!
 //! ```ignore
-//! use stegano_f5::{F5Encoder, F5Decoder, jpeg};
+//! use stegano_f5::{F5Encoder, F5Decoder};
 //!
-//! // Parse JPEG and decode coefficients
-//! let segments = jpeg::parse_jpeg(&jpeg_data)?;
-//! let mut coefficients = jpeg::decode_scan(&segments)?;
-//!
-//! // Embed using F5
+//! // Embed into pre-obtained coefficients (zigzag order, flat i16 slice)
 //! let encoder = F5Encoder::new();
-//! encoder.embed(coefficients.as_mut_slice(), message, Some(seed))?;
+//! encoder.embed(&mut coefficients, message, Some(seed))?;
 //!
-//! // Re-encode and write JPEG
-//! let new_scan = jpeg::encode_scan(&coefficients, &segments)?;
-//! let output = jpeg::write_jpeg(&segments, &new_scan);
+//! // Extract from coefficients
+//! let decoder = F5Decoder::new();
+//! let extracted = decoder.extract(&coefficients, Some(seed))?;
 //! ```
 
 mod decoder;
 mod encoder;
 mod error;
-pub mod jpeg;
+mod jpeg_ops;
 mod matrix;
 mod permutation;
 
 pub use decoder::F5Decoder;
 pub use encoder::F5Encoder;
 pub use error::{F5Error, Result};
-pub use jpeg::{
-    embed_in_jpeg, extract_from_jpeg, jpeg_capacity, parse_jpeg, parse_quantization_tables,
-    JpegSegments, QuantizationTable,
-};
+pub use jpeg_ops::{embed_in_jpeg, embed_in_jpeg_from_image, extract_from_jpeg, jpeg_capacity};
 pub use matrix::CheckMatrix;
 pub use permutation::Permutation;

@@ -1,6 +1,6 @@
 [package]
 name = "stegano-inspect"
-description = "little cli for inspecting stegano images"
+description = "Little tool for inspecting stegano images"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-only"
@@ -8,12 +8,13 @@ publish = false
 
 [dependencies]
 argh = "0.1"
+tabled = "0.17"
 stegano-f5.workspace = true
+stegano-f5-jpeg-decoder.workspace = true
+stegano-f5-jpeg-encoder.workspace = true
 
 [dev-dependencies]
 itertools = "0.10"
-jpeg-decoder = "0.2"
-jpeg-encoder = { version = "0.4", features = ["simd", "std"] }
 
 [[bin]]
 name = "stegano-inspect"

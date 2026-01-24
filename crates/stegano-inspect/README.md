@@ -2,6 +2,12 @@
 
 CLI for inspecting JPEG internals. Outputs ASCII tables for easy diffing.
 
+## Subcommands
+
+### quantization
+
+The quantization subcommand displays the quantization tables used in JPEG images.
+
 ## Usage
 
 ```bash

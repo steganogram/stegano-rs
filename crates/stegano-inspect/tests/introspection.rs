@@ -1,13 +1,13 @@
 use itertools::Itertools;
-use jpeg_decoder::PixelFormat;
-use jpeg_encoder::ColorType;
 use std::fs::File;
 use std::io::BufReader;
+use stegano_f5_jpeg_decoder::{Decoder, PixelFormat};
+use stegano_f5_jpeg_encoder::{ColorType, Encoder};
 
 #[test]
 fn jpeg_introspection_foreign_format() {
     let f = File::open("resources/twitter/test_8x8_255_100.jpeg").unwrap();
-    let mut decoder = jpeg_decoder::Decoder::new(BufReader::new(f));
+    let mut decoder = Decoder::new(BufReader::new(f));
     let mut _data = decoder.decode().expect("Decoding failed. If other software can successfully decode the specified JPEG image, then it's likely that there is a bug in jpeg-decoder");
     let info = decoder.info().unwrap();
 
@@ -19,7 +19,7 @@ fn jpeg_introspection_foreign_format() {
 #[test]
 fn jpeg_introspection_origin_format() {
     let f = File::open("resources/samples/test_8x8_255_80.jpg").unwrap();
-    let mut decoder = jpeg_decoder::Decoder::new(BufReader::new(f));
+    let mut decoder = Decoder::new(BufReader::new(f));
     let mut _data = decoder.decode().expect("Decoding failed. If other software can successfully decode the specified JPEG image, then it's likely that there is a bug in jpeg-decoder");
     let info = decoder.info().unwrap();
 
@@ -48,11 +48,8 @@ fn prepare_fixture_image(w: usize, h: usize) {
     let img = prepare_chess_image(w, h, 4);
 
     for q in (0..101).step_by(10) {
-        let encoder = jpeg_encoder::Encoder::new_file(
-            format!("resources/samples/test_{w}x{h}_255_{q}.jpg"),
-            q,
-        )
-        .unwrap();
+        let encoder =
+            Encoder::new_file(format!("resources/samples/test_{w}x{h}_255_{q}.jpg"), q).unwrap();
         encoder
             .encode(&img, w as _, h as _, ColorType::Rgba)
             .unwrap();
