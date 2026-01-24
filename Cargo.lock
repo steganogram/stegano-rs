@@ -1239,6 +1239,7 @@ name = "stegano-f5"
 version = "0.1.0"
 dependencies = [
  "fastrand",
+ "log",
  "tempfile",
  "thiserror 1.0.69",
 ]

@@ -4,33 +4,47 @@
 //! F5 embeds data into quantized DCT coefficients using matrix encoding and permutative
 //! straddling.
 //!
-//! # Layer Responsibilities
+//! # High-Level API
 //!
-//! This crate handles **encoding-level** concerns only:
-//! - Embedding raw bytes into DCT coefficients
-//! - Extracting raw bytes from DCT coefficients
-//! - Matrix encoding with parameter `w`
-//! - Coefficient permutation for uniform spreading
-//!
-//! Message format, compression, and encryption are handled by outer layers (e.g., `stegano-core`).
-//!
-//! # Example
+//! The simplest way to use this crate is with the high-level JPEG functions:
 //!
 //! ```ignore
-//! use stegano_f5::{F5Encoder, F5Decoder};
+//! use stegano_f5::{embed_in_jpeg, extract_from_jpeg, jpeg_capacity};
 //!
-//! // Embed data into DCT coefficients
-//! let mut coefficients: Vec<i16> = /* from JPEG decoder */;
-//! let message = b"Hello World";
-//! let seed = b"permutation_seed";
+//! // Check capacity
+//! let cover = std::fs::read("cover.jpg")?;
+//! let capacity = jpeg_capacity(&cover)?;
+//! println!("Can embed up to {} bytes", capacity);
 //!
+//! // Embed a message
+//! let message = b"Secret message";
+//! let seed = b"optional_seed";
+//! let stego = embed_in_jpeg(&cover, message, Some(seed))?;
+//! std::fs::write("stego.jpg", stego)?;
+//!
+//! // Extract the message
+//! let stego = std::fs::read("stego.jpg")?;
+//! let extracted = extract_from_jpeg(&stego, Some(seed))?;
+//! ```
+//!
+//! # Low-Level API
+//!
+//! For more control, use the F5Encoder/F5Decoder directly with coefficient access:
+//!
+//! ```ignore
+//! use stegano_f5::{F5Encoder, F5Decoder, jpeg};
+//!
+//! // Parse JPEG and decode coefficients
+//! let segments = jpeg::parse_jpeg(&jpeg_data)?;
+//! let mut coefficients = jpeg::decode_scan(&segments)?;
+//!
+//! // Embed using F5
 //! let encoder = F5Encoder::new();
-//! encoder.embed(&mut coefficients, message, Some(seed))?;
+//! encoder.embed(coefficients.as_mut_slice(), message, Some(seed))?;
 //!
-//! // Extract data from DCT coefficients
-//! let decoder = F5Decoder::new();
-//! let extracted = decoder.extract(&coefficients, Some(seed))?;
-//! assert_eq!(extracted, message);
+//! // Re-encode and write JPEG
+//! let new_scan = jpeg::encode_scan(&coefficients, &segments)?;
+//! let output = jpeg::write_jpeg(&segments, &new_scan);
 //! ```
 
 mod decoder;
@@ -43,6 +57,9 @@ mod permutation;
 pub use decoder::F5Decoder;
 pub use encoder::F5Encoder;
 pub use error::{F5Error, Result};
-pub use jpeg::{parse_quantization_tables, QuantizationTable};
+pub use jpeg::{
+    embed_in_jpeg, extract_from_jpeg, jpeg_capacity, parse_jpeg, parse_quantization_tables,
+    JpegSegments, QuantizationTable,
+};
 pub use matrix::CheckMatrix;
 pub use permutation::Permutation;
