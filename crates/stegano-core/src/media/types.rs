@@ -23,7 +23,7 @@ impl Media {
         if let Some(ext) = f.extension() {
             let ext = ext.to_str().unwrap().to_lowercase();
             match ext.as_str() {
-                "png" => Ok(Self::Image(
+                "png" | "jpg" | "jpeg" => Ok(Self::Image(
                     image::open(f)
                         .map_err(|_e| SteganoError::InvalidImageMedia)?
                         .to_rgba8(),
@@ -82,6 +82,24 @@ impl Media {
         }
 
         Ok(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_load_jpeg_as_media_image() {
+        let media = Media::from_file(Path::new("tests/images/NoSecrets.jpg"))
+            .expect("Should load JPEG");
+        match media {
+            Media::Image(img) => {
+                assert!(img.width() > 0);
+                assert!(img.height() > 0);
+            }
+            _ => panic!("Expected Media::Image for JPEG input"),
+        }
     }
 }
 
