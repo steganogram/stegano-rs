@@ -1,8 +1,8 @@
 use argh::FromArgs;
 use stegano_f5_jpeg_decoder::{CodingProcess, Decoder, PixelFormat};
 use tabled::{
-    settings::{Alignment, Style},
     builder::Builder,
+    settings::{Alignment, Style},
 };
 
 #[derive(FromArgs)]
@@ -144,7 +144,11 @@ fn cmd_summary(args: &SummaryArgs) {
 
     // Quantization tables
     let quant_count = raw.quantization_tables.len();
-    let precision = if raw.quantization_tables.iter().all(|t| t.iter().all(|&v| v <= 255)) {
+    let precision = if raw
+        .quantization_tables
+        .iter()
+        .all(|t| t.iter().all(|&v| v <= 255))
+    {
         "8-bit"
     } else {
         "16-bit"
