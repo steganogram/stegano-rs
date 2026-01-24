@@ -1509,6 +1509,8 @@ dependencies = [
  "hound",
  "image",
  "log",
+ "stegano-f5",
+ "stegano-f5-jpeg-encoder",
  "stegano-seasmoke",
  "tempfile",
  "thiserror 2.0.18",
