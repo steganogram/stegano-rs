@@ -68,11 +68,7 @@ impl UnveilApi {
             return Err(SteganoError::TargetNotSet);
         };
 
-        let msg = if super::shared::is_jpeg_extension(secret_media) {
-            self.unveil_jpeg(secret_media)?
-        } else {
-            self.unveil_standard(secret_media)?
-        };
+        let msg = self.unveil(secret_media)?;
 
         let mut files = msg.files;
         if let Some(text) = msg.text {
@@ -100,7 +96,7 @@ impl UnveilApi {
         Ok(())
     }
 
-    fn unveil_standard(&self, secret_media: &Path) -> Result<Message, SteganoError> {
+    fn unveil(&self, secret_media: &Path) -> Result<Message, SteganoError> {
         let media = Media::from_file(secret_media)?;
         let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password.as_ref() {
             Box::new(FabS::new(password))
@@ -113,8 +109,15 @@ impl UnveilApi {
                 let mut decoder = image::LsbCodec::decoder(&img, &self.options);
                 Message::from_raw_data(&mut decoder, &*fab)
             }
-            Media::ImageJpeg { pixels, .. } => {
-                let mut decoder = image::LsbCodec::decoder(&pixels, &self.options);
+            Media::ImageJpeg { source, .. } => {
+                // F5 extraction - derive seed from password
+                let seed: Option<Vec<u8>> = self
+                    .password
+                    .as_ref()
+                    .as_ref()
+                    .map(|p| p.as_bytes().to_vec());
+
+                let mut decoder = image::F5JpegDecoder::new(&source, seed.as_deref())?;
                 Message::from_raw_data(&mut decoder, &*fab)
             }
             Media::Audio(audio) => {
@@ -122,35 +125,6 @@ impl UnveilApi {
                 Message::from_raw_data(&mut decoder, &*fab)
             }
         }
-    }
-
-    fn unveil_jpeg(&self, secret_media: &Path) -> Result<Message, SteganoError> {
-        // Derive F5 seed from password
-        let seed: Option<Vec<u8>> = self
-            .password
-            .as_ref()
-            .as_ref()
-            .map(|p| p.as_bytes().to_vec());
-
-        let jpeg_data =
-            std::fs::read(secret_media).map_err(|source| SteganoError::ReadError { source })?;
-
-        let extracted =
-            stegano_f5::extract_from_jpeg(&jpeg_data, seed.as_deref()).map_err(|e| {
-                SteganoError::JpegError {
-                    reason: e.to_string(),
-                }
-            })?;
-
-        // Parse extracted bytes using the codec factory (handles decryption if password was used)
-        let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password.as_ref() {
-            Box::new(FabS::new(password))
-        } else {
-            Box::new(FabA)
-        };
-
-        let mut cursor = std::io::Cursor::new(extracted);
-        Message::from_raw_data(&mut cursor, &*fab)
     }
 }
 
