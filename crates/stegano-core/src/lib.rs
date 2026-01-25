@@ -82,7 +82,7 @@ pub(crate) mod media;
 pub mod api;
 
 pub use crate::error::SteganoError;
-pub use crate::media::image::CodecOptions;
+pub use crate::media::CodecOptions;
 pub use crate::result::Result;
 
 use std::default::Default;
@@ -90,12 +90,11 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use crate::media::payload::{FabA, FabS, PayloadCodecFactory};
-use crate::media::{Media, Persist};
+use crate::media::{F5CodecOptions, LsbCodecOptions, Media, Persist};
 use crate::message::Message;
 use crate::raw_message::RawMessage;
 
 pub struct SteganoEncoder {
-    options: CodecOptions,
     codec_factory: Box<dyn PayloadCodecFactory>,
     target: Option<PathBuf>,
     carrier: Option<Media>,
@@ -105,7 +104,6 @@ pub struct SteganoEncoder {
 impl Default for SteganoEncoder {
     fn default() -> Self {
         Self {
-            options: CodecOptions::default(),
             codec_factory: Box::new(FabA),
             target: None,
             carrier: None,
@@ -118,12 +116,6 @@ impl Default for SteganoEncoder {
 impl SteganoEncoder {
     pub fn new() -> Self {
         Self::default()
-    }
-    pub fn with_options(opts: CodecOptions) -> Self {
-        Self {
-            options: opts,
-            ..Self::default()
-        }
     }
 
     pub fn use_media(&mut self, input_file: impl AsRef<Path>) -> Result<&mut Self> {
@@ -169,33 +161,51 @@ impl SteganoEncoder {
     }
 
     pub fn hide_and_save(&mut self) -> Result<&mut Self> {
-        {
-            // TODO this hack needs to be implemented as well :(
-            // if self.message.header == ContentVersion::V2 {
-            //     space_to_fill -= buf.len();
-            //
-            //     for _ in 0..space_to_fill {
-            //         dec.write_all(&[0])
-            //             .expect("Failed to terminate version 2 content.");
-            //     }
-            // }
-        }
-        if self.carrier.is_none() {
+        let Some(ref media) = self.carrier else {
             return Err(SteganoError::CarrierNotSet);
-        }
+        };
 
-        if self.target.is_none() {
+        let Some(ref target) = self.target else {
             return Err(SteganoError::TargetNotSet);
-        }
+        };
 
-        if let (Some(media), Some(target)) = (self.carrier.as_mut(), self.target.as_ref()) {
-            let data = self.message.to_raw_data(&*self.codec_factory)?;
-            media
-                .hide_data(data, &self.options)?
-                .save_as(Path::new(target))?;
-        }
+        // Determine codec from target path extension
+        let codec_opts = self.determine_codec_options(target)?;
+
+        // Encode the message
+        let data = self.message.to_raw_data(&*self.codec_factory)?;
+
+        // Hide data and save
+        let mut encoded = media.hide_data(data, &codec_opts)?;
+        encoded.save_as(target)?;
 
         Ok(self)
+    }
+
+    /// Determine codec options based on target file extension
+    fn determine_codec_options(&self, target: &Path) -> Result<CodecOptions> {
+        let ext = target
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase())
+            .unwrap_or_default();
+
+        match ext.as_str() {
+            "png" => Ok(CodecOptions::Lsb(LsbCodecOptions::default())),
+            "jpg" | "jpeg" => {
+                // Derive F5 seed from password if available
+                let seed = self
+                    .codec_factory
+                    .password()
+                    .map(|p| p.as_bytes().to_vec());
+                Ok(CodecOptions::F5(F5CodecOptions {
+                    seed,
+                    quality: 90,
+                }))
+            }
+            "wav" => Ok(CodecOptions::AudioLsb),
+            _ => Err(SteganoError::UnsupportedMedia),
+        }
     }
 }
 

@@ -6,6 +6,10 @@ use crate::result::Result;
 
 pub trait PayloadCodecFactory {
     fn create_codec(&self, features: PayloadCodecFeatures) -> Result<Box<dyn PayloadCodec>>;
+    /// Returns the password if one is set (for deriving F5 seed)
+    fn password(&self) -> Option<&str> {
+        None
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

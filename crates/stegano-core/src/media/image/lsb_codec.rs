@@ -1,5 +1,6 @@
 use super::decoder::ImageRgbaColor;
 use super::encoder::ImageRgbaColorMut;
+use crate::media::codec_options::{Concealer, LsbCodecOptions};
 use crate::universal_decoder::{OneBitUnveil, UniversalDecoder};
 use crate::universal_encoder::{
     HideAlgorithms, OneBitHide, OneBitInLowFrequencyHide, UniversalEncoder,
@@ -8,64 +9,12 @@ use crate::universal_encoder::{
 use image::RgbaImage;
 use std::io::{Read, Write};
 
-#[derive(Debug)]
-pub struct CodecOptions {
-    /// determines the step with when iterating over the color channels.
-    /// For example `2` would move from (R)GBA to RG(B)A.
-    /// Depending on if the alpha channel is skipped (`skip_alpha_channel`) it would either
-    /// not count alpha at all or it does.
-    ///
-    /// For example `2` with alpha skipped would move from RG(B)A to R(G)BA on the next pixel because alpha does not count.
-    /// Where as when alpha is not skipped it would would move from RG(B)A to (R)GBA on the next pixel.
-    ///
-    /// Note this number influences the capacity directly.
-    pub color_channel_step_increment: usize,
-
-    /// If true no alpha channel would be used for encoding,
-    /// this reduces then the capacity by one bit per pixel
-    pub skip_alpha_channel: bool,
-
-    /// the concealer strategy, decides on where in a color channel things are going to be stored.
-    pub concealer: Concealer,
-
-    /// This limits all iterations to skip the least column and row, in fact it reduces width and height of the image by 1
-    pub skip_last_row_and_column: bool,
-}
-
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
-pub enum Concealer {
-    LeastSignificantBit,
-    LowFrequencies,
-}
-
-impl Default for CodecOptions {
-    /// The good old golden options
-    fn default() -> Self {
-        Self {
-            color_channel_step_increment: 1,
-            skip_alpha_channel: true,
-            concealer: Concealer::LeastSignificantBit,
-            skip_last_row_and_column: true,
-        }
-    }
-}
-
-impl CodecOptions {
-    pub fn get_color_channel_step_increment(&self) -> usize {
-        self.color_channel_step_increment
-    }
-
-    pub fn get_skip_alpha_channel(&self) -> bool {
-        self.skip_alpha_channel
-    }
-}
-
 /// Factory for decoder and encoder
 pub struct LsbCodec;
 
 impl LsbCodec {
     /// builds a LSB Image Decoder that implements Read
-    pub fn decoder<'i>(input: &'i RgbaImage, opts: &CodecOptions) -> Box<dyn Read + 'i> {
+    pub fn decoder<'i>(input: &'i RgbaImage, opts: &LsbCodecOptions) -> Box<dyn Read + 'i> {
         Box::new(UniversalDecoder::new(
             ImageRgbaColor::new_with_options(input, opts),
             match opts.concealer {
@@ -76,7 +25,7 @@ impl LsbCodec {
     }
 
     /// builds a LSB Image Encoder that implements Write
-    pub fn encoder<'i>(carrier: &'i mut RgbaImage, opts: &CodecOptions) -> Box<dyn Write + 'i> {
+    pub fn encoder<'i>(carrier: &'i mut RgbaImage, opts: &LsbCodecOptions) -> Box<dyn Write + 'i> {
         let algorithm: HideAlgorithms = match opts.concealer {
             Concealer::LeastSignificantBit => OneBitHide.into(),
             Concealer::LowFrequencies => OneBitInLowFrequencyHide.into(),
@@ -136,7 +85,7 @@ mod tests {
             .to_rgba8();
 
         let mut buf = vec![0; 13];
-        LsbCodec::decoder(&image_with_secret, &CodecOptions::default())
+        LsbCodec::decoder(&image_with_secret, &LsbCodecOptions::default())
             .read_exact(&mut buf[..])
             .expect("Cannot read 13 bytes from codec");
 
@@ -152,12 +101,12 @@ mod tests {
         let secret_message = "Hello World!".as_bytes();
 
         {
-            LsbCodec::encoder(&mut plain_image, &CodecOptions::default())
+            LsbCodec::encoder(&mut plain_image, &LsbCodecOptions::default())
                 .write_all(secret_message)
                 .expect("Cannot write to codec");
         }
         let mut buf = vec![0; secret_message.len()];
-        LsbCodec::decoder(&plain_image, &CodecOptions::default())
+        LsbCodec::decoder(&plain_image, &LsbCodecOptions::default())
             .read_exact(&mut buf[..])
             .expect("Cannot read 12 bytes from codec");
 

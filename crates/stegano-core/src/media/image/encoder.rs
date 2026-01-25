@@ -1,7 +1,7 @@
 use image::{Rgba, RgbaImage};
 
 use super::iterators::{ColorIterMut, TransposeMut};
-use super::lsb_codec::CodecOptions;
+use crate::media::codec_options::LsbCodecOptions;
 use crate::media::MediaPrimitiveMut;
 
 /// stegano source for image files, based on `RgbaImage` by `image` crate
@@ -15,10 +15,10 @@ impl<'a> ImageRgbaColorMut<'a> {
     /// constructor for a given `RgbaImage` that lives somewhere
     #[cfg(test)]
     pub fn new(input: &'a mut RgbaImage) -> Self {
-        Self::new_with_options(input, &CodecOptions::default())
+        Self::new_with_options(input, &LsbCodecOptions::default())
     }
 
-    pub fn new_with_options(input: &'a mut RgbaImage, options: &CodecOptions) -> Self {
+    pub fn new_with_options(input: &'a mut RgbaImage, options: &LsbCodecOptions) -> Self {
         let w = input.width();
         Self {
             i: 0,
@@ -87,10 +87,10 @@ mod decoder_tests {
         let mut img = img_ro.clone();
         let mut carrier = ImageRgbaColorMut::new_with_options(
             &mut img,
-            &CodecOptions {
+            &LsbCodecOptions {
                 skip_alpha_channel: true,
                 color_channel_step_increment: 2,
-                ..CodecOptions::default()
+                ..LsbCodecOptions::default()
             },
         );
 
@@ -115,10 +115,10 @@ mod decoder_tests {
         let mut img = img_ro.clone();
         let mut carrier = ImageRgbaColorMut::new_with_options(
             &mut img,
-            &CodecOptions {
+            &LsbCodecOptions {
                 skip_alpha_channel: true,
                 color_channel_step_increment: 3,
-                ..CodecOptions::default()
+                ..LsbCodecOptions::default()
             },
         );
 

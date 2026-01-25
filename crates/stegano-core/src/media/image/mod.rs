@@ -3,4 +3,4 @@ pub mod encoder;
 mod iterators;
 pub mod lsb_codec;
 
-pub use lsb_codec::{CodecOptions, LsbCodec};
+pub use lsb_codec::LsbCodec;

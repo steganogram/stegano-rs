@@ -36,6 +36,10 @@ impl PayloadCodecFactory for FabS {
             self.password.clone(),
         )))
     }
+
+    fn password(&self) -> Option<&str> {
+        Some(&self.password)
+    }
 }
 
 pub struct CryptedPayloadCodec {

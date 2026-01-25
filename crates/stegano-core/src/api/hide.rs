@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::{CodecOptions, SteganoEncoder, SteganoError};
+use crate::{SteganoEncoder, SteganoError};
 
 use super::Password;
 
@@ -16,16 +16,9 @@ pub struct HideApi {
     image: Option<PathBuf>,
     output: Option<PathBuf>,
     password: Password,
-    options: CodecOptions,
 }
 
 impl HideApi {
-    /// Use the given codec options
-    pub fn with_options(mut self, options: CodecOptions) -> Self {
-        self.options = options;
-        self
-    }
-
     /// This is the message that will be hidden
     pub fn with_message(mut self, message: &str) -> Self {
         self.message = Some(message.to_string());
@@ -94,11 +87,7 @@ impl HideApi {
             return Err(SteganoError::TargetNotSet);
         };
 
-        if super::shared::is_jpeg_extension(output) {
-            return self.execute_jpeg(image, output);
-        }
-
-        let mut s = SteganoEncoder::with_options(self.options);
+        let mut s = SteganoEncoder::new();
         s.use_media(image)?.save_as(output);
 
         if let Some(password) = self.password.as_ref() {
@@ -114,72 +103,6 @@ impl HideApi {
         }
 
         s.hide_and_save()?;
-
-        Ok(())
-    }
-
-    fn execute_jpeg(&self, source: &Path, output: &Path) -> Result<(), SteganoError> {
-        use crate::media::payload::{FabA, FabS, PayloadCodecFactory};
-        use crate::message::Message;
-
-        // Build the message
-        let mut msg = Message::empty();
-        if let Some(ref message) = self.message {
-            msg.add_file_data("secret-message.txt", message.as_bytes().to_vec())?;
-        }
-        if let Some(ref files) = self.files {
-            for f in files {
-                msg.add_file(f)?;
-            }
-        }
-
-        // Serialize message (with encryption if password provided)
-        let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password.as_ref() {
-            Box::new(FabS::new(password))
-        } else {
-            Box::new(FabA)
-        };
-        let payload = msg.to_raw_data(&*fab)?;
-
-        // Derive F5 seed from password
-        let seed: Option<Vec<u8>> = self
-            .password
-            .as_ref()
-            .as_ref()
-            .map(|p| p.as_bytes().to_vec());
-
-        // Read source file as raw bytes
-        let source_data =
-            std::fs::read(source).map_err(|source| SteganoError::ReadError { source })?;
-
-        // Embed via F5
-        let stego = if super::shared::is_jpeg_extension(source) {
-            // JPEG → JPEG: transcode preserving characteristics
-            stegano_f5::embed_in_jpeg(&source_data, &payload, seed.as_deref()).map_err(|e| {
-                SteganoError::JpegError {
-                    reason: e.to_string(),
-                }
-            })?
-        } else {
-            // PNG → JPEG: encode from decoded pixels
-            let img = image::open(source).map_err(|_| SteganoError::InvalidImageMedia)?;
-            let rgb = img.to_rgb8();
-            let (width, height) = rgb.dimensions();
-            stegano_f5::embed_in_jpeg_from_image(
-                rgb.as_raw(),
-                width as u16,
-                height as u16,
-                90,
-                stegano_f5_jpeg_encoder::ColorType::Rgb,
-                &payload,
-                seed.as_deref(),
-            )
-            .map_err(|e| SteganoError::JpegError {
-                reason: e.to_string(),
-            })?
-        };
-
-        std::fs::write(output, stego).map_err(|source| SteganoError::WriteError { source })?;
 
         Ok(())
     }

@@ -9,10 +9,10 @@ use crate::{
         audio::wav_iter::AudioWavIter,
         image::LsbCodec,
         payload::{FabA, FabS, PayloadCodecFactory},
-        Media,
+        LsbCodecOptions, Media,
     },
     universal_decoder::{OneBitUnveil, UniversalDecoder},
-    CodecOptions, RawMessage, SteganoError,
+    RawMessage, SteganoError,
 };
 
 use super::Password;
@@ -26,12 +26,12 @@ pub struct UnveilRawApi {
     secret_media: Option<PathBuf>,
     destination_file: Option<PathBuf>,
     password: Password,
-    options: CodecOptions,
+    options: LsbCodecOptions,
 }
 
 impl UnveilRawApi {
-    /// Use the given codec options
-    pub fn with_options(mut self, options: CodecOptions) -> Self {
+    /// Use the given LSB codec options
+    pub fn with_options(mut self, options: LsbCodecOptions) -> Self {
         self.options = options;
         self
     }
@@ -80,6 +80,10 @@ impl UnveilRawApi {
         let msg = match media {
             Media::Image(image) => {
                 let mut decoder = LsbCodec::decoder(&image, &self.options);
+                RawMessage::from_raw_data(&mut decoder, &*fab)?
+            }
+            Media::ImageJpeg { pixels, .. } => {
+                let mut decoder = LsbCodec::decoder(&pixels, &self.options);
                 RawMessage::from_raw_data(&mut decoder, &*fab)?
             }
             Media::Audio(audio) => {
