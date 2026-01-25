@@ -58,6 +58,7 @@ impl LsbCodecOptions {
         self.color_channel_step_increment
     }
 
+    #[allow(dead_code)]
     pub fn get_skip_alpha_channel(&self) -> bool {
         self.skip_alpha_channel
     }
@@ -82,11 +83,13 @@ impl Default for F5CodecOptions {
 }
 
 impl F5CodecOptions {
+    #[allow(dead_code)]
     pub fn with_seed(mut self, seed: Option<Vec<u8>>) -> Self {
         self.seed = seed;
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_quality(mut self, quality: u8) -> Self {
         self.quality = quality;
         self
@@ -95,6 +98,7 @@ impl F5CodecOptions {
 
 /// Concealer strategy for LSB encoding
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[allow(dead_code)]
 pub enum Concealer {
     LeastSignificantBit,
     LowFrequencies,

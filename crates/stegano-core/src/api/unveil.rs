@@ -24,13 +24,17 @@ pub struct UnveilApi {
     secret_media: Option<PathBuf>,
     output_folder: Option<PathBuf>,
     password: Password,
-    options: LsbCodecOptions,
+    color_channel_step_increment: Option<usize>,
 }
 
 impl UnveilApi {
-    /// Use the given LSB codec options
-    pub fn with_options(mut self, options: LsbCodecOptions) -> Self {
-        self.options = options;
+    /// Set the color channel step increment for LSB decoding.
+    ///
+    /// This controls how pixels are traversed during decoding.
+    /// Only applies to PNG/image files using LSB steganography.
+    /// For JPEG files (F5 steganography), this setting is ignored.
+    pub fn with_color_step_increment(mut self, step: usize) -> Self {
+        self.color_channel_step_increment = Some(step);
         self
     }
 
@@ -106,7 +110,8 @@ impl UnveilApi {
 
         match media {
             Media::Image(img) => {
-                let mut decoder = image::LsbCodec::decoder(&img, &self.options);
+                let options = self.build_lsb_options();
+                let mut decoder = image::LsbCodec::decoder(&img, &options);
                 Message::from_raw_data(&mut decoder, &*fab)
             }
             Media::ImageJpeg { source, .. } => {
@@ -125,6 +130,14 @@ impl UnveilApi {
                 Message::from_raw_data(&mut decoder, &*fab)
             }
         }
+    }
+
+    fn build_lsb_options(&self) -> LsbCodecOptions {
+        let mut options = LsbCodecOptions::default();
+        if let Some(step) = self.color_channel_step_increment {
+            options.color_channel_step_increment = step;
+        }
+        options
     }
 }
 

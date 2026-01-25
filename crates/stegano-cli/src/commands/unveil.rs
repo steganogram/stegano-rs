@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use stegano_core::LsbCodecOptions;
 
 use crate::CliResult;
 
@@ -31,7 +30,7 @@ pub struct UnveilArgs {
 }
 
 impl UnveilArgs {
-    pub fn run(self, options: LsbCodecOptions) -> CliResult<()> {
+    pub fn run(self, color_step_increment: usize) -> CliResult<()> {
         let password = if self.password.is_none() {
             crate::cli::ask_for_password(false)
         } else {
@@ -39,7 +38,7 @@ impl UnveilArgs {
         };
 
         stegano_core::api::unveil::prepare()
-            .with_options(options)
+            .with_color_step_increment(color_step_increment)
             .from_secret_file(self.media)
             .into_output_folder(self.output_folder)
             .using_password(password)

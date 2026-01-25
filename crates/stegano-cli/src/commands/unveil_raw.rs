@@ -23,7 +23,7 @@ pub struct UnveilRawArgs {
 }
 
 impl UnveilRawArgs {
-    pub fn run(self, _options: stegano_core::LsbCodecOptions) -> crate::CliResult<()> {
+    pub fn run(self, color_step_increment: usize) -> crate::CliResult<()> {
         let password = if self.password.is_none() {
             crate::cli::ask_for_password(false)
         } else {
@@ -31,6 +31,7 @@ impl UnveilRawArgs {
         };
 
         stegano_core::api::unveil_raw::prepare()
+            .with_color_step_increment(color_step_increment)
             .from_secret_file(self.media)
             .into_raw_file(self.output_file)
             .using_password(password)

@@ -21,17 +21,10 @@ fn main() -> Result<()> {
 }
 
 fn handle_subcommands(args: CliArgs) -> CliResult<()> {
-    let options = get_options(&args);
+    let color_step = args.color_step_increment as usize;
     match args.command {
-        Commands::Hide(hide) => hide.run(options),
-        Commands::Unveil(unveil) => unveil.run(options),
-        Commands::UnveilRaw(unveil_raw) => unveil_raw.run(options),
-    }
-}
-
-fn get_options(args: &CliArgs) -> LsbCodecOptions {
-    LsbCodecOptions {
-        color_channel_step_increment: args.color_step_increment as _,
-        ..Default::default()
+        Commands::Hide(hide) => hide.run(color_step),
+        Commands::Unveil(unveil) => unveil.run(color_step),
+        Commands::UnveilRaw(unveil_raw) => unveil_raw.run(color_step),
     }
 }
