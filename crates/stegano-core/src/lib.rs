@@ -98,6 +98,7 @@ pub struct SteganoEncoder {
     target: Option<PathBuf>,
     carrier: Option<Media>,
     message: Message,
+    color_channel_step_increment: Option<usize>,
 }
 
 impl Default for SteganoEncoder {
@@ -107,6 +108,7 @@ impl Default for SteganoEncoder {
             target: None,
             carrier: None,
             message: Message::empty(),
+            color_channel_step_increment: None,
         }
     }
 }
@@ -131,6 +133,11 @@ impl SteganoEncoder {
 
     pub fn with_encryption<S: Into<String>>(&mut self, password: S) -> &mut Self {
         self.codec_factory = Box::new(FabS::new(password));
+        self
+    }
+
+    pub fn with_color_step_increment(&mut self, step: usize) -> &mut Self {
+        self.color_channel_step_increment = Some(step);
         self
     }
 
@@ -190,7 +197,13 @@ impl SteganoEncoder {
             .unwrap_or_default();
 
         match ext.as_str() {
-            "png" => Ok(CodecOptions::Lsb(LsbCodecOptions::default())),
+            "png" => {
+                let mut opts = LsbCodecOptions::default();
+                if let Some(step) = self.color_channel_step_increment {
+                    opts.color_channel_step_increment = step;
+                }
+                Ok(CodecOptions::Lsb(opts))
+            }
             "jpg" | "jpeg" => {
                 // Derive F5 seed from password if available
                 let seed = self

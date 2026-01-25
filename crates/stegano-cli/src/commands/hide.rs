@@ -44,7 +44,7 @@ pub struct HideArgs {
 }
 
 impl HideArgs {
-    pub fn run(self, _color_step_increment: usize) -> CliResult<()> {
+    pub fn run(self, color_step_increment: usize) -> CliResult<()> {
         let password = if self.password.is_none() {
             crate::cli::ask_for_password(true)
         } else {
@@ -52,10 +52,10 @@ impl HideArgs {
         };
 
         // Note: Codec is determined by target file extension:
-        // - .png → LSB encoding
-        // - .jpg/.jpeg → F5 encoding
-        // color_step_increment is not used for hide operations currently
+        // - .png → LSB encoding (uses color_step_increment)
+        // - .jpg/.jpeg → F5 encoding (ignores color_step_increment)
         stegano_core::api::hide::prepare()
+            .with_color_step_increment(color_step_increment)
             .with_image(self.media)
             .with_output(self.write_to_file)
             .using_password(password)

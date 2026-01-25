@@ -16,6 +16,7 @@ pub struct HideApi {
     image: Option<PathBuf>,
     output: Option<PathBuf>,
     password: Password,
+    color_channel_step_increment: Option<usize>,
 }
 
 impl HideApi {
@@ -77,6 +78,16 @@ impl HideApi {
         self
     }
 
+    /// Set the color channel step increment for LSB encoding.
+    ///
+    /// This controls how pixels are traversed during encoding.
+    /// Only applies to PNG output files using LSB steganography.
+    /// For JPEG output files (F5 steganography), this setting is ignored.
+    pub fn with_color_step_increment(mut self, step: usize) -> Self {
+        self.color_channel_step_increment = Some(step);
+        self
+    }
+
     /// Execute the hiding process and blocks until it is finished
     pub fn execute(self) -> Result<(), SteganoError> {
         self.validate()?;
@@ -92,6 +103,10 @@ impl HideApi {
 
         if let Some(password) = self.password.as_ref() {
             s.with_encryption(password);
+        }
+
+        if let Some(step) = self.color_channel_step_increment {
+            s.with_color_step_increment(step);
         }
 
         if let Some(message) = self.message {
