@@ -82,8 +82,16 @@ impl UnveilRawApi {
                 let mut decoder = LsbCodec::decoder(&image, &self.options);
                 RawMessage::from_raw_data(&mut decoder, &*fab)?
             }
-            Media::ImageJpeg { pixels, .. } => {
-                let mut decoder = LsbCodec::decoder(&pixels, &self.options);
+            Media::ImageJpeg { source, .. } => {
+                // F5 extraction - derive seed from password
+                let seed: Option<Vec<u8>> = self
+                    .password
+                    .as_ref()
+                    .as_ref()
+                    .map(|p| p.as_bytes().to_vec());
+
+                let mut decoder =
+                    crate::media::image::F5JpegDecoder::new(&source, seed.as_deref())?;
                 RawMessage::from_raw_data(&mut decoder, &*fab)?
             }
             Media::Audio(audio) => {
