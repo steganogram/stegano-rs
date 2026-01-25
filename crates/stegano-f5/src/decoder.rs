@@ -62,15 +62,14 @@ impl F5Decoder {
 
         // Validate w
         if w == 0 || w > MAX_W {
-            return Err(F5Error::NoDataFound {
-                reason: format!("invalid w parameter: {}", w),
-            });
+            return Err(F5Error::InvalidWParameter { w });
         }
 
         // Validate message length
         if message_len > coefficients.len() {
-            return Err(F5Error::NoDataFound {
-                reason: format!("message length {} exceeds coefficient count", message_len),
+            return Err(F5Error::InsufficientCoefficientsForLength {
+                message_len,
+                coefficient_count: coefficients.len(),
             });
         }
 
@@ -83,9 +82,7 @@ impl F5Decoder {
         // Skip header (32 bits at w=1 means 32 coefficients)
         for _ in 0..HEADER_BITS {
             if coeff_iter.next().is_none() {
-                return Err(F5Error::NoDataFound {
-                    reason: "not enough coefficients for header".to_string(),
-                });
+                return Err(F5Error::InsufficientCoefficientsForHeader);
             }
         }
 
@@ -101,9 +98,7 @@ impl F5Decoder {
                 match coeff_iter.next() {
                     Some(idx) => group.push(idx),
                     None => {
-                        return Err(F5Error::NoDataFound {
-                            reason: "not enough coefficients for message".to_string(),
-                        });
+                        return Err(F5Error::InsufficientCoefficientsForMessage);
                     }
                 }
             }
@@ -154,9 +149,7 @@ impl F5Decoder {
                     bits.push(bit);
                 }
                 None => {
-                    return Err(F5Error::NoDataFound {
-                        reason: "not enough coefficients".to_string(),
-                    });
+                    return Err(F5Error::InsufficientCoefficientsForHeader);
                 }
             }
         }

@@ -59,10 +59,8 @@ impl F5Encoder {
         permutation_seed: Option<&[u8]>,
     ) -> Result<()> {
         if message.len() > MAX_MESSAGE_LEN {
-            return Err(F5Error::InvalidParameter {
-                param: "message_len",
-                value: message.len().to_string(),
-                reason: format!("exceeds maximum of {} bytes", MAX_MESSAGE_LEN),
+            return Err(F5Error::ExceedsMaxMessageLength {
+                message_len: message.len(),
             });
         }
 

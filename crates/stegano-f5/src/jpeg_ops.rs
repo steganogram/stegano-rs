@@ -27,11 +27,11 @@ fn block_natural_to_zigzag(natural: &[i16]) -> [i16; 64] {
 pub fn embed_in_jpeg(jpeg_data: &[u8], message: &[u8], seed: Option<&[u8]>) -> Result<Vec<u8>> {
     // Decode JPEG to pixels
     let mut decoder = stegano_f5_jpeg_decoder::Decoder::new(jpeg_data);
-    let pixels = decoder.decode().map_err(|e| F5Error::InvalidCoefficients {
-        reason: format!("failed to decode JPEG: {}", e),
-    })?;
-    let info = decoder.info().ok_or_else(|| F5Error::InvalidCoefficients {
-        reason: "no image info available after decode".into(),
+    let pixels = decoder
+        .decode()
+        .map_err(|e| F5Error::JpegDecodeFailed(Box::new(e)))?;
+    let info = decoder.info().ok_or_else(|| {
+        F5Error::JpegDecodeFailed(Box::new(std::io::Error::other("no image info available")))
     })?;
 
     let color_type = match info.pixel_format {
@@ -98,9 +98,7 @@ pub fn embed_in_jpeg_from_image(
 
     encoder
         .encode(image_data, width, height, color_type)
-        .map_err(|e| F5Error::InvalidCoefficients {
-            reason: format!("JPEG encoding failed: {}", e),
-        })?;
+        .map_err(|e| F5Error::JpegEncodeFailed(Box::new(e)))?;
 
     Ok(output)
 }
@@ -113,9 +111,7 @@ pub fn extract_from_jpeg(jpeg_data: &[u8], seed: Option<&[u8]>) -> Result<Vec<u8
     let mut decoder = stegano_f5_jpeg_decoder::Decoder::new(jpeg_data);
     let raw = decoder
         .decode_raw_coefficients()
-        .map_err(|e| F5Error::InvalidCoefficients {
-            reason: format!("failed to decode JPEG coefficients: {}", e),
-        })?;
+        .map_err(|e| F5Error::JpegDecodeFailed(Box::new(e)))?;
 
     // Convert from natural order (decoder output) to zigzag order (F5 standard).
     // Process each 64-coefficient block through the zigzag mapping.
@@ -136,9 +132,7 @@ pub fn jpeg_capacity(jpeg_data: &[u8]) -> Result<usize> {
     let mut decoder = stegano_f5_jpeg_decoder::Decoder::new(jpeg_data);
     let raw = decoder
         .decode_raw_coefficients()
-        .map_err(|e| F5Error::InvalidCoefficients {
-            reason: format!("failed to decode JPEG coefficients: {}", e),
-        })?;
+        .map_err(|e| F5Error::JpegDecodeFailed(Box::new(e)))?;
 
     // Count usable coefficients: non-zero AC coefficients across all components.
     // DC coefficient is at index 0 of each 64-value block (in both natural and zigzag order).
@@ -280,5 +274,48 @@ mod tests {
         assert_eq!(zigzag[1], 1);
         // Position 2 in zigzag should be natural position 8 (first in second row)
         assert_eq!(zigzag[2], 8);
+    }
+
+    #[test]
+    #[should_panic(expected = "JPEG decoding failed")]
+    fn extract_from_corrupt_jpeg_panics_with_decode_error() {
+        let corrupt_data = b"not a valid jpeg at all";
+        extract_from_jpeg(corrupt_data, None).unwrap();
+    }
+
+    #[test]
+    fn extract_from_corrupt_jpeg_preserves_error_chain() {
+        let corrupt_data = b"not a valid jpeg at all";
+        let err = extract_from_jpeg(corrupt_data, None).unwrap_err();
+
+        assert_eq!(err.to_string(), "JPEG decoding failed");
+
+        // Verify the source error from the decoder is preserved
+        let source = std::error::Error::source(&err).expect("should have source error");
+        assert_eq!(
+            source.to_string(),
+            "invalid JPEG format: first two bytes are not an SOI marker"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "JPEG decoding failed")]
+    fn embed_in_corrupt_jpeg_panics_with_decode_error() {
+        let corrupt_data = b"this is not jpeg data";
+        embed_in_jpeg(corrupt_data, b"message", None).unwrap();
+    }
+
+    #[test]
+    fn embed_in_corrupt_jpeg_preserves_error_chain() {
+        let corrupt_data = b"this is not jpeg data";
+        let err = embed_in_jpeg(corrupt_data, b"message", None).unwrap_err();
+
+        assert_eq!(err.to_string(), "JPEG decoding failed");
+
+        let source = std::error::Error::source(&err).expect("should have source error");
+        assert_eq!(
+            source.to_string(),
+            "invalid JPEG format: first two bytes are not an SOI marker"
+        );
     }
 }
