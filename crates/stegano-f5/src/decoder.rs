@@ -207,7 +207,7 @@ fn is_usable(coeff: i16, index: usize) -> bool {
 /// Check if an index is a DC coefficient (first of each 8x8 block).
 #[inline]
 fn is_dc_coefficient(index: usize) -> bool {
-    index % 64 == 0
+    index.is_multiple_of(64)
 }
 
 /// Convert bits to usize (MSB first).

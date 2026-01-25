@@ -32,7 +32,7 @@ fn prepare_chess_image(width: usize, height: usize, channels: usize) -> Vec<u8> 
     let stride = width * channels;
     let color = 255_u8;
     let mut img = vec![0_u8; width * height * channels];
-    for (x, y) in (0..width).into_iter().cartesian_product(0..height) {
+    for (x, y) in (0..width).cartesian_product(0..height) {
         if (x + y) % 2 == 0 {
             let px = x * channels;
             let py = y * stride;

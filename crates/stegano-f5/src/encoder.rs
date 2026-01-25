@@ -38,7 +38,7 @@ impl F5Encoder {
     /// # Arguments
     /// * `w` - Matrix encoding parameter (1-9)
     pub fn with_w(w: u8) -> Self {
-        assert!(w >= 1 && w <= 9, "w must be between 1 and 9");
+        assert!((1..=9).contains(&w), "w must be between 1 and 9");
         F5Encoder { fixed_w: Some(w) }
     }
 
@@ -164,9 +164,8 @@ impl F5Encoder {
 
             // Pad with zeros if needed (last group)
             let mut target_bits = vec![false; w as usize];
-            for i in 0..bits_to_embed {
-                target_bits[i] = message_bits[bit_index + i];
-            }
+            target_bits[..bits_to_embed]
+                .copy_from_slice(&message_bits[bit_index..(bits_to_embed + bit_index)]);
             let target = bits_to_usize(&target_bits);
 
             // Try to embed this group (with shrinkage handling)
@@ -280,7 +279,7 @@ fn is_usable(coeff: i16, index: usize) -> bool {
 /// Check if an index is a DC coefficient (first of each 8x8 block).
 #[inline]
 fn is_dc_coefficient(index: usize) -> bool {
-    index % 64 == 0
+    index.is_multiple_of(64)
 }
 
 /// Count usable (non-zero AC) coefficients.

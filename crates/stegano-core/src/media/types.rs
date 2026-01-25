@@ -85,24 +85,6 @@ impl Media {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn should_load_jpeg_as_media_image() {
-        let media = Media::from_file(Path::new("tests/images/NoSecrets.jpg"))
-            .expect("Should load JPEG");
-        match media {
-            Media::Image(img) => {
-                assert!(img.width() > 0);
-                assert!(img.height() > 0);
-            }
-            _ => panic!("Expected Media::Image for JPEG input"),
-        }
-    }
-}
-
 impl Persist for Media {
     fn save_as(&mut self, file: &Path) -> Result<()> {
         match self {
@@ -128,6 +110,24 @@ impl Persist for Media {
 
                 Ok(())
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_load_jpeg_as_media_image() {
+        let media =
+            Media::from_file(Path::new("tests/images/NoSecrets.jpg")).expect("Should load JPEG");
+        match media {
+            Media::Image(img) => {
+                assert!(img.width() > 0);
+                assert!(img.height() > 0);
+            }
+            _ => panic!("Expected Media::Image for JPEG input"),
         }
     }
 }

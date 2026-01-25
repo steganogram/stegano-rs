@@ -95,14 +95,14 @@ impl CheckMatrix {
 
         let mut result = vec![false; self.w as usize];
 
-        for row in 0..self.w as usize {
+        for (row, result_item) in result.iter_mut().enumerate().take(self.w as usize) {
             let mut sum = false;
-            for col in 0..self.n {
-                if bits[col] && self.get(row, col) {
+            for (col, &bit) in bits.iter().enumerate().take(self.n) {
+                if bit && self.get(row, col) {
                     sum = !sum; // XOR
                 }
             }
-            result[row] = sum;
+            *result_item = sum;
         }
 
         result
@@ -200,16 +200,16 @@ mod tests {
         assert_eq!(m.n(), 3); // 2^2 - 1
 
         // Column 1 (index 0) = binary 01 → [0, 1]
-        assert_eq!(m.get(0, 0), false); // bit 2 of 1 = 0
-        assert_eq!(m.get(1, 0), true); // bit 1 of 1 = 1
+        assert!(!m.get(0, 0)); // bit 2 of 1 = 0
+        assert!(m.get(1, 0)); // bit 1 of 1 = 1
 
         // Column 2 (index 1) = binary 10 → [1, 0]
-        assert_eq!(m.get(0, 1), true); // bit 2 of 2 = 1
-        assert_eq!(m.get(1, 1), false); // bit 1 of 2 = 0
+        assert!(m.get(0, 1)); // bit 2 of 2 = 1
+        assert!(!m.get(1, 1)); // bit 1 of 2 = 0
 
         // Column 3 (index 2) = binary 11 → [1, 1]
-        assert_eq!(m.get(0, 2), true); // bit 2 of 3 = 1
-        assert_eq!(m.get(1, 2), true); // bit 1 of 3 = 1
+        assert!(m.get(0, 2)); // bit 2 of 3 = 1
+        assert!(m.get(1, 2)); // bit 1 of 3 = 1
     }
 
     #[test]
@@ -218,14 +218,14 @@ mod tests {
         assert_eq!(m.n(), 7); // 2^3 - 1
 
         // Column 5 (index 4) = binary 101 → [1, 0, 1]
-        assert_eq!(m.get(0, 4), true); // bit 3 of 5 = 1
-        assert_eq!(m.get(1, 4), false); // bit 2 of 5 = 0
-        assert_eq!(m.get(2, 4), true); // bit 1 of 5 = 1
+        assert!(m.get(0, 4)); // bit 3 of 5 = 1
+        assert!(!m.get(1, 4)); // bit 2 of 5 = 0
+        assert!(m.get(2, 4)); // bit 1 of 5 = 1
 
         // Column 7 (index 6) = binary 111 → [1, 1, 1]
-        assert_eq!(m.get(0, 6), true);
-        assert_eq!(m.get(1, 6), true);
-        assert_eq!(m.get(2, 6), true);
+        assert!(m.get(0, 6));
+        assert!(m.get(1, 6));
+        assert!(m.get(2, 6));
     }
 
     #[test]

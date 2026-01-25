@@ -175,7 +175,7 @@ mod tests {
         // Permutation must be a bijection (one-to-one mapping)
         let p = Permutation::from_seed(b"test", 100);
 
-        let mut seen = vec![false; 100];
+        let mut seen = [false; 100];
         for i in 0..100 {
             let shuffled = p.shuffled(i);
             assert!(!seen[shuffled], "Duplicate shuffled index {}", shuffled);

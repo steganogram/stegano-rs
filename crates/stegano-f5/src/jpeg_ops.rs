@@ -122,11 +122,7 @@ pub fn extract_from_jpeg(jpeg_data: &[u8], seed: Option<&[u8]>) -> Result<Vec<u8
     let flat: Vec<i16> = raw
         .components
         .iter()
-        .flat_map(|component| {
-            component
-                .chunks_exact(64)
-                .flat_map(|block| block_natural_to_zigzag(block))
-        })
+        .flat_map(|component| component.chunks_exact(64).flat_map(block_natural_to_zigzag))
         .collect();
 
     let f5 = F5Decoder::new();
@@ -272,8 +268,8 @@ mod tests {
     fn test_zigzag_roundtrip() {
         // Verify that natural→zigzag conversion is correct
         let mut natural = [0i16; 64];
-        for i in 0..64 {
-            natural[i] = i as i16;
+        for (i, item) in natural.iter_mut().enumerate() {
+            *item = i as i16;
         }
 
         let zigzag = block_natural_to_zigzag(&natural);

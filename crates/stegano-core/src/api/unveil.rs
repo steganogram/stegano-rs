@@ -128,12 +128,14 @@ impl UnveilApi {
             .as_ref()
             .map(|p| p.as_bytes().to_vec());
 
-        let jpeg_data = std::fs::read(secret_media)
-            .map_err(|source| SteganoError::ReadError { source })?;
+        let jpeg_data =
+            std::fs::read(secret_media).map_err(|source| SteganoError::ReadError { source })?;
 
-        let extracted = stegano_f5::extract_from_jpeg(&jpeg_data, seed.as_deref())
-            .map_err(|e| SteganoError::JpegError {
-                reason: e.to_string(),
+        let extracted =
+            stegano_f5::extract_from_jpeg(&jpeg_data, seed.as_deref()).map_err(|e| {
+                SteganoError::JpegError {
+                    reason: e.to_string(),
+                }
             })?;
 
         // Parse extracted bytes using the codec factory (handles decryption if password was used)

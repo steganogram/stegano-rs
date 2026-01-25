@@ -149,20 +149,20 @@ impl HideApi {
             .map(|p| p.as_bytes().to_vec());
 
         // Read source file as raw bytes
-        let source_data = std::fs::read(source)
-            .map_err(|source| SteganoError::ReadError { source })?;
+        let source_data =
+            std::fs::read(source).map_err(|source| SteganoError::ReadError { source })?;
 
         // Embed via F5
         let stego = if super::shared::is_jpeg_extension(source) {
             // JPEG → JPEG: transcode preserving characteristics
-            stegano_f5::embed_in_jpeg(&source_data, &payload, seed.as_deref())
-                .map_err(|e| SteganoError::JpegError {
+            stegano_f5::embed_in_jpeg(&source_data, &payload, seed.as_deref()).map_err(|e| {
+                SteganoError::JpegError {
                     reason: e.to_string(),
-                })?
+                }
+            })?
         } else {
             // PNG → JPEG: encode from decoded pixels
-            let img =
-                image::open(source).map_err(|_| SteganoError::InvalidImageMedia)?;
+            let img = image::open(source).map_err(|_| SteganoError::InvalidImageMedia)?;
             let rgb = img.to_rgb8();
             let (width, height) = rgb.dimensions();
             stegano_f5::embed_in_jpeg_from_image(
@@ -179,8 +179,7 @@ impl HideApi {
             })?
         };
 
-        std::fs::write(output, stego)
-            .map_err(|source| SteganoError::WriteError { source })?;
+        std::fs::write(output, stego).map_err(|source| SteganoError::WriteError { source })?;
 
         Ok(())
     }
