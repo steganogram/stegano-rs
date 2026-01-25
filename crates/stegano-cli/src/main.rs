@@ -29,8 +29,8 @@ fn handle_subcommands(args: CliArgs) -> CliResult<()> {
     }
 }
 
-fn get_options(args: &CliArgs) -> CodecOptions {
-    CodecOptions {
+fn get_options(args: &CliArgs) -> LsbCodecOptions {
+    LsbCodecOptions {
         color_channel_step_increment: args.color_step_increment as _,
         ..Default::default()
     }

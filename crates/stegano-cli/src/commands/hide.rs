@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use stegano_core::CodecOptions;
+use stegano_core::LsbCodecOptions;
 
 use crate::CliResult;
 
@@ -45,15 +45,17 @@ pub struct HideArgs {
 }
 
 impl HideArgs {
-    pub fn run(self, options: CodecOptions) -> CliResult<()> {
+    pub fn run(self, _options: LsbCodecOptions) -> CliResult<()> {
         let password = if self.password.is_none() {
             crate::cli::ask_for_password(true)
         } else {
             self.password
         };
 
+        // Note: Codec is determined by target file extension:
+        // - .png → LSB encoding
+        // - .jpg/.jpeg → F5 encoding
         stegano_core::api::hide::prepare()
-            .with_options(options)
             .with_image(self.media)
             .with_output(self.write_to_file)
             .using_password(password)

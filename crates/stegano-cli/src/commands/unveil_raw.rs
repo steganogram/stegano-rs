@@ -23,7 +23,7 @@ pub struct UnveilRawArgs {
 }
 
 impl UnveilRawArgs {
-    pub fn run(self, _options: stegano_core::CodecOptions) -> crate::CliResult<()> {
+    pub fn run(self, _options: stegano_core::LsbCodecOptions) -> crate::CliResult<()> {
         let password = if self.password.is_none() {
             crate::cli::ask_for_password(false)
         } else {

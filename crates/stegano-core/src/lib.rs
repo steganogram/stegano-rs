@@ -82,7 +82,7 @@ pub(crate) mod media;
 pub mod api;
 
 pub use crate::error::SteganoError;
-pub use crate::media::CodecOptions;
+pub use crate::media::{CodecOptions, LsbCodecOptions};
 pub use crate::result::Result;
 
 use std::default::Default;
@@ -90,7 +90,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use crate::media::payload::{FabA, FabS, PayloadCodecFactory};
-use crate::media::{F5CodecOptions, LsbCodecOptions, Media, Persist};
+use crate::media::{F5CodecOptions, Media, Persist};
 use crate::message::Message;
 use crate::raw_message::RawMessage;
 
