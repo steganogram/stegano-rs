@@ -64,6 +64,9 @@ impl LsbCodecOptions {
     }
 }
 
+/// Default JPEG quality for F5 encoding (1-100)
+pub const DEFAULT_JPEG_QUALITY: u8 = 90;
+
 /// Options for F5 JPEG steganography encoding
 #[derive(Debug)]
 pub struct F5CodecOptions {
@@ -77,7 +80,7 @@ impl Default for F5CodecOptions {
     fn default() -> Self {
         Self {
             seed: None,
-            quality: 90,
+            quality: DEFAULT_JPEG_QUALITY,
         }
     }
 }

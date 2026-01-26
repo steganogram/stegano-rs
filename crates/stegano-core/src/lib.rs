@@ -89,7 +89,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use crate::media::payload::{FabA, FabS, PayloadCodecFactory};
-use crate::media::{CodecOptions, F5CodecOptions, LsbCodecOptions, Media, Persist};
+use crate::media::{CodecOptions, F5CodecOptions, LsbCodecOptions, Media, Persist, DEFAULT_JPEG_QUALITY};
 use crate::message::Message;
 use crate::raw_message::RawMessage;
 
@@ -99,6 +99,7 @@ pub struct SteganoEncoder {
     carrier: Option<Media>,
     message: Message,
     color_channel_step_increment: Option<usize>,
+    jpeg_quality: Option<u8>,
 }
 
 impl Default for SteganoEncoder {
@@ -109,6 +110,7 @@ impl Default for SteganoEncoder {
             carrier: None,
             message: Message::empty(),
             color_channel_step_increment: None,
+            jpeg_quality: None,
         }
     }
 }
@@ -138,6 +140,11 @@ impl SteganoEncoder {
 
     pub fn with_color_step_increment(&mut self, step: usize) -> &mut Self {
         self.color_channel_step_increment = Some(step);
+        self
+    }
+
+    pub fn with_jpeg_quality(&mut self, quality: u8) -> &mut Self {
+        self.jpeg_quality = Some(quality);
         self
     }
 
@@ -207,7 +214,8 @@ impl SteganoEncoder {
             "jpg" | "jpeg" => {
                 // Derive F5 seed from password if available
                 let seed = self.codec_factory.password().map(|p| p.as_bytes().to_vec());
-                Ok(CodecOptions::F5(F5CodecOptions { seed, quality: 90 }))
+                let quality = self.jpeg_quality.unwrap_or(DEFAULT_JPEG_QUALITY);
+                Ok(CodecOptions::F5(F5CodecOptions { seed, quality }))
             }
             "wav" => Ok(CodecOptions::AudioLsb),
             _ => Err(SteganoError::UnsupportedMedia),

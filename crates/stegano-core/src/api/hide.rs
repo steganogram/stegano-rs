@@ -17,6 +17,7 @@ pub struct HideApi {
     output: Option<PathBuf>,
     password: Password,
     color_channel_step_increment: Option<usize>,
+    jpeg_quality: Option<u8>,
 }
 
 impl HideApi {
@@ -88,6 +89,16 @@ impl HideApi {
         self
     }
 
+    /// Set the JPEG quality for F5 encoding (1-100).
+    ///
+    /// Only applies to JPEG output files using F5 steganography.
+    /// For PNG output files (LSB steganography), this setting is ignored.
+    /// If not set, defaults to 90.
+    pub fn with_jpeg_quality(mut self, quality: u8) -> Self {
+        self.jpeg_quality = Some(quality);
+        self
+    }
+
     /// Execute the hiding process and blocks until it is finished
     pub fn execute(self) -> Result<(), SteganoError> {
         self.validate()?;
@@ -107,6 +118,10 @@ impl HideApi {
 
         if let Some(step) = self.color_channel_step_increment {
             s.with_color_step_increment(step);
+        }
+
+        if let Some(quality) = self.jpeg_quality {
+            s.with_jpeg_quality(quality);
         }
 
         if let Some(message) = self.message {
@@ -282,5 +297,33 @@ mod tests {
 
         let api = api.use_files(None);
         assert!(api.files.as_ref().is_none());
+    }
+
+    #[test]
+    fn should_hide_in_jpeg_with_custom_quality() {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let output = temp_dir.path().join("quality_test.jpg");
+
+        crate::api::hide::prepare()
+            .with_message("Quality test message")
+            .with_image("tests/images/NoSecrets.jpg")
+            .with_jpeg_quality(50)
+            .with_output(&output)
+            .execute()
+            .expect("Failed to hide in JPEG with custom quality");
+
+        // Verify output is valid JPEG
+        let data = std::fs::read(&output).unwrap();
+        assert_eq!(&data[0..2], &[0xFF, 0xD8], "Should be a valid JPEG");
+
+        // Verify we can unveil the message
+        crate::api::unveil::prepare()
+            .from_secret_file(&output)
+            .into_output_folder(temp_dir.path())
+            .execute()
+            .expect("Failed to unveil from JPEG");
+
+        let msg = std::fs::read_to_string(temp_dir.path().join("secret-message.txt")).unwrap();
+        assert_eq!(msg, "Quality test message");
     }
 }
