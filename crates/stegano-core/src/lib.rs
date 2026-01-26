@@ -89,7 +89,9 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use crate::media::payload::{FabA, FabS, PayloadCodecFactory};
-use crate::media::{CodecOptions, F5CodecOptions, LsbCodecOptions, Media, Persist, DEFAULT_JPEG_QUALITY};
+use crate::media::{
+    CodecOptions, F5CodecOptions, LsbCodecOptions, Media, Persist, DEFAULT_JPEG_QUALITY,
+};
 use crate::message::Message;
 use crate::raw_message::RawMessage;
 
