@@ -18,10 +18,7 @@ pub enum Media {
     /// PNG image - stores decoded pixels
     Image(RgbaImage),
     /// JPEG image - stores both decoded pixels and original source bytes for F5 transcoding
-    ImageJpeg {
-        pixels: RgbaImage,
-        source: Vec<u8>,
-    },
+    ImageJpeg { pixels: RgbaImage, source: Vec<u8> },
     /// WAV audio
     Audio(WavAudio),
 }
@@ -47,8 +44,8 @@ impl Media {
                         .to_rgba8(),
                 )),
                 "jpg" | "jpeg" => {
-                    let source = std::fs::read(f)
-                        .map_err(|source| SteganoError::ReadError { source })?;
+                    let source =
+                        std::fs::read(f).map_err(|source| SteganoError::ReadError { source })?;
                     let pixels = image::open(f)
                         .map_err(|_e| SteganoError::InvalidImageMedia)?
                         .to_rgba8();
@@ -89,14 +86,14 @@ impl Media {
             // F5 encoding → JPEG output
             (Media::Image(img), CodecOptions::F5(f5_opts)) => {
                 // PNG → JPEG: encode from pixels
-                let rgb = image::DynamicImage::ImageRgba8(img.clone()).to_rgb8();
-                let (width, height) = rgb.dimensions();
+                let rgba = img.as_flat_samples().samples;
+                let (width, height) = img.dimensions();
                 let jpeg_data = stegano_f5::embed_in_jpeg_from_image(
-                    rgb.as_raw(),
+                    rgba,
                     width as u16,
                     height as u16,
                     f5_opts.quality,
-                    stegano_f5_jpeg_encoder::ColorType::Rgb,
+                    stegano_f5_jpeg_encoder::ColorType::Rgba,
                     &msg_data,
                     f5_opts.seed.as_deref(),
                 )
@@ -108,10 +105,11 @@ impl Media {
             (Media::ImageJpeg { source, .. }, CodecOptions::F5(f5_opts)) => {
                 // JPEG → JPEG: transcode preserving characteristics
                 let jpeg_data =
-                    stegano_f5::embed_in_jpeg(source, &msg_data, f5_opts.seed.as_deref())
-                        .map_err(|e| SteganoError::JpegError {
+                    stegano_f5::embed_in_jpeg(source, &msg_data, f5_opts.seed.as_deref()).map_err(
+                        |e| SteganoError::JpegError {
                             reason: e.to_string(),
-                        })?;
+                        },
+                    )?;
                 Ok(EncodedMedia::Jpeg(jpeg_data))
             }
 
@@ -137,11 +135,7 @@ impl Media {
         }
     }
 
-    fn encode_lsb(
-        img: &mut RgbaImage,
-        msg_data: &[u8],
-        opts: &LsbCodecOptions,
-    ) -> Result<()> {
+    fn encode_lsb(img: &mut RgbaImage, msg_data: &[u8], opts: &LsbCodecOptions) -> Result<()> {
         let (width, height) = img.dimensions();
         let mut encoder = super::image::LsbCodec::encoder(img, opts);
 
@@ -163,7 +157,6 @@ impl Media {
         })?;
         Ok(())
     }
-
 }
 
 impl Persist for EncodedMedia {
@@ -195,8 +188,7 @@ impl Persist for EncodedMedia {
                         });
                     }
                 }
-                std::fs::write(file, data)
-                    .map_err(|source| SteganoError::WriteError { source })
+                std::fs::write(file, data).map_err(|source| SteganoError::WriteError { source })
             }
             EncodedMedia::Wav(spec, samples) => {
                 let mut writer =
