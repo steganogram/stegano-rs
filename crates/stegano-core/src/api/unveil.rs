@@ -115,13 +115,7 @@ impl UnveilApi {
                 Message::from_raw_data(&mut decoder, &*fab)
             }
             Media::ImageJpeg { source, .. } => {
-                // F5 extraction - derive seed from password
-                let seed: Option<Vec<u8>> = self
-                    .password
-                    .as_ref()
-                    .as_ref()
-                    .map(|p| p.as_bytes().to_vec());
-
+                let seed = fab.password().map(|p| p.as_bytes().to_vec());
                 let mut decoder = image::F5JpegDecoder::decode(&source, seed.as_deref())?;
                 Message::from_raw_data(&mut decoder, &*fab)
             }

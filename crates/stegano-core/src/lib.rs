@@ -206,14 +206,8 @@ impl SteganoEncoder {
             }
             "jpg" | "jpeg" => {
                 // Derive F5 seed from password if available
-                let seed = self
-                    .codec_factory
-                    .password()
-                    .map(|p| p.as_bytes().to_vec());
-                Ok(CodecOptions::F5(F5CodecOptions {
-                    seed,
-                    quality: 90,
-                }))
+                let seed = self.codec_factory.password().map(|p| p.as_bytes().to_vec());
+                Ok(CodecOptions::F5(F5CodecOptions { seed, quality: 90 }))
             }
             "wav" => Ok(CodecOptions::AudioLsb),
             _ => Err(SteganoError::UnsupportedMedia),
