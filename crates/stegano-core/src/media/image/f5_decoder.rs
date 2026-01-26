@@ -14,11 +14,15 @@ impl F5JpegDecoder {
     /// # Arguments
     /// * `jpeg_source` - The raw JPEG bytes containing F5-embedded data
     /// * `seed` - Optional seed for permutation (derived from password)
-    pub fn new(jpeg_source: &[u8], seed: Option<&[u8]>) -> std::result::Result<Self, crate::SteganoError> {
-        let extracted = stegano_f5::extract_from_jpeg(jpeg_source, seed)
-            .map_err(|e| crate::SteganoError::JpegError {
+    pub fn decode(
+        jpeg_source: &[u8],
+        seed: Option<&[u8]>,
+    ) -> std::result::Result<Self, crate::SteganoError> {
+        let extracted = stegano_f5::extract_from_jpeg(jpeg_source, seed).map_err(|e| {
+            crate::SteganoError::JpegError {
                 reason: e.to_string(),
-            })?;
+            }
+        })?;
 
         Ok(Self {
             inner: Cursor::new(extracted),

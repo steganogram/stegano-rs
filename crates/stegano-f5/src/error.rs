@@ -44,6 +44,10 @@ pub enum F5Error {
     #[error("JPEG encoding failed")]
     JpegEncodeFailed(#[source] Box<dyn std::error::Error + Send + Sync>),
 
+    /// F5 embedding failed during JPEG encoding.
+    #[error("{0}")]
+    EmbeddingFailed(String),
+
     /// I/O error during bit operations.
     #[error("bit I/O error: {0}")]
     BitIo(#[from] std::io::Error),

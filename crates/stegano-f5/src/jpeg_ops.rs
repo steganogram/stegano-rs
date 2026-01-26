@@ -5,7 +5,7 @@
 
 use crate::error::{F5Error, Result};
 use crate::{F5Decoder, F5Encoder};
-use stegano_f5_jpeg_encoder::ZIGZAG;
+use stegano_f5_jpeg_encoder::{EncodingError, ZIGZAG};
 
 /// Convert a block from natural (row-major) order to zigzag order.
 #[inline]
@@ -73,32 +73,40 @@ pub fn embed_in_jpeg_from_image(
     let message = message.to_vec();
     let seed = seed.map(|s| s.to_vec());
 
-    encoder.set_coefficient_hook(move |blocks: &mut [Vec<[i16; 64]>; 4]| {
-        // Flatten all component blocks into a single coefficient slice for F5.
-        // Encoder blocks are already in zigzag order (from quantize_block).
-        let mut flat: Vec<i16> = blocks
-            .iter()
-            .flat_map(|component| component.iter().flat_map(|block| block.iter()))
-            .copied()
-            .collect();
+    encoder.set_coefficient_hook(
+        move |blocks: &mut [Vec<[i16; 64]>; 4]| -> std::result::Result<(), EncodingError> {
+            // Flatten all component blocks into a single coefficient slice for F5.
+            // Encoder blocks are already in zigzag order (from quantize_block).
+            let mut flat: Vec<i16> = blocks
+                .iter()
+                .flat_map(|component| component.iter().flat_map(|block| block.iter()))
+                .copied()
+                .collect();
 
-        let f5 = F5Encoder::new();
-        // Ignore embed errors in hook (capacity issues are caught earlier)
-        let _ = f5.embed(&mut flat, &message, seed.as_deref());
+            let f5 = F5Encoder::new();
+            f5.embed(&mut flat, &message, seed.as_deref())
+                .map_err(|e| EncodingError::HookError(e.to_string()))?;
 
-        // Write back modified coefficients
-        let mut offset = 0;
-        for component in blocks.iter_mut() {
-            for block in component.iter_mut() {
-                block.copy_from_slice(&flat[offset..offset + 64]);
-                offset += 64;
+            // Write back modified coefficients
+            let mut offset = 0;
+            for component in blocks.iter_mut() {
+                for block in component.iter_mut() {
+                    block.copy_from_slice(&flat[offset..offset + 64]);
+                    offset += 64;
+                }
             }
-        }
-    });
+            Ok(())
+        },
+    );
 
     encoder
         .encode(image_data, width, height, color_type)
-        .map_err(|e| F5Error::JpegEncodeFailed(Box::new(e)))?;
+        .map_err(|e| match e {
+            // HookError contains an F5 error message - propagate it directly
+            EncodingError::HookError(msg) => F5Error::EmbeddingFailed(msg),
+            // Other encoder errors
+            other => F5Error::JpegEncodeFailed(Box::new(other)),
+        })?;
 
     Ok(output)
 }
@@ -317,5 +325,17 @@ mod tests {
             source.to_string(),
             "invalid JPEG format: first two bytes are not an SOI marker"
         );
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "capacity exceeded: message requires 18192 bytes but only 8188 available"
+    )]
+    fn test_embed_capacity_exceeded_returns_error() {
+        let cover = VESSEL;
+        let capacity = jpeg_capacity(cover).unwrap();
+        let oversized_message = vec![0xAB_u8; capacity + 10000];
+
+        embed_in_jpeg(cover, &oversized_message, Some(b"seed")).unwrap();
     }
 }

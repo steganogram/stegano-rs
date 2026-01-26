@@ -122,7 +122,7 @@ impl UnveilApi {
                     .as_ref()
                     .map(|p| p.as_bytes().to_vec());
 
-                let mut decoder = image::F5JpegDecoder::new(&source, seed.as_deref())?;
+                let mut decoder = image::F5JpegDecoder::decode(&source, seed.as_deref())?;
                 Message::from_raw_data(&mut decoder, &*fab)
             }
             Media::Audio(audio) => {

@@ -96,7 +96,7 @@ impl UnveilRawApi {
                     .map(|p| p.as_bytes().to_vec());
 
                 let mut decoder =
-                    crate::media::image::F5JpegDecoder::new(&source, seed.as_deref())?;
+                    crate::media::image::F5JpegDecoder::decode(&source, seed.as_deref())?;
                 RawMessage::from_raw_data(&mut decoder, &*fab)?
             }
             Media::Audio(audio) => {
