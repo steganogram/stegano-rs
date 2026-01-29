@@ -42,6 +42,25 @@
 //! let decoder = F5Decoder::new();
 //! let extracted = decoder.extract(&coefficients, Some(seed))?;
 //! ```
+//!
+//! # Capacity Checking
+//!
+//! To check if a message will fit before embedding:
+//!
+//! ```rust,ignore
+//! use stegano_f5::{jpeg_capacity, F5Encoder};
+//!
+//! let jpeg_data = std::fs::read("cover.jpg")?;
+//! let raw_capacity = jpeg_capacity(&jpeg_data)?;
+//!
+//! // Account for F5 header overhead
+//! let message_capacity = raw_capacity.saturating_sub(F5Encoder::HEADER_BYTES);
+//!
+//! let message = b"Secret message";
+//! if message.len() <= message_capacity {
+//!     // Message will fit
+//! }
+//! ```
 
 mod decoder;
 mod encoder;
