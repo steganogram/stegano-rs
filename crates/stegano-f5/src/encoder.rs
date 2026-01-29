@@ -28,6 +28,24 @@ pub struct F5Encoder {
 }
 
 impl F5Encoder {
+    /// F5 header overhead in bytes (32 bits = 4 bytes).
+    ///
+    /// The header contains: 4 bits for w parameter + 28 bits for message length.
+    pub const HEADER_BYTES: usize = HEADER_BITS / 8;
+
+    /// Calculate the total size needed to embed a payload using F5.
+    ///
+    /// This accounts for the F5 header overhead (4 bytes).
+    ///
+    /// # Arguments
+    /// * `payload_len` - Size of the payload in bytes
+    ///
+    /// # Returns
+    /// Total bytes required for F5 embedding (payload + header)
+    pub fn embedded_size(payload_len: usize) -> usize {
+        payload_len + Self::HEADER_BYTES
+    }
+
     /// Create a new F5 encoder with automatic w selection.
     pub fn new() -> Self {
         F5Encoder { fixed_w: None }
@@ -435,5 +453,16 @@ mod tests {
 
         let encoder = F5Encoder::with_w(3);
         encoder.embed(&mut coeffs, b"test", None).unwrap();
+    }
+
+    #[test]
+    fn test_embedded_size() {
+        // F5 header is 32 bits = 4 bytes
+        assert_eq!(F5Encoder::HEADER_BYTES, 4);
+
+        // embedded_size should add header overhead
+        assert_eq!(F5Encoder::embedded_size(0), 4);
+        assert_eq!(F5Encoder::embedded_size(100), 104);
+        assert_eq!(F5Encoder::embedded_size(1000), 1004);
     }
 }
