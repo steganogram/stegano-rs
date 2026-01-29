@@ -328,9 +328,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "capacity exceeded"
-    )]
+    #[should_panic(expected = "capacity exceeded")]
     fn test_embed_capacity_exceeded_returns_error() {
         use crate::F5Encoder;
 
@@ -342,9 +340,12 @@ mod tests {
 
         // Message that fits within usable capacity should succeed
         let right_sized_message = vec![0xAB_u8; usable_capacity];
-        assert!(embed_in_jpeg(cover, &right_sized_message, Some(b"seed")).is_ok(),
+        assert!(
+            embed_in_jpeg(cover, &right_sized_message, Some(b"seed")).is_ok(),
             "Message of {} bytes should fit in capacity of {} bytes",
-            usable_capacity, raw_capacity);
+            usable_capacity,
+            raw_capacity
+        );
 
         // Message that exceeds capacity should fail
         let oversized_message = vec![0xAB_u8; raw_capacity + 10000];

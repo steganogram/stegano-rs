@@ -53,6 +53,7 @@ pub trait PayloadEncoder {
     /// Calculate the encoded size for a given content length.
     ///
     /// Returns the total bytes that `encode()` will produce for content of the given length.
+    #[allow(dead_code)]
     fn encoded_size(&self, content_len: usize) -> usize;
 }
 
@@ -215,8 +216,12 @@ mod tests {
         let mut cursor = std::io::Cursor::new(content.as_slice());
         let encoded = encoder.encode(&mut cursor).unwrap();
 
-        assert_eq!(predicted_size, encoded.len(),
+        assert_eq!(
+            predicted_size,
+            encoded.len(),
             "Predicted size {} should match actual encoded size {}",
-            predicted_size, encoded.len());
+            predicted_size,
+            encoded.len()
+        );
     }
 }

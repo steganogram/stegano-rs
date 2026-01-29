@@ -57,6 +57,7 @@ impl CryptedPayloadCodec {
 }
 
 /// Encryption overhead: 16 bytes (Poly1305 auth tag) + 24 bytes (nonce) + 32 bytes (salt)
+#[allow(dead_code)]
 const ENCRYPTION_OVERHEAD: usize = 16 + 24 + 32;
 
 impl PayloadEncoder for CryptedPayloadCodec {
