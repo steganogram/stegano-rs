@@ -329,13 +329,25 @@ mod tests {
 
     #[test]
     #[should_panic(
-        expected = "capacity exceeded: message requires 18192 bytes but only 8188 available"
+        expected = "capacity exceeded"
     )]
     fn test_embed_capacity_exceeded_returns_error() {
-        let cover = VESSEL;
-        let capacity = jpeg_capacity(cover).unwrap();
-        let oversized_message = vec![0xAB_u8; capacity + 10000];
+        use crate::F5Encoder;
 
+        let cover = VESSEL;
+        let raw_capacity = jpeg_capacity(cover).unwrap();
+
+        // Account for F5 header overhead when calculating usable capacity
+        let usable_capacity = raw_capacity.saturating_sub(F5Encoder::HEADER_BYTES);
+
+        // Message that fits within usable capacity should succeed
+        let right_sized_message = vec![0xAB_u8; usable_capacity];
+        assert!(embed_in_jpeg(cover, &right_sized_message, Some(b"seed")).is_ok(),
+            "Message of {} bytes should fit in capacity of {} bytes",
+            usable_capacity, raw_capacity);
+
+        // Message that exceeds capacity should fail
+        let oversized_message = vec![0xAB_u8; raw_capacity + 10000];
         embed_in_jpeg(cover, &oversized_message, Some(b"seed")).unwrap();
     }
 }
