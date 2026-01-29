@@ -49,6 +49,11 @@ pub trait PayloadEncoder {
     fn version(&self) -> PayloadCodecFeatures;
 
     fn encode(&self, content: &mut dyn Read) -> Result<Vec<u8>>;
+
+    /// Calculate the encoded size for a given content length.
+    ///
+    /// Returns the total bytes that `encode()` will produce for content of the given length.
+    fn encoded_size(&self, content_len: usize) -> usize;
 }
 
 pub trait PayloadDecoder {
@@ -134,6 +139,11 @@ impl PayloadEncoder for PayloadEncoderWithLengthHeader {
 
         Ok(buffer)
     }
+
+    fn encoded_size(&self, content_len: usize) -> usize {
+        // 1 byte version + 4 bytes length + content + 1 byte terminator
+        content_len + 6
+    }
 }
 
 pub struct PayloadFlexCodec {
@@ -164,6 +174,10 @@ impl PayloadEncoder for PayloadFlexCodec {
     fn encode(&self, content: &mut dyn Read) -> Result<Vec<u8>> {
         self.encoder.encode(content)
     }
+
+    fn encoded_size(&self, content_len: usize) -> usize {
+        self.encoder.encoded_size(content_len)
+    }
 }
 
 impl PayloadDecoder for PayloadFlexCodec {
@@ -187,5 +201,22 @@ mod tests {
         assert!(f.has_feature(PayloadCodecFeatures::TextAndDocuments));
         assert!(f.has_feature(PayloadCodecFeatures::LengthHeader));
         assert!(f.has_feature(PayloadCodecFeatures::ChaCrypto));
+    }
+
+    #[test]
+    fn test_encoded_size_matches_actual_encoding() {
+        let encoder = PayloadEncoderWithLengthHeader::new(PayloadCodecFeatures::TextOnly);
+        let content = b"Hello, World!";
+
+        // Get predicted size
+        let predicted_size = encoder.encoded_size(content.len());
+
+        // Get actual encoded size
+        let mut cursor = std::io::Cursor::new(content.as_slice());
+        let encoded = encoder.encode(&mut cursor).unwrap();
+
+        assert_eq!(predicted_size, encoded.len(),
+            "Predicted size {} should match actual encoded size {}",
+            predicted_size, encoded.len());
     }
 }

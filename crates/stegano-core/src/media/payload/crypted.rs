@@ -56,6 +56,9 @@ impl CryptedPayloadCodec {
     }
 }
 
+/// Encryption overhead: 16 bytes (Poly1305 auth tag) + 24 bytes (nonce) + 32 bytes (salt)
+const ENCRYPTION_OVERHEAD: usize = 16 + 24 + 32;
+
 impl PayloadEncoder for CryptedPayloadCodec {
     fn version(&self) -> PayloadCodecFeatures {
         self.inner_encoder.version()
@@ -72,6 +75,13 @@ impl PayloadEncoder for CryptedPayloadCodec {
         // now we encode the encrypted data with the inner encoder
         let mut cursor = std::io::Cursor::new(data);
         self.inner_encoder.encode(&mut cursor)
+    }
+
+    fn encoded_size(&self, content_len: usize) -> usize {
+        // Encrypted size = content + encryption overhead (auth tag + nonce + salt)
+        let encrypted_len = content_len + ENCRYPTION_OVERHEAD;
+        // Then pass to inner encoder
+        self.inner_encoder.encoded_size(encrypted_len)
     }
 }
 
