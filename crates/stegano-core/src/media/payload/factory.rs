@@ -12,7 +12,7 @@ pub trait PayloadCodecFactory {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FabA;
 impl PayloadCodecFactory for FabA {
     fn create_codec(&self, features: PayloadCodecFeatures) -> Result<Box<dyn PayloadCodec>>

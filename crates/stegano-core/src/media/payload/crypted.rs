@@ -11,7 +11,7 @@ use super::{PayloadCodec, PayloadDecoder};
 use crate::result::Result;
 use crate::SteganoError;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FabS {
     pub password: String,
 }
