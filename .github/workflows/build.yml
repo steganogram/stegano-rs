@@ -137,9 +137,9 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
-          submodules: recursive
+          submodules: "recursive"
       - name: setup | rust
         uses: steganogram/.github/.github/actions/rust-toolchain@main
         with:

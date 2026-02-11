@@ -31,7 +31,9 @@ jobs:
             cross: false
             binName: stegano.exe
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
+        with:
+          submodules: "recursive"
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
