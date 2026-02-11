@@ -11,14 +11,126 @@ on:
         required: true
 
 jobs:
-  build:
-    uses: steganogram/.github/.github/workflows/build.yml@main
+  check:
+    name: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest", "ubuntu-latest", "windows-latest"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: setup | rust
+        uses: steganogram/.github/.github/actions/rust-toolchain@main
+      - run: cargo check
+
+  lint:
+    name: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest", "ubuntu-latest", "windows-latest"]
+        cargo-cmd:
+          - fmt --all -- --check
+          - clippy --all-targets -- -D warnings
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: setup | rust
+        uses: steganogram/.github/.github/actions/rust-toolchain@main
+      - run: cargo ${{ matrix['cargo-cmd'] }}
+
+  tests:
+    name: tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest", "ubuntu-latest", "windows-latest"]
+        channel: ["nightly", "stable"]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.channel == 'nightly' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: setup | rust
+        uses: steganogram/.github/.github/actions/rust-toolchain@main
+        with:
+          channel: ${{ matrix.channel }}
+          default: true
+          profile: minimal
+      - name: cargo test
+        if: matrix.os != 'windows-latest'
+        run: |
+          if [ -f "Cargo.lock" ]; then
+            cargo test --all --locked
+          else
+            cargo test --all
+          fi
+      - name: cargo test
+        if: matrix.os == 'windows-latest'
+        run: |
+          if (Test-Path "Cargo.lock") {
+            cargo test --all --locked
+          } else {
+            cargo test --all
+          }
+
+  audit:
+    name: security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: setup | rust
+        uses: steganogram/.github/.github/actions/rust-toolchain@main
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+      - name: audit
+        run: cargo deny check advisories bans sources
+        continue-on-error: true
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: setup | rust
+        uses: steganogram/.github/.github/actions/rust-toolchain@main
+      - name: check documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --no-deps
 
   coverage:
     name: code coverage
-    uses: steganogram/.github/.github/workflows/coverage.yml@main
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: setup | rust
+        uses: steganogram/.github/.github/actions/rust-toolchain@main
+        with:
+          channel: nightly
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - name: run code coverage
+        run: cargo +nightly llvm-cov --all-features --workspace --lcov --output-path lcov.info
+      - name: upload to codecov.io
+        uses: codecov/codecov-action@v5
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          fail_ci_if_error: true
 
   benchmark:
     name: benchmark
@@ -26,25 +138,11 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: setup | rust
         uses: steganogram/.github/.github/actions/rust-toolchain@main
         with:
           channel: nightly
       - name: run benchmarks
         run: cargo +nightly benchmarks
-
-  # pkg-deb:
-  #   name: binaray package .deb
-  #   needs: check
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: cargo deb
-  #       uses: sassman/rust-deb-builder@v1
-  #       with:
-  #         package: stegano-cli
-  #     - name: Archive deb artifact
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: stegano-cli-amd64-static.deb
-  #         path: target/x86_64-unknown-linux-musl/debian/stegano-cli*.deb

@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use stegano_core::CodecOptions;
 
 use crate::CliResult;
 
@@ -42,23 +41,39 @@ pub struct HideArgs {
         required_unless_present = "data_files"
     )]
     pub message: Option<String>,
+
+    /// JPEG quality for F5 steganography (1-100). Only applies to JPEG output.
+    #[arg(
+        long,
+        value_name = "quality",
+        value_parser = clap::value_parser!(u8).range(1..=100)
+    )]
+    pub jpeg_quality: Option<u8>,
 }
 
 impl HideArgs {
-    pub fn run(self, options: CodecOptions) -> CliResult<()> {
+    pub fn run(self, color_step_increment: usize) -> CliResult<()> {
         let password = if self.password.is_none() {
             crate::cli::ask_for_password(true)
         } else {
             self.password
         };
 
-        stegano_core::api::hide::prepare()
-            .with_options(options)
+        // Note: Codec is determined by target file extension:
+        // - .png → LSB encoding (uses color_step_increment)
+        // - .jpg/.jpeg → F5 encoding (uses jpeg_quality)
+        let mut api = stegano_core::api::hide::prepare()
+            .with_color_step_increment(color_step_increment)
             .with_image(self.media)
             .with_output(self.write_to_file)
             .using_password(password)
             .use_files(self.data_files)
-            .use_message(self.message)
-            .execute()
+            .use_message(self.message);
+
+        if let Some(quality) = self.jpeg_quality {
+            api = api.with_jpeg_quality(quality);
+        }
+
+        api.execute()
     }
 }

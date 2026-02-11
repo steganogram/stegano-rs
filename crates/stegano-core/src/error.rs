@@ -87,4 +87,12 @@ pub enum SteganoError {
 
     #[error("API Error: Missing files")]
     MissingFiles,
+
+    /// Represents a failure during F5 JPEG steganography
+    #[error("JPEG steganography error: {reason}")]
+    JpegError { reason: String },
+
+    /// Represents a mismatch between encoded media format and target file extension
+    #[error("Format mismatch: expected {expected}, got {actual}")]
+    FormatMismatch { expected: String, actual: String },
 }

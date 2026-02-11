@@ -9,10 +9,10 @@ use crate::{
         audio::wav_iter::AudioWavIter,
         image::LsbCodec,
         payload::{FabA, FabS, PayloadCodecFactory},
-        Media,
+        LsbCodecOptions, Media,
     },
     universal_decoder::{OneBitUnveil, UniversalDecoder},
-    CodecOptions, RawMessage, SteganoError,
+    RawMessage, SteganoError,
 };
 
 use super::Password;
@@ -26,13 +26,17 @@ pub struct UnveilRawApi {
     secret_media: Option<PathBuf>,
     destination_file: Option<PathBuf>,
     password: Password,
-    options: CodecOptions,
+    color_channel_step_increment: Option<usize>,
 }
 
 impl UnveilRawApi {
-    /// Use the given codec options
-    pub fn with_options(mut self, options: CodecOptions) -> Self {
-        self.options = options;
+    /// Set the color channel step increment for LSB decoding.
+    ///
+    /// This controls how pixels are traversed during decoding.
+    /// Only applies to PNG/image files using LSB steganography.
+    /// For JPEG files (F5 steganography), this setting is ignored.
+    pub fn with_color_step_increment(mut self, step: usize) -> Self {
+        self.color_channel_step_increment = Some(step);
         self
     }
 
@@ -63,14 +67,14 @@ impl UnveilRawApi {
 
     /// Execute the unveil process and blocks until it is finished
     pub fn execute(self) -> Result<(), SteganoError> {
-        let Some(secret_media) = self.secret_media else {
+        let Some(ref secret_media) = self.secret_media else {
             return Err(SteganoError::CarrierNotSet);
         };
-        let Some(destination_file) = self.destination_file else {
+        let Some(ref destination_file) = self.destination_file else {
             return Err(SteganoError::TargetNotSet);
         };
 
-        let media = Media::from_file(&secret_media)?;
+        let media = Media::from_file(secret_media)?;
         let fab: Box<dyn PayloadCodecFactory> = if let Some(password) = self.password.as_ref() {
             Box::new(FabS::new(password))
         } else {
@@ -79,7 +83,20 @@ impl UnveilRawApi {
 
         let msg = match media {
             Media::Image(image) => {
-                let mut decoder = LsbCodec::decoder(&image, &self.options);
+                let options = self.build_lsb_options();
+                let mut decoder = LsbCodec::decoder(&image, &options);
+                RawMessage::from_raw_data(&mut decoder, &*fab)?
+            }
+            Media::ImageJpeg { source, .. } => {
+                // F5 extraction - derive seed from password
+                let seed: Option<Vec<u8>> = self
+                    .password
+                    .as_ref()
+                    .as_ref()
+                    .map(|p| p.as_bytes().to_vec());
+
+                let mut decoder =
+                    crate::media::image::F5JpegDecoder::decode(&source, seed.as_deref())?;
                 RawMessage::from_raw_data(&mut decoder, &*fab)?
             }
             Media::Audio(audio) => {
@@ -95,6 +112,14 @@ impl UnveilRawApi {
         destination_file
             .write_all(msg.content.as_slice())
             .map_err(|source| SteganoError::WriteError { source })
+    }
+
+    fn build_lsb_options(&self) -> LsbCodecOptions {
+        let mut options = LsbCodecOptions::default();
+        if let Some(step) = self.color_channel_step_increment {
+            options.color_channel_step_increment = step;
+        }
+        options
     }
 }
 

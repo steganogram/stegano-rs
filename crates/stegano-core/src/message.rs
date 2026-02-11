@@ -10,7 +10,7 @@ use std::io::{Cursor, Read};
 use std::path::Path;
 use zip::{ZipArchive, ZipWriter};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Message {
     pub files: Vec<(String, Vec<u8>)>,
     pub text: Option<String>,
@@ -90,6 +90,18 @@ impl Message {
 
     pub fn empty() -> Self {
         Self::new()
+    }
+
+    pub fn set_message_text(&mut self, text: &str) {
+        self.text = Some(text.to_string());
+    }
+
+    pub fn clear_message_text(&mut self) {
+        self.text = None;
+    }
+
+    pub fn remove_file(&mut self, name: &str) {
+        self.files.retain(|(n, _)| n != name);
     }
 
     fn new() -> Self {

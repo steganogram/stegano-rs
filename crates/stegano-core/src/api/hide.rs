@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::{CodecOptions, SteganoEncoder, SteganoError};
+use crate::{SteganoEncoder, SteganoError};
 
 use super::Password;
 
@@ -16,16 +16,11 @@ pub struct HideApi {
     image: Option<PathBuf>,
     output: Option<PathBuf>,
     password: Password,
-    options: CodecOptions,
+    color_channel_step_increment: Option<usize>,
+    jpeg_quality: Option<u8>,
 }
 
 impl HideApi {
-    /// Use the given codec options
-    pub fn with_options(mut self, options: CodecOptions) -> Self {
-        self.options = options;
-        self
-    }
-
     /// This is the message that will be hidden
     pub fn with_message(mut self, message: &str) -> Self {
         self.message = Some(message.to_string());
@@ -84,21 +79,49 @@ impl HideApi {
         self
     }
 
+    /// Set the color channel step increment for LSB encoding.
+    ///
+    /// This controls how pixels are traversed during encoding.
+    /// Only applies to PNG output files using LSB steganography.
+    /// For JPEG output files (F5 steganography), this setting is ignored.
+    pub fn with_color_step_increment(mut self, step: usize) -> Self {
+        self.color_channel_step_increment = Some(step);
+        self
+    }
+
+    /// Set the JPEG quality for F5 encoding (1-100).
+    ///
+    /// Only applies to JPEG output files using F5 steganography.
+    /// For PNG output files (LSB steganography), this setting is ignored.
+    /// If not set, defaults to 90.
+    pub fn with_jpeg_quality(mut self, quality: u8) -> Self {
+        self.jpeg_quality = Some(quality);
+        self
+    }
+
     /// Execute the hiding process and blocks until it is finished
     pub fn execute(self) -> Result<(), SteganoError> {
         self.validate()?;
-        let Some(image) = self.image else {
+        let Some(ref image) = self.image else {
             return Err(SteganoError::CarrierNotSet);
         };
-        let Some(output) = self.output else {
+        let Some(ref output) = self.output else {
             return Err(SteganoError::TargetNotSet);
         };
 
-        let mut s = SteganoEncoder::with_options(self.options);
-        s.use_media(&image)?.save_as(&output);
+        let mut s = SteganoEncoder::new();
+        s.use_media(image)?.save_as(output);
 
         if let Some(password) = self.password.as_ref() {
             s.with_encryption(password);
+        }
+
+        if let Some(step) = self.color_channel_step_increment {
+            s.with_color_step_increment(step);
+        }
+
+        if let Some(quality) = self.jpeg_quality {
+            s.with_jpeg_quality(quality);
         }
 
         if let Some(message) = self.message {
@@ -175,6 +198,90 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn should_hide_in_jpeg_without_password() {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let output = temp_dir.path().join("secret.jpg");
+
+        crate::api::hide::prepare()
+            .with_message("Hello from JPEG!")
+            .with_image("tests/images/NoSecrets.jpg")
+            .with_output(&output)
+            .execute()
+            .expect("Failed to hide in JPEG");
+
+        let data = std::fs::read(&output).unwrap();
+        assert_eq!(&data[0..2], &[0xFF, 0xD8], "Should be a valid JPEG");
+        assert!(data.len() > 100, "Output should not be trivially small");
+    }
+
+    #[test]
+    fn should_hide_in_jpeg_with_password() {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let output = temp_dir.path().join("secret.jpg");
+
+        crate::api::hide::prepare()
+            .with_message("Secret JPEG message")
+            .with_image("tests/images/NoSecrets.jpg")
+            .using_password("MyPassword42")
+            .with_output(&output)
+            .execute()
+            .expect("Failed to hide in JPEG with password");
+
+        let data = std::fs::read(&output).unwrap();
+        assert_eq!(&data[0..2], &[0xFF, 0xD8], "Should be a valid JPEG");
+    }
+
+    #[test]
+    fn should_hide_in_png_source_and_output_jpeg() {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let output = temp_dir.path().join("from_png.jpg");
+
+        crate::api::hide::prepare()
+            .with_message("Cross-format test")
+            .with_image("tests/images/plain/carrier-image.png")
+            .using_password("CrossFormat42")
+            .with_output(&output)
+            .execute()
+            .expect("Failed to hide PNG to JPEG");
+
+        crate::api::unveil::prepare()
+            .from_secret_file(&output)
+            .using_password("CrossFormat42")
+            .into_output_folder(temp_dir.path())
+            .execute()
+            .expect("Failed to unveil from JPEG");
+
+        let msg = std::fs::read_to_string(temp_dir.path().join("secret-message.txt")).unwrap();
+        assert_eq!(msg, "Cross-format test");
+    }
+
+    #[test]
+    fn should_hide_and_unveil_binary_file_in_jpeg() {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let output = temp_dir.path().join("stegano.jpg");
+        let secret = "tests/images/secrets/random_1666_byte.bin";
+
+        crate::api::hide::prepare()
+            .with_file(secret)
+            .with_image("tests/images/NoSecrets.jpg")
+            .using_password("BinaryFilePass")
+            .with_output(&output)
+            .execute()
+            .expect("Failed to hide file in JPEG");
+
+        crate::api::unveil::prepare()
+            .from_secret_file(&output)
+            .using_password("BinaryFilePass")
+            .into_output_folder(temp_dir.path())
+            .execute()
+            .expect("Failed to unveil from JPEG");
+
+        let expected = std::fs::read(secret).unwrap();
+        let actual = std::fs::read(temp_dir.path().join("random_1666_byte.bin")).unwrap();
+        assert_eq!(actual, expected, "Unveiled binary data did not match");
+    }
+
     // create some tests for the files methods
     #[test]
     fn test_adding_files() {
@@ -190,5 +297,33 @@ mod tests {
 
         let api = api.use_files(None);
         assert!(api.files.as_ref().is_none());
+    }
+
+    #[test]
+    fn should_hide_in_jpeg_with_custom_quality() {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let output = temp_dir.path().join("quality_test.jpg");
+
+        crate::api::hide::prepare()
+            .with_message("Quality test message")
+            .with_image("tests/images/NoSecrets.jpg")
+            .with_jpeg_quality(50)
+            .with_output(&output)
+            .execute()
+            .expect("Failed to hide in JPEG with custom quality");
+
+        // Verify output is valid JPEG
+        let data = std::fs::read(&output).unwrap();
+        assert_eq!(&data[0..2], &[0xFF, 0xD8], "Should be a valid JPEG");
+
+        // Verify we can unveil the message
+        crate::api::unveil::prepare()
+            .from_secret_file(&output)
+            .into_output_folder(temp_dir.path())
+            .execute()
+            .expect("Failed to unveil from JPEG");
+
+        let msg = std::fs::read_to_string(temp_dir.path().join("secret-message.txt")).unwrap();
+        assert_eq!(msg, "Quality test message");
     }
 }

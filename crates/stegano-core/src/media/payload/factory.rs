@@ -6,9 +6,13 @@ use crate::result::Result;
 
 pub trait PayloadCodecFactory {
     fn create_codec(&self, features: PayloadCodecFeatures) -> Result<Box<dyn PayloadCodec>>;
+    /// Returns the password if one is set
+    fn password(&self) -> Option<&str> {
+        None
+    }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FabA;
 impl PayloadCodecFactory for FabA {
     fn create_codec(&self, features: PayloadCodecFeatures) -> Result<Box<dyn PayloadCodec>>

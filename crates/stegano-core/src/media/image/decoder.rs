@@ -1,5 +1,5 @@
 use super::iterators::{ColorIter, Transpose};
-use super::lsb_codec::CodecOptions;
+use crate::media::codec_options::LsbCodecOptions;
 use crate::media::MediaPrimitive;
 
 use image::{Rgba, RgbaImage};
@@ -15,10 +15,10 @@ impl<'i> ImageRgbaColor<'i> {
     /// constructor for a given `RgbaImage` that lives somewhere
     #[cfg(test)]
     pub fn new(input: &'i RgbaImage) -> Self {
-        Self::new_with_options(input, &CodecOptions::default())
+        Self::new_with_options(input, &LsbCodecOptions::default())
     }
 
-    pub fn new_with_options(input: &'i RgbaImage, options: &CodecOptions) -> Self {
+    pub fn new_with_options(input: &'i RgbaImage, options: &LsbCodecOptions) -> Self {
         let w = input.width();
         Self {
             i: 0,

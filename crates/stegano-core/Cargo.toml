@@ -38,6 +38,8 @@ log.workspace = true
 env_logger.workspace = true
 
 stegano-seasmoke.workspace = true
+stegano-f5.workspace = true
+stegano-f5-jpeg-encoder.workspace = true
 
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }
