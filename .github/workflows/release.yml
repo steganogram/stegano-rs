@@ -20,8 +20,9 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - name: Checkout release tag for build
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
+          submodules: "recursive"
           fetch-depth: 0
           ref: refs/tags/${{ needs.determine-crate.outputs.tag }}
       - name: setup | rust
@@ -40,8 +41,9 @@ jobs:
       tag: ${{ steps.parse.outputs.tag }}
     steps:
       - name: Checkout (fetch tags)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
+          submodules: "recursive"
           # Fetch tags so we can checkout the tagged ref later
           fetch-depth: 0
 
@@ -114,8 +116,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
+          submodules: "recursive"
           fetch-depth: 0
           ref: refs/tags/${{ needs.determine-crate.outputs.tag }}
       - name: setup | rust
@@ -136,8 +139,9 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
+          submodules: "recursive"
           ref: ${{ needs.determine-crate.outputs.tag }}
       - name: setup | rust
         uses: dtolnay/rust-toolchain@stable
