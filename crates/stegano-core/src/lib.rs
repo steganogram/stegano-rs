@@ -87,11 +87,9 @@ pub use crate::result::Result;
 pub mod prelude {
     pub use crate::api;
     pub use crate::error::SteganoError;
-    pub use crate::media::payload::{
-        PayloadCodec, PayloadCodecFactory, PayloadCodecFeatures,
-    };
     pub use crate::media::payload::FabA as PlainCodecFactory;
     pub use crate::media::payload::FabS as EncryptedCodecFactory;
+    pub use crate::media::payload::{PayloadCodec, PayloadCodecFactory, PayloadCodecFeatures};
     pub use crate::message::Message;
     pub use crate::result::Result;
     pub use crate::SteganoEncoder;
