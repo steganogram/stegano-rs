@@ -1533,7 +1533,7 @@ name = "stegano-inspect"
 version = "0.1.0"
 dependencies = [
  "argh",
- "itertools 0.10.5",
+ "itertools 0.13.0",
  "stegano-f5",
  "stegano-f5-jpeg-decoder",
  "stegano-f5-jpeg-encoder",

@@ -14,7 +14,7 @@ stegano-f5-jpeg-decoder.workspace = true
 stegano-f5-jpeg-encoder.workspace = true
 
 [dev-dependencies]
-itertools = "0.10"
+itertools = "0.13"
 
 [[bin]]
 name = "stegano-inspect"
