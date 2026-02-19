@@ -160,6 +160,19 @@ pub fn jpeg_capacity(jpeg_data: &[u8]) -> Result<usize> {
     Ok(usable_count / 8)
 }
 
+/// Estimate the JPEG encoding quality (0–100) from quantization tables.
+///
+/// Decodes the JPEG to extract quantization tables, then delegates to
+/// [`crate::quality::estimate_quality`] for the actual estimation.
+pub fn jpeg_quality_estimate(jpeg_data: &[u8]) -> Result<u8> {
+    let mut decoder = stegano_f5_jpeg_decoder::Decoder::new(jpeg_data);
+    let raw = decoder
+        .decode_raw_coefficients()
+        .map_err(|e| F5Error::JpegDecodeFailed(Box::new(e)))?;
+
+    Ok(crate::quality::estimate_quality(&raw.quantization_tables))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -325,6 +338,105 @@ mod tests {
             source.to_string(),
             "invalid JPEG format: first two bytes are not an SOI marker"
         );
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_vessel() {
+        // VESSEL was encoded at quality 90 by our encoder (standard IJG tables).
+        assert_quality_estimate(VESSEL, 90, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_corrupt_jpeg() {
+        let corrupt = b"not a jpeg";
+        assert!(jpeg_quality_estimate(corrupt).is_err());
+    }
+
+    /// Helper: estimate quality and assert within tolerance, logging deviations.
+    fn assert_quality_estimate(jpeg_data: &[u8], expected: u8, tolerance: u8) {
+        let estimated = jpeg_quality_estimate(jpeg_data).expect("should estimate quality");
+        let diff = (estimated as i16 - expected as i16).unsigned_abs() as u8;
+        if diff > 0 {
+            println!(
+                "Quality deviation: expected {expected}, got {estimated} (off by {diff})"
+            );
+        }
+        assert!(
+            diff <= tolerance,
+            "Expected ~{expected} (±{tolerance}), got {estimated}"
+        );
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q10() {
+        let jpeg = include_bytes!("../resources/test_q10.jpg");
+        assert_quality_estimate(jpeg, 10, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q20() {
+        let jpeg = include_bytes!("../resources/test_q20.jpg");
+        assert_quality_estimate(jpeg, 20, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q30() {
+        let jpeg = include_bytes!("../resources/test_q30.jpg");
+        assert_quality_estimate(jpeg, 30, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q40() {
+        let jpeg = include_bytes!("../resources/test_q40.jpg");
+        assert_quality_estimate(jpeg, 40, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q50() {
+        let jpeg = include_bytes!("../resources/test_q50.jpg");
+        assert_quality_estimate(jpeg, 50, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q60() {
+        let jpeg = include_bytes!("../resources/test_q60.jpg");
+        assert_quality_estimate(jpeg, 60, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q70() {
+        let jpeg = include_bytes!("../resources/test_q70.jpg");
+        assert_quality_estimate(jpeg, 70, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q80() {
+        let jpeg = include_bytes!("../resources/test_q80.jpg");
+        assert_quality_estimate(jpeg, 80, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q90() {
+        let jpeg = include_bytes!("../resources/test_q90.jpg");
+        assert_quality_estimate(jpeg, 90, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_q100() {
+        let jpeg = include_bytes!("../resources/test_q100.jpg");
+        assert_quality_estimate(jpeg, 100, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_color_q50() {
+        let jpeg = include_bytes!("../resources/test_color_q50.jpg");
+        assert_quality_estimate(jpeg, 50, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_color_q75() {
+        let jpeg = include_bytes!("../resources/test_color_q75.jpg");
+        assert_quality_estimate(jpeg, 75, 2);
     }
 
     #[test]
