@@ -366,63 +366,27 @@ mod tests {
     }
 
     #[test]
-    fn test_jpeg_quality_estimate_q10() {
-        let jpeg = include_bytes!("../resources/test_q10.jpg");
+    fn test_jpeg_quality_estimate_color_q10() {
+        let jpeg = include_bytes!("../resources/test_color_q10.jpg");
         assert_quality_estimate(jpeg, 10, 2);
     }
 
     #[test]
-    fn test_jpeg_quality_estimate_q20() {
-        let jpeg = include_bytes!("../resources/test_q20.jpg");
+    fn test_jpeg_quality_estimate_color_q20() {
+        let jpeg = include_bytes!("../resources/test_color_q20.jpg");
         assert_quality_estimate(jpeg, 20, 2);
     }
 
     #[test]
-    fn test_jpeg_quality_estimate_q30() {
-        let jpeg = include_bytes!("../resources/test_q30.jpg");
+    fn test_jpeg_quality_estimate_color_q30() {
+        let jpeg = include_bytes!("../resources/test_color_q30.jpg");
         assert_quality_estimate(jpeg, 30, 2);
     }
 
     #[test]
-    fn test_jpeg_quality_estimate_q40() {
-        let jpeg = include_bytes!("../resources/test_q40.jpg");
+    fn test_jpeg_quality_estimate_color_q40() {
+        let jpeg = include_bytes!("../resources/test_color_q40.jpg");
         assert_quality_estimate(jpeg, 40, 2);
-    }
-
-    #[test]
-    fn test_jpeg_quality_estimate_q50() {
-        let jpeg = include_bytes!("../resources/test_q50.jpg");
-        assert_quality_estimate(jpeg, 50, 2);
-    }
-
-    #[test]
-    fn test_jpeg_quality_estimate_q60() {
-        let jpeg = include_bytes!("../resources/test_q60.jpg");
-        assert_quality_estimate(jpeg, 60, 2);
-    }
-
-    #[test]
-    fn test_jpeg_quality_estimate_q70() {
-        let jpeg = include_bytes!("../resources/test_q70.jpg");
-        assert_quality_estimate(jpeg, 70, 2);
-    }
-
-    #[test]
-    fn test_jpeg_quality_estimate_q80() {
-        let jpeg = include_bytes!("../resources/test_q80.jpg");
-        assert_quality_estimate(jpeg, 80, 2);
-    }
-
-    #[test]
-    fn test_jpeg_quality_estimate_q90() {
-        let jpeg = include_bytes!("../resources/test_q90.jpg");
-        assert_quality_estimate(jpeg, 90, 2);
-    }
-
-    #[test]
-    fn test_jpeg_quality_estimate_q100() {
-        let jpeg = include_bytes!("../resources/test_q100.jpg");
-        assert_quality_estimate(jpeg, 100, 2);
     }
 
     #[test]
@@ -432,9 +396,33 @@ mod tests {
     }
 
     #[test]
-    fn test_jpeg_quality_estimate_color_q75() {
-        let jpeg = include_bytes!("../resources/test_color_q75.jpg");
-        assert_quality_estimate(jpeg, 75, 2);
+    fn test_jpeg_quality_estimate_color_q60() {
+        let jpeg = include_bytes!("../resources/test_color_q60.jpg");
+        assert_quality_estimate(jpeg, 60, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_color_q70() {
+        let jpeg = include_bytes!("../resources/test_color_q70.jpg");
+        assert_quality_estimate(jpeg, 70, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_color_q80() {
+        let jpeg = include_bytes!("../resources/test_color_q80.jpg");
+        assert_quality_estimate(jpeg, 80, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_color_q90() {
+        let jpeg = include_bytes!("../resources/test_color_q90.jpg");
+        assert_quality_estimate(jpeg, 90, 2);
+    }
+
+    #[test]
+    fn test_jpeg_quality_estimate_color_q100() {
+        let jpeg = include_bytes!("../resources/test_color_q100.jpg");
+        assert_quality_estimate(jpeg, 100, 2);
     }
 
     #[test]
