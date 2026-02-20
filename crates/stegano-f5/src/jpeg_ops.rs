@@ -357,9 +357,7 @@ mod tests {
         let estimated = jpeg_quality_estimate(jpeg_data).expect("should estimate quality");
         let diff = (estimated as i16 - expected as i16).unsigned_abs() as u8;
         if diff > 0 {
-            println!(
-                "Quality deviation: expected {expected}, got {estimated} (off by {diff})"
-            );
+            println!("Quality deviation: expected {expected}, got {estimated} (off by {diff})");
         }
         assert!(
             diff <= tolerance,
