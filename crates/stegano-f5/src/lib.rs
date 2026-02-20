@@ -68,10 +68,14 @@ mod error;
 mod jpeg_ops;
 mod matrix;
 mod permutation;
+mod quality;
 
 pub use decoder::F5Decoder;
 pub use encoder::F5Encoder;
 pub use error::{F5Error, Result};
-pub use jpeg_ops::{embed_in_jpeg, embed_in_jpeg_from_image, extract_from_jpeg, jpeg_capacity};
+pub use jpeg_ops::{
+    embed_in_jpeg, embed_in_jpeg_from_image, extract_from_jpeg, jpeg_capacity,
+    jpeg_quality_estimate,
+};
 pub use matrix::CheckMatrix;
 pub use permutation::Permutation;
