@@ -2,8 +2,8 @@
 name = "stegano-inspect"
 description = "Little tool for inspecting stegano images"
 version = "0.1.0"
-edition = "2021"
-license = "GPL-3.0-only"
+edition.workspace = true
+license.workspace = true
 publish = false
 
 [dependencies]

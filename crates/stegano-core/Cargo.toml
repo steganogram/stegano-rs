@@ -2,14 +2,14 @@
 name = "stegano-core"
 description = "Steganography core library for stegano-cli. Supports hiding data in PNG images via LSB Encoding."
 version = "0.6.1"
-authors = ["Sven Kanoldt <sven@d34dl0ck.me>"]
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
 license.workspace = true
-homepage = "https://www.stegano.org"
+homepage.workspace = true
 readme = "README.md"
 keywords = ["steganography", "image", "png", "hiding", "unveil"]
 categories = ["encoding", "multimedia::encoding", "multimedia::images"]
-repository = "https://github.com/steganogram/stegano-rs"
+repository.workspace = true
 include = [
     "src/**/*",
     "benches/**/*",
@@ -43,7 +43,7 @@ stegano-f5-jpeg-encoder.workspace = true
 
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }
-tempfile = "3.23"
+tempfile.workspace = true
 
 [dev-dependencies.cargo-husky]
 version = "1"

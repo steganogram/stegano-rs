@@ -3,20 +3,20 @@ name = "stegano-f5"
 description = "F5 steganography algorithm for JPEG images"
 version = "0.1.0"
 authors = ["Sven Assmann <sven.assmann.it@gmail.com>"]
-edition = "2021"
-license = "GPL-3.0-only"
-homepage = "https://www.stegano.org"
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
 keywords = ["steganography", "jpeg", "f5", "dct", "hiding"]
 categories = ["encoding", "multimedia::encoding", "multimedia::images"]
-repository = "https://github.com/steganogram/stegano-rs"
+repository.workspace = true
 
 [dependencies]
-thiserror = "1.0"
+thiserror.workspace = true
 fastrand = "2"
-log = "0.4"
+log.workspace = true
 
 stegano-f5-jpeg-decoder.workspace = true
 stegano-f5-jpeg-encoder.workspace = true
 
 [dev-dependencies]
-tempfile = "3.0"
+tempfile.workspace = true

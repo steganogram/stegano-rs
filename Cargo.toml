@@ -9,7 +9,12 @@ members = [
     "crates/stegano-inspect",
     "crates/stegano-seasmoke",
 ]
-package.license = "GPL-3.0-only"
+[workspace.package]
+authors = ["Sven Kanoldt <sven@d34dl0ck.me>"]
+edition = "2021"
+license = "GPL-3.0-only"
+repository = "https://github.com/steganogram/stegano-rs"
+homepage = "https://www.stegano.org"
 
 [profile.release]
 lto = "fat"
@@ -18,6 +23,7 @@ lto = "fat"
 env_logger = "0.11"
 log = "0.4"
 thiserror = "2.0"
+tempfile = "3.23"
 
 stegano-core = { path = "crates/stegano-core", version = "0.6.1" }
 stegano-f5 = { path = "crates/stegano-f5", version = "0.1" }

@@ -2,10 +2,10 @@
 name = "stegano-cli"
 description = "Hiding data with steganography in PNG images and WAV audio files"
 version = "0.6.2"
-authors = ["Sven Kanoldt <sven@d34dl0ck.me>"]
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
 license.workspace = true
-homepage = "https://www.stegano.org"
+homepage.workspace = true
 readme = "../../README.md"
 keywords = ["steganography", "image", "hiding", "unveil", "commandline"]
 categories = [
@@ -14,7 +14,7 @@ categories = [
     "multimedia::images",
     "command-line-utilities",
 ]
-repository = "https://github.com/steganogram/stegano-rs"
+repository.workspace = true
 include = ["src/**/*", "LICENSE", "README.md", "../CHANGELOG.md"]
 
 [dependencies]
