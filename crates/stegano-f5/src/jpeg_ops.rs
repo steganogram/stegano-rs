@@ -162,8 +162,7 @@ pub fn jpeg_capacity(jpeg_data: &[u8]) -> Result<usize> {
 
 /// Estimate the JPEG encoding quality (0–100) from quantization tables.
 ///
-/// Decodes the JPEG to extract quantization tables, then delegates to
-/// [`crate::quality::estimate_quality`] for the actual estimation.
+/// Decodes the JPEG to extract quantization tables
 pub fn jpeg_quality_estimate(jpeg_data: &[u8]) -> Result<u8> {
     let mut decoder = stegano_f5_jpeg_decoder::Decoder::new(jpeg_data);
     let raw = decoder
