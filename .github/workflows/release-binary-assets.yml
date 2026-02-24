@@ -45,17 +45,9 @@ jobs:
         with:
           tool: cross
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          use-cross: ${{ matrix.cross }}
-          args: --release --target=${{ matrix.target }}
+        run: ${{ matrix.cross && 'cross' || 'cargo' }} build --release --target=${{ matrix.target }}
       - name: Smoke Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: run
-          use-cross: ${{ matrix.cross }}
-          args: --release --target=${{ matrix.target }} -- --help
+        run: ${{ matrix.cross && 'cross' || 'cargo' }} run --release --target=${{ matrix.target }} -- --help
       - name: Create Archive
         id: archive
         shell: bash
