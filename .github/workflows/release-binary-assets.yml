@@ -57,7 +57,7 @@ jobs:
         run: |
           filename="stegano-$TAG-$TARGET.tar.gz"
           tar -czvf "$filename" README.md LICENSE -C "target/$TARGET/release" "${{ matrix.binName }}"
-          echo "::set-output name=filename::$filename"
+          echo "filename=$filename" >> "$GITHUB_OUTPUT"
       - name: Upload Archive
         uses: ncipollo/release-action@v1.8.7
         with:
