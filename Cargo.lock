@@ -924,6 +924,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1533,7 +1542,7 @@ name = "stegano-inspect"
 version = "0.1.0"
 dependencies = [
  "argh",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "stegano-f5",
  "stegano-f5-jpeg-decoder",
  "stegano-f5-jpeg-encoder",
