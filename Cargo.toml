@@ -23,7 +23,7 @@ lto = "fat"
 env_logger = "0.11"
 log = "0.4"
 thiserror = "2.0"
-tempfile = "3.23"
+tempfile = "3.26"
 
 stegano-core = { path = "crates/stegano-core", version = "0.6.1" }
 stegano-f5 = { path = "crates/stegano-f5", version = "0.1" }
