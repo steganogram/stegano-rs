@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 argh = "0.1"
-tabled = "0.17"
+tabled = "0.20"
 stegano-f5.workspace = true
 stegano-f5-jpeg-decoder.workspace = true
 stegano-f5-jpeg-encoder.workspace = true
