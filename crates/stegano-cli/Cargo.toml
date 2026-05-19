@@ -46,3 +46,9 @@ extended-description = """## Features
 - Written in [rust](https://www.rust-lang.org/)
 
 """
+
+[package.metadata.generate-rpm]
+name = "stegano"
+assets = [
+    { source = "target/release/stegano", dest = "/usr/bin/stegano", mode = "755" },
+]

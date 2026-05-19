@@ -1,0 +1,17 @@
+name: RPM
+
+on:
+  workflow_call:
+  push:
+    tags: ["v*"]
+
+jobs:
+  rpm:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: dnf install -y rust cargo make rpm-build
+      - name: build rpm
+        run: make build-rpm

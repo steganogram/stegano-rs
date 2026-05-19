@@ -71,6 +71,18 @@ $HOME/.cargo/bin/stegano
 ❯ yay -S stegano
 ```
 
+### RPM
+
+To build and install the RPM package on Fedora/RHEL-based systems:
+
+```sh
+sudo dnf install -y rustc rpm-build
+git clone --recurse-submodules https://github.com/steganogram/stegano-rs.git
+cd stegano-rs
+make build-rpm
+make install
+```
+
 ## Usage
 
 ```sh

@@ -79,6 +79,10 @@ jobs:
           } else {
             cargo test --all
           }
+  
+  rpm:
+    needs: [check, lint, tests]
+    uses: ./.github/workflows/rpm.yml
 
   audit:
     name: security audit
